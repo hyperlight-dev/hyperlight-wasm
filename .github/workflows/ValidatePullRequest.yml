@@ -1,0 +1,90 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Validate Pull Request
+
+on:
+  pull_request:
+    branches: [main, "release/**"]
+  merge_group: {}
+
+# Cancels old running job if a new one is triggered (e.g. by a push onto the same branch).
+# This will cancel dependent jobs as well, such as dep_rust and dep_fuzzing
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true  
+
+permissions:
+  pull-requests: read
+  contents: read
+  packages: read
+
+jobs:
+
+  docs-pr:
+    runs-on: ubuntu-latest
+    outputs:
+      docs-only: ${{ steps.docs-only.outputs.result }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            docs:
+              - '**/*.md'
+              - '**/*.txt'
+            all:
+              - '**/*'
+      - uses: actions/github-script@v7
+        id: docs-only
+        with:
+          script: |
+            let docs_file_count = ${{steps.changes.outputs.docs_count}};
+            let all_file_count = ${{steps.changes.outputs.all_count}};
+            return all_file_count === docs_file_count;
+          result-encoding: string
+
+  spelling:
+    name: spell check with typos
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Spell Check Repo
+      uses: crate-ci/typos@v1.30.2
+
+  build-wasm-examples:
+    needs: 
+      - docs-pr
+    uses: ./.github/workflows/dep_build_wasm_examples.yml
+    permissions:
+      contents: read
+      packages: write # to push the image that builds wasm samples
+    with: 
+      docs_only: ${{needs.docs-pr.outputs.docs-only}}
+  
+  rust:
+    needs:
+      - docs-pr
+      - build-wasm-examples
+    uses: ./.github/workflows/dep_rust.yml
+    with: 
+      docs_only: ${{needs.docs-pr.outputs.docs-only}}
+
+    
+  # Gate PR merges on this specific "join-job" which requires all other
+  # jobs to run first. We need this job since we cannot gate on particular jobs
+  # in the workflow, since they can sometimes be skipped (e.g. if the PR only touches docs).
+  # This step fixes this issue by always running.
+  report-ci-status:
+    needs:
+      - docs-pr
+      - rust
+      - spelling
+      - build-wasm-examples
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - name: Previous jobs succeeded
+      if: ${{ !(contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) }}
+      run: exit 0
+    - name: Previous jobs failed
+      if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+      run: exit 1

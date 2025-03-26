@@ -1,0 +1,82 @@
+name: Publish Crates to Cargo Registry
+
+on:
+  workflow_call:
+    inputs:
+      event_name:
+        description: 'The event that triggered the workflow. (pull_request, workflow_dispatch, workflow_call, push)'
+        type: string
+        required: true
+        default: 'pull_request'
+
+jobs:
+  publish-hyperlight-wasm:
+    runs-on: [self-hosted, Linux, X64, "1ES.Pool=HL-Ubuntu-22.04-KVM"]
+    steps:
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Hyperlight setup 
+        uses: hyperlight-dev/ci-setup-workflow@v1.3.0
+        with:
+          rust-toolchain: "1.82.0"
+
+      - name: Download Wasm Host (debug)
+        uses: actions/download-artifact@v4
+        with:
+          name: wasm-runtime-debug
+          path: ${{ github.workspace }}/src/hyperlight_wasm/redist/debug/
+
+      - name: Download Wasm Host (release)
+        uses: actions/download-artifact@v4
+        with:
+          name: wasm-runtime-release
+          path: ${{ github.workspace }}/src/hyperlight_wasm/redist/release/
+
+        # github actions that run against PRs check out a ref to the PR merge branch
+        # we need to switch / create a branch for cargo ws to run late
+      - name: set-branch-for-PRs
+        if: ${{ inputs.event_name == 'pull_request' }}
+        run: |
+          git switch -c ${{ github.ref}}
+
+      - name: Setup minver and cargo-workspaces
+        run: |
+          cargo install cargo-workspaces
+          cargo install minver_rs
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git config --global user.Name "${{ github.actor }}"
+
+      - name: Set crate versions
+        run: |
+          git fetch --tags || true
+          version=$(MINVER_TAG_PREFIX=v MINVER_AUTO_INCREMENT_LEVEL=Minor MINVER_PRERELEASE_IDENTIFIER=preview minver)
+          echo "Setting version to $version"
+          cargo ws version --force=hyperlight_* --no-git-commit --yes custom $version
+          echo "HYPERLIGHTWASM_VERSION=$version" >> "$GITHUB_ENV"
+      
+      - name: Determine if we should publish crates
+        run: |
+            echo "github.ref=${{ github.ref }}"
+            echo "HYPERLIGHTWASM_VERSION=$HYPERLIGHTWASM_VERSION"
+            if [[ ${{ github.ref }} =~ 'refs/heads/release/' || ( ${{ github.ref }} == 'refs/heads/dev' &&  $HYPERLIGHTWASM_VERSION =~ '-preview' ) ]]
+            then
+              echo "Setting SHOULD_PUBLISH in GITHUB_ENV"
+              echo "SHOULD_PUBLISH=true" >> "$GITHUB_ENV"
+            fi      
+    
+      - name: list package contents
+        working-directory: src/hyperlight_wasm
+        run: cargo package --list --manifest-path ./Cargo.toml --allow-dirty
+        # allow-dirty is needed in the publish below because we are using the --no-git-commit option above to cover the case 
+        # where no changes are made by cargo ws version because the version is already correct
+
+        # Run cargo package to perform publishing validation if this workflow
+        # is triggered by a pull-request
+      - name: Package hyperlight-wasm (dry-run)
+        if: ${{ inputs.event_name == 'pull_request' }}
+        working-directory: src/hyperlight_wasm
+        run: cargo package --manifest-path ./Cargo.toml --allow-dirty

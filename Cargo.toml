@@ -1,0 +1,7 @@
+[workspace]
+members = ["src/hyperlight_wasm", "src/examples_common", "src/hyperlight_wasm_aot" ]
+exclude = [ "src/wasm_runtime",  "src/rust_wasm_samples", "src/hyperlight_wasm_macro" ]
+resolver = "2"
+
+[workspace.dependencies]
+hyperlight-host = { git = "https://github.com/hyperlight-dev/hyperlight", branch = "hyperlight-component-macro", default-features = false, features = ["executable_heap"] }

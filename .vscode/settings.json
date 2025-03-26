@@ -1,0 +1,7 @@
+{
+
+    // This is needed to allow tests to find files when running under the debugger
+    "rust-analyzer.runnables.extraEnv": {
+        "RUST_DIR_FOR_DEBUGGING_TESTS": "${workspaceFolder}/src/hyperlight_wasm"
+    }
+}

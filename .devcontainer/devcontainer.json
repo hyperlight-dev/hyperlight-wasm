@@ -1,0 +1,43 @@
+// For more info on the configuration below, check out the link:
+// https://code.visualstudio.com/docs/devcontainers/create-dev-container
+{
+    "name": "Hyperlight-Wasm",
+    "image": "ghcr.io/hyperlight-dev/hyperlight-wasm-devcontainer:latest",
+
+    "containerUser": "vscode",
+    // Environment for the container also used by the `postCreateCommand`
+    "containerEnv": {
+      "DEVICE": "/dev/kvm",
+      "REMOTE_USER": "vscode",
+      "REMOTE_GROUP": "vscode"
+    },
+  
+    "runArgs": [
+        "--device=/dev/kvm"
+    ],
+  
+    // use `postStartCommand` for additional setup commands
+    // this is run after the container is created and the user has been added
+    "postStartCommand": "bash .devcontainer/setup.sh",
+  
+    "customizations": {
+      "vscode": {
+        "extensions": [
+          "ms-vscode.cpptools-extension-pack",
+          "ms-vscode.cmake-tools",
+          "rust-lang.rust-analyzer",
+          "vadimcn.vscode-lldb"
+        ],
+        "settings": {
+          "rust-analyzer.rustfmt.extraArgs": [
+            "+nightly" // required for rustfmt.toml which uses nightly features
+          ],
+           // This is needed to allow tests to find files when running under the debugger
+          "rust-analyzer.runnables.extraEnv": {
+              "RUST_DIR_FOR_DEBUGGING_TESTS": "${workspaceFolder}/src/hyperlight_wasm"
+          }
+        }
+      }
+    }
+  }
+  

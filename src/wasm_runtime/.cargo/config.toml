@@ -1,0 +1,21 @@
+[build]
+target = "x86_64-unknown-none"
+
+[target.x86_64-unknown-none]
+rustflags = [
+  "-C",
+  "code-model=small",
+  "-C",
+  "link-args=-e entrypoint",
+]
+linker = "rust-lld"
+
+[env]
+HYPERLIGHT_GUEST_TOOLCHAIN_ROOT = { value = "guest-toolchain", relative = true }
+
+[profile.release]
+panic = "abort"
+
+[profile.dev]
+opt-level = 0
+panic = "abort"

@@ -1,0 +1,29 @@
+name: Audit cargo dependencies for security vulnerabilities
+on:
+  schedule:
+    - cron: "0 8 * * 1" # run at 8am every Monday
+  workflow_dispatch: # allow manual triggering
+
+permissions:
+    issues: write # Creates issues for any vulnerabilities found
+    contents: read 
+    checks: write # Needs to create check
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # We are not using the common workflow here because it installs a lot of tools we don't need
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.82.0"
+          
+      - uses: extractions/setup-just@v3
+        with:
+          just-version: "1.27"
+                 
+      - uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

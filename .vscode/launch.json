@@ -1,0 +1,34 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    // this can be used to debug tests 
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Cargo test",
+            "cargo": {
+              "args": [
+                "test",
+                "--profile=dev",
+                "--lib",
+                "--no-run"
+               
+              ],
+              "filter": {
+                "name": "hyperlight_wasm",
+                "kind": "lib"
+              }
+            },
+            "env": {
+              "RUST_DIR_FOR_DEBUGGING_TESTS": "${workspaceFolder}/src/hyperlight_wasm"
+            },
+            "args": [
+                "--exact",
+                "sandbox::loaded_wasm_sandbox::tests::test_call_host_func_with_vecbytes"
+            ]
+        }
+    ]
+}

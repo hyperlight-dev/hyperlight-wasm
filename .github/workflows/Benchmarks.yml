@@ -1,0 +1,88 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+name: Benchmarks
+
+on:
+  workflow_call: # this is called from CreateRelease.yml
+
+# The reason for default shell bash is because on our self-hosted windows runners,
+# the default shell is powershell, which doesn't work correctly together with `just` commands.
+# Even if a command inside a just-recipe fails, github reports the step as successful.
+# The problem may or may not be related to our custom windows runner not applying the
+# powershell steps outlined here 
+# https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#exit-codes-and-error-action-preference
+defaults:
+    run:
+      shell: bash
+
+jobs:
+  build-wasm-examples:
+    uses: ./.github/workflows/dep_build_wasm_examples.yml
+  
+  benchmark:
+    needs:
+      - build-wasm-examples
+    strategy:
+      fail-fast: true
+      matrix:
+        hypervisor: [hyperv, mshv, mshv3, kvm] # hyperv is windows, mshv and kvm are linux
+        cpu: [amd, intel]
+        config: [release] # don't want to benchmark debug-builds
+
+    runs-on: ${{ fromJson(format('["self-hosted", "{0}", "X64", "1ES.Pool=hld-{1}-{2}"]', matrix.hypervisor == 'hyperv' && 'Windows' || 'Linux', matrix.hypervisor == 'hyperv' && 'win2022' || matrix.hypervisor == 'mshv3' && 'azlinux3-mshv' || matrix.hypervisor, matrix.cpu)) }} 
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: hyperlight-dev/ci-setup-workflow@v1.3.0
+      with:
+        rust-toolchain: "1.82.0"
+
+    - name: Build Wasm Runtime Binary
+      working-directory: ./src/hyperlight_wasm
+      run: just build-wasm-runtime ${{ matrix.config }}
+    
+    - uses: dtolnay/rust-toolchain@1.82.0
+      with:
+        components: clippy, rustfmt
+
+    - name: Download Wasm Modules
+      uses: actions/download-artifact@v4
+      with:
+        name: guest-modules
+        path: ./x64/${{ matrix.config }}
+
+    ### Benchmarks ###
+
+    # Install GH cli (needed for just bench-download)
+    - name: Install github-cli (Linux mariner)
+      if: runner.os == 'Linux' && matrix.hypervisor == 'mshv' || matrix.hypervisor == 'mshv3'
+      run: sudo dnf install gh -y
+
+    - name: Install github-cli (Linux ubuntu)
+      if: runner.os == 'Linux' && matrix.hypervisor == 'kvm'
+      run: sudo apt install gh -y
+
+    - name: Fetch tags
+      run: |
+        git fetch --tags origin
+      
+    - name: Download benchmark from most recent release
+      run: |
+        just bench-download ${{ runner.os }} ${{ matrix.hypervisor }}
+      continue-on-error: true
+      working-directory: ./src/hyperlight_wasm
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Run Benchmarks
+      run: |
+        just bench-ci dev release
+      working-directory: ./src/hyperlight_wasm
+
+    - name: Upload Benchmarks
+      uses: actions/upload-artifact@v4
+      with: 
+        name: benchmarks_${{runner.os}}_${{matrix.hypervisor}}
+        path: ./target/criterion/
+        if-no-files-found: error

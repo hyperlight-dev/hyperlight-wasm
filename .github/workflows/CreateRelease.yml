@@ -1,0 +1,128 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Create a Release
+on:
+  workflow_dispatch:
+  push:
+    branches: [ release/**, dev ]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  
+  benchmarks:
+    uses: ./.github/workflows/Benchmarks.yml
+
+  publish:
+    needs: [ benchmarks ]
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        config: [debug, release]
+    env:
+        PLATFORM: x64
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    # Ensures just is installed using setup wokflow to ensure just version consistency
+    - name: Hyperlight setup
+      uses: hyperlight-dev/ci-setup-workflow@v1.3.0
+      with:
+          rust-toolchain: "1.82.0"
+    - name: Install minver_rs
+      run: |
+          cargo install minver_rs
+      shell: pwsh
+    - name: Set HYPERLIGHTWASM_VERSION
+      run: |
+        git fetch --tags || true
+        $env:MINVER_TAG_PREFIX="v"
+        $env:MINVER_AUTO_INCREMENT_LEVEL="Minor"
+        $env:MINVER_PRERELEASE_IDENTIFIER="preview"
+        echo "HYPERLIGHTWASM_VERSION=$(minver)"| Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
+        echo "HYPERLIGHTWASM_VERSION=$(minver)"
+      shell: pwsh
+    - name: Download Wasm Host
+      uses: actions/download-artifact@v4
+      with:
+        name: wasm-runtime-${{ matrix.config }}
+        path: ${{ env.PLATFORM }}/${{ matrix.config }}
+    - name: Download Wasm Modules
+      uses: actions/download-artifact@v4
+      with:
+        name: guest-modules
+        path: ${{ env.PLATFORM }}/${{ matrix.config }}
+    - name: Build rust wasm modules
+      run: just build-rust-wasm-examples ${{ matrix.config }}
+      shell: bash
+    - name: Download Benchmarks (Windows)
+      uses: actions/download-artifact@v4
+      with:
+        name: benchmarks_Windows_whp
+        path: benchmarks_Windows_whp
+    - name: Download Benchmarks (Linux hyperv)
+      uses: actions/download-artifact@v4
+      with:
+        name: benchmarks_Linux_hyperv
+        path: benchmarks_Linux_hyperv
+    - name: Download Benchmarks (Linux kvm)
+      uses: actions/download-artifact@v4
+      with:
+        name: benchmarks_Linux_kvm
+        path: benchmarks_Linux_kvm
+    - name: Archive benchmarks
+      run: |
+        tar -zcvf benchmarks_Windows_whp.tar.gz benchmarks_Windows_whp
+        tar -zcvf benchmarks_Linux_hyperv.tar.gz benchmarks_Linux_hyperv
+        tar -zcvf benchmarks_Linux_kvm.tar.gz benchmarks_Linux_kvm
+    - name: Install github-cli
+      run: |
+          $ProgressPreference = 'SilentlyContinue'
+          # check if gh cli is installed
+          $installed = [bool](Get-Command -ErrorAction Ignore -Type Application gh)
+          if ($installed) { Write-Host "gh cli already installed"; exit 0 }
+          # download and install gh cli
+          Invoke-WebRequest https://github.com/cli/cli/releases/download/v2.50.0/gh_2.50.0_windows_amd64.msi -OutFile gh.msi
+          msiexec.exe /i gh.msi /quiet /l log.txt | Out-Null
+          Write-Host "msiexec exited with code $LASTEXITCCODE"
+          if ($LASTEXITCODE -ne 0) { cat log.txt; exit 1 }
+    - name: Create pre-release
+      if:  (!contains(github.ref, 'refs/heads/release/')) &&  matrix.config == 'debug' 
+      run:  |
+            echo "PWD: $PWD"
+            ls -alR
+            gh release delete dev-latest -y --cleanup-tag  || true
+            gh release create dev-latest -t "Latest Development Build From Dev Branch" --latest=false -p \
+                ${{ env.PLATFORM }}/${{ matrix.config }}/HelloWorld.wasm \
+                ${{ env.PLATFORM }}/${{ matrix.config }}/RunWasm.wasm \
+                ${{ env.PLATFORM }}/${{ matrix.config }}/HelloWorld.aot \
+                ${{ env.PLATFORM }}/${{ matrix.config }}/wasm_runtime.* \
+                ${{ env.PLATFORM }}/${{ matrix.config }}/rust_wasm_samples.aot \
+                ${{ env.PLATFORM }}/${{ matrix.config }}/rust_wasm_samples.wasm \
+                benchmarks_Windows_whp.tar.gz \
+                benchmarks_Linux_hyperv.tar.gz \
+                benchmarks_Linux_kvm.tar.gz
+      env:
+        GH_TOKEN: ${{ github.token }}
+      shell: bash
+    - name: Create Release
+      if:   contains(github.ref, 'refs/heads/release/') &&  matrix.config == 'release'
+      run:  |
+            echo "PWD: $PWD"
+            ls -alR
+            gh release create v${{ env.HYPERLIGHTWASM_VERSION }} -t "Release v${{ env.HYPERLIGHTWASM_VERSION }}" --generate-notes \
+                ${{ env.PLATFORM }}/${{ matrix.config }}/HelloWorld.wasm \
+                ${{ env.PLATFORM }}/${{ matrix.config }}/RunWasm.wasm \
+                ${{ env.PLATFORM }}/${{ matrix.config }}/HelloWorld.aot \
+                ${{ env.PLATFORM }}/${{ matrix.config }}/RunWasm.aot \
+                ${{ env.PLATFORM }}/${{ matrix.config }}/wasm_runtime.* \
+                ${{ env.PLATFORM }}/${{ matrix.config }}/rust_wasm_samples.aot \
+                ${{ env.PLATFORM }}/${{ matrix.config }}/rust_wasm_samples.wasm \
+                benchmarks_Windows_whp.tar.gz \
+                benchmarks_Linux_hyperv.tar.gz \
+                benchmarks_Linux_kvm.tar.gz
+      env:
+        GH_TOKEN: ${{ github.token }}
+      shell: bash

@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# When a new Tag with the prefix v is pushed to the repository, this workflow will create a new release branch called release/<tag name>. 
+
+name: Create a Release Branch
+
+on:
+  push:
+    tags: 
+      - 'v*'
+
+permissions:
+  contents: write # Needed to push new branch
+
+jobs:
+  create-branch:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Create Release Branch
+      run: |
+        git checkout -b release/${GITHUB_REF_NAME}
+        git push --set-upstream origin release/${GITHUB_REF_NAME}
+      shell: bash

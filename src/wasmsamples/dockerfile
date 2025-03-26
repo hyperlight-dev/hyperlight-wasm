@@ -1,0 +1,22 @@
+FROM ubuntu
+ENV DEBIAN_FRONTEND=noninteractive
+LABEL org.opencontainers.image.source=https://github.com/deislabs/hyperlight-wasm
+
+ARG GCC_VERSION=12
+
+RUN apt-get update \
+ && apt-get upgrade -y
+RUN apt-get install -y  wget  \
+ && apt-get install -y build-essential \
+ && apt-get install -y g++-multilib \
+ && apt-get install -y libgcc-${GCC_VERSION}-dev \
+ && apt-get install -y lib32gcc-${GCC_VERSION}-dev 
+
+ARG WASI_SDK_VERSION_FULL=20.0
+ARG WASI_SDK_VERSION_MAJOR=${WASI_SDK_VERSION_FULL%%.*}
+
+RUN wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION_MAJOR}/wasi-sdk-${WASI_SDK_VERSION_FULL}-linux.tar.gz \
+ && tar xvf wasi-sdk-${WASI_SDK_VERSION_FULL}-linux.tar.gz \
+ && rm wasi-sdk-${WASI_SDK_VERSION_FULL}-linux.tar.gz \
+ && mv /wasi-sdk-${WASI_SDK_VERSION_FULL} /opt/wasi-sdk
+CMD ["/bin/sh"]

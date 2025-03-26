@@ -1,0 +1,29 @@
+# Reference: https://github.com/dotnet/roslyn/blob/main/.editorconfig
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+[*]
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+charset = utf-8
+
+# JSON files
+[*.json]
+indent_size = 2
+
+# YAML files
+[*.yml]
+indent_size = 2
+[*.yaml]
+indent_size = 2
+
+# Powershell files
+[*.ps1]
+indent_size = 2
+
+# Shell script files
+[*.sh]
+end_of_line = lf
+indent_size = 2

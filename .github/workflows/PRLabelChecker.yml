@@ -1,0 +1,29 @@
+name: Label Checker
+on:
+  pull_request:
+    branches: main
+    types: [opened, labeled, unlabeled, synchronize, reopened]
+permissions:
+  pull-requests: read
+  contents: read
+
+jobs:
+  check-labels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure exactly one "kind/*" label is applied
+        run: |
+          # Count the number of "kind/*" labels directly from the PR labels
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          KIND_LABEL_COUNT=$(gh pr view "$PR_NUMBER" --json labels -q '.labels.[].name' | grep -c '^kind/')
+
+          if [[ "$KIND_LABEL_COUNT" -eq 1 ]]; then
+            echo "✅ Exactly one 'kind/*' label is applied."
+            exit 0
+          else
+            echo "❌ PR must have exactly one 'kind/*' label, but found $KIND_LABEL_COUNT."
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

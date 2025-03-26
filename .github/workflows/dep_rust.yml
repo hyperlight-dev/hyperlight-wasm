@@ -1,0 +1,142 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Rust Tests and Lints
+
+# See README.md in this directory for more information about workflow_call
+on:
+  workflow_call:
+    inputs:
+      docs_only:
+        description: Skip building if docs only
+        required: false
+        type: string
+        default: "false"
+
+permissions:
+  contents: read
+
+# The reason for default shell bash is because on our self-hosted windows runners,
+# the default shell is powershell, which doesn't work correctly together with `just` commands.
+# Even if a command inside a just-recipe fails, github reports the step as successful.
+# The problem may or may not be related to our custom windows runner not applying the
+# powershell steps outlined here 
+# https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#exit-codes-and-error-action-preference
+defaults:
+    run:
+      shell: bash
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: full
+
+jobs:
+  # this job requires the build-guest-binaries job be complete prior to 
+  # its execution. this dependency should be expressed in the dependent
+  # workflow
+  build:
+    if: ${{ inputs.docs_only == 'false' }}
+    strategy:
+        fail-fast: true
+        matrix:
+          hypervisor: [hyperv, mshv, mshv3, kvm] # hyperv is windows, mshv and kvm are linux
+          cpu: [amd, intel]
+          config: [debug, release]
+  
+    runs-on: ${{ fromJson(
+        format('["self-hosted", "{0}", "X64", "1ES.Pool=hld-{1}-{2}"]', 
+          matrix.hypervisor == 'hyperv' && 'Windows' || 'Linux', 
+          matrix.hypervisor == 'hyperv' && 'win2022' || matrix.hypervisor == 'mshv3' && 'azlinux3-mshv' || matrix.hypervisor, 
+          matrix.cpu)) }} 
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Hyperlight setup
+        uses: hyperlight-dev/ci-setup-workflow@v1.3.0
+        with:
+          rust-toolchain: "1.82.0"
+
+      - name: Add Nightly Rust
+        run: |
+          rustup toolchain install nightly
+          for target in $(rustup target list --installed); do
+              rustup target add $target --toolchain nightly
+          done
+          rustup target add wasm32-unknown-unknown  
+        shell: bash
+
+      - name: Add Nightly Rust Windows
+        if: runner.os == 'Windows'
+        run: rustup component add --toolchain nightly-x86_64-pc-windows-msvc rustfmt
+
+      - name: Build Wasm Runtime Binary
+        working-directory: ./src/hyperlight_wasm
+        run: just build-wasm-runtime ${{ matrix.config }}
+
+      - name: Download Wasm Modules
+        uses: actions/download-artifact@v4
+        with:
+          name: guest-modules
+          path: ./x64/${{ matrix.config }}
+      
+      - name: Fmt
+        run: just fmt
+
+      - name: Clippy
+        run: just clippy ${{ matrix.config }}
+
+      - name: Build
+        run:  just build ${{ matrix.config }}  ${{ matrix.hypervisor == 'mshv3' && 'mshv3' || ''}}
+        working-directory: ./src/hyperlight_wasm
+
+      - name: Build Rust Wasm examples
+        run:  just build-rust-wasm-examples ${{ matrix.config }}
+        working-directory: ./src/hyperlight_wasm
+
+      - name: Test
+        run:  just test ${{ matrix.config }}  ${{ matrix.hypervisor == 'mshv3' && 'mshv3' || ''}}
+        working-directory: ./src/hyperlight_wasm
+
+      - name: Install github-cli (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          # check if gh cli is installed
+          $installed = [bool](Get-Command -ErrorAction Ignore -Type Application gh)
+          if ($installed) { Write-Host "gh cli already installed"; exit 0 }
+          # download and install gh cli
+          Invoke-WebRequest https://github.com/cli/cli/releases/download/v2.68.1/gh_2.68.1_windows_amd64.msi -OutFile gh.msi
+          msiexec.exe /i gh.msi /quiet /l log.txt | Out-Null
+          Write-Host "msiexec exited with code $LASTEXITCCODE"
+          if ($LASTEXITCODE -ne 0) { cat log.txt; exit 1 }
+        shell: pwsh
+    
+      - name: Install github-cli (Linux mariner)
+        if: runner.os == 'Linux' && (matrix.hypervisor == 'mshv2' || matrix.hypervisor == 'mshv3')
+        run: sudo dnf install gh -y
+
+      - name: Install github-cli (Linux ubuntu)
+        if: runner.os == 'Linux' && matrix.hypervisor == 'kvm'
+        run: sudo apt install gh -y
+
+      - name: Test Examples
+        run: just examples-ci ${{ matrix.config }} ${{ matrix.hypervisor == 'mshv3' && 'mshv3' || ''}}
+        working-directory: ./src/hyperlight_wasm
+        env:
+          # required for gh cli when downloading
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      ### Benchmarks ###
+
+      - name: Download benchmarks from "latest"
+        run: |
+          just bench-download ${{ runner.os }} ${{ matrix.hypervisor }} dev-latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        working-directory: ./src/hyperlight_wasm
+        if: ${{ matrix.config == 'release' }}
+
+      - name: Run benchmarks
+        run: |
+          just bench-ci dev ${{ matrix.config }} ${{ matrix.hypervisor == 'mshv3' && 'mshv3' || ''}}
+        working-directory: ./src/hyperlight_wasm
+        if: ${{ matrix.config == 'release' }}
