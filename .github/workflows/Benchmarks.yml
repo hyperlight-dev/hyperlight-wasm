@@ -42,7 +42,7 @@ jobs:
       working-directory: ./src/hyperlight_wasm
       run: just build-wasm-runtime ${{ matrix.config }}
     
-    - uses: dtolnay/rust-toolchain@1.82.0
+    - uses: dtolnay/rust-toolchain@1.100.0
       with:
         components: clippy, rustfmt
 
