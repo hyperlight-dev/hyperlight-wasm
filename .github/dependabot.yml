@@ -5,8 +5,12 @@ updates:
     schedule:
       interval: "daily"
     target-branch: "main"
+    labels:
+      - "kind/dependencies"
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
       interval: "daily"
     target-branch: "main"
+    labels:
+      - "kind/dependencies"
