@@ -36,7 +36,7 @@ libc = { version = "0.2.171" }
 once_cell = "1.21.1"
 strum = "0.27"
 tracing = "0.1.27"
-log = "0.4.26"
+log = "0.4.27"
 cfg-if = { version = "1" }
 
 [target.'cfg(windows)'.dependencies]
