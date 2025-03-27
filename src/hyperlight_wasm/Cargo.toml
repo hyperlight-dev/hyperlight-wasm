@@ -40,7 +40,7 @@ log = "0.4.27"
 cfg-if = { version = "1" }
 
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.59", features = [
+windows = { version = "0.60", features = [
     "Win32_System_Threading",
 ] }
 page_size = "0.6.0"
