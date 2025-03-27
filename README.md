@@ -2,7 +2,7 @@
 
 _Hyperlight-Wasm_ is a component that enables Wasm Modules to be run inside lightweight  Virtual Machine backed Sandbox. Its purpose is to enable applications to  safely run untrusted or third party Wasm code within a VM with very low latency/overhead. It is built on top of [Hyperlight](https://github.com/hyperlight-dev/hyperlight).
 
-Hyperlight-Wasm currently supports running applications using either the [Windows Hypervisor Platform](https://docs.microsoft.com/en-us/virtualization/api/#windows-hypervisor-platform) on Windows, [KVM](https://www.linux-kvm.org/page/Main_Page) on Linux or [/dev/mshv](https://github.com/cloud-hypervisor/mshv).
+Hyperlight-Wasm currently supports running applications using either the [Windows Hypervisor Platform](https://docs.microsoft.com/en-us/virtualization/api/#windows-hypervisor-platform) on Windows, [KVM](https://www.linux-kvm.org/page/Main_Page) on Linux or [/dev/mshv](https://github.com/rust-vmm/mshv).
 
 WARNING: This is experimental code. It is not considered production-grade by its developers, neither is it "supported" software.
 
