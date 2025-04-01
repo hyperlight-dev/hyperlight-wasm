@@ -51,12 +51,12 @@ criterion = { version = "0.5.1", features = ["html_reports"] }
 lazy_static = "1.4.0"
 prometheus = "0.13.3"
 crossbeam-queue = "0.3"
-blake3 = "1.7"
+blake3 = "1.8"
 toml = "0.8.19"
 
 [build-dependencies]
 chrono = "0.4"
-blake3 = "1.7"
+blake3 = "1.8"
 built = { version = "0.7.7", features = ["chrono", "git2"] }
 anyhow = { version = "1.0" }
 goblin = "0.9.3"
