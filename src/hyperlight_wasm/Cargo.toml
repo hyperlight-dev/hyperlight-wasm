@@ -49,7 +49,7 @@ page_size = "0.6.0"
 examples_common = { path = "../examples_common" }
 criterion = { version = "0.5.1", features = ["html_reports"] }
 lazy_static = "1.4.0"
-prometheus = "0.13.3"
+prometheus = "0.14.0"
 crossbeam-queue = "0.3"
 blake3 = "1.8"
 toml = "0.8.19"
