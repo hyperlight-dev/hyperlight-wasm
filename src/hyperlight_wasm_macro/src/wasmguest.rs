@@ -145,7 +145,7 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
             let n = match kebab_to_fn(ed.kebab_name) {
                 FnName::Plain(n) => n,
                 FnName::Associated(_, _) => {
-                    panic!("resorurces exported from wasm not yet supported")
+                    panic!("resources exported from wasm not yet supported")
                 }
             };
             let nlit = n.unraw().to_string();
