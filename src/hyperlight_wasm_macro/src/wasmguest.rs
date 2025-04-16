@@ -159,7 +159,7 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
             let (pds, pus) = ft.params.iter().enumerate()
                 .map(|(i, p)| {
                     let id = kebab_to_var(p.name.name);
-                    let pd = quote! { let ::hyperlight_common::flatbuffer_wrappers::function_types::ParameterValue::VecBytes(ref #id) = &fc.parameters.as_ref().unwrap()[#i]; };
+                    let pd = quote! { let ::hyperlight_common::flatbuffer_wrappers::function_types::ParameterValue::VecBytes(ref #id) = &fc.parameters.as_ref().unwrap()[#i] else { panic!("invariant violation: host passed non-VecBytes core hyperlight argument"); }; };
                     let pu = emit_hl_unmarshal_param(s, id, &p.ty);
                     (pd, pu)
                 })
