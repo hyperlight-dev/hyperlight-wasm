@@ -32,7 +32,7 @@ test = true
 
 [dependencies]
 hyperlight-host = { workspace = true }
-libc = { version = "0.2.171" }
+libc = { version = "0.2.172" }
 once_cell = "1.21.3"
 strum = "0.27"
 tracing = "0.1.27"
