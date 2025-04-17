@@ -179,7 +179,7 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
                     let func_idx = instance.get_export(&mut *store, instance_idx.as_ref(), #nlit).unwrap();
                     let #ret = instance.get_typed_func::<(#(#pwts,)*), (#rwt,)>(&mut *store, func_idx)?
                         .call(&mut *store, (#(#pus,)*))?.0;
-                    ::core::result::Result::Ok(#marshal_result)
+                    ::core::result::Result::Ok(::hyperlight_common::flatbuffer_wrappers::util::get_flatbuffer_result::<&[u8]>(&#marshal_result))
                 }
                 ::hyperlight_guest::guest_function_register::register_function(
                     ::hyperlight_guest::guest_function_definition::GuestFunctionDefinition::new(
