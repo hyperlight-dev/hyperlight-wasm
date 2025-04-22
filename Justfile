@@ -58,7 +58,6 @@ clippy target=default-target: (check target)
 test target=default-target features="": (test-inprocess target) (test-seccomp target features)
     cargo test {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }}
     cargo test test_metrics {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored 
-    cargo test test_gather_metrics {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored
 
 test-inprocess target=default-target:
   {{ if target == "debug" { "cargo test --features='inprocess'; cargo test test_metrics --features='inprocess' -- --ignored; cargo test test_gather_metrics --features='inprocess' -- --ignored" } else {"echo 'inprocess tests are not run for release builds'" } }} 

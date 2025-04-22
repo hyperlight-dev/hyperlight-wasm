@@ -27,16 +27,13 @@ use hyperlight_host::sandbox::ExtraAllowedSyscall;
 use hyperlight_host::sandbox_state::sandbox::{EvolvableSandbox, Sandbox};
 use hyperlight_host::sandbox_state::transition::{MultiUseContextCallback, Noop};
 use hyperlight_host::{
-    int_counter_inc, int_gauge_dec, int_gauge_inc, new_error, GuestBinary, MultiUseSandbox, Result,
-    SandboxRunOptions, UninitializedSandbox,
+    new_error, GuestBinary, MultiUseSandbox, Result, SandboxRunOptions, UninitializedSandbox,
 };
 
+use super::metrics::{METRIC_ACTIVE_PROTO_WASM_SANDBOXES, METRIC_TOTAL_PROTO_WASM_SANDBOXES};
 use super::sandbox_builder::SandboxBuilder;
 use super::wasm_sandbox::WasmSandbox;
 use crate::build_info::BuildInfo;
-use crate::sandbox::metrics::SandboxMetric::{
-    CurrentNumberOfProtoWasmSandboxes, TotalNumberOfProtoWasmSandboxes,
-};
 use crate::{HostPrintFn, ReturnType, ReturnValue};
 
 /// A Hyperlight Sandbox with no Wasm run time loaded and no guest module code loaded.
@@ -95,8 +92,8 @@ impl<'a> ProtoWasmSandbox {
     ) -> Result<Self> {
         BuildInfo::log();
         let inner = UninitializedSandbox::new(guest_binary, cfg, opts, host_print_fn)?;
-        int_gauge_inc!(&CurrentNumberOfProtoWasmSandboxes);
-        int_counter_inc!(&TotalNumberOfProtoWasmSandboxes);
+        metrics::gauge!(METRIC_ACTIVE_PROTO_WASM_SANDBOXES).increment(1);
+        metrics::counter!(METRIC_TOTAL_PROTO_WASM_SANDBOXES).increment(1);
         Ok(Self { inner: Some(inner) })
     }
 
@@ -291,7 +288,7 @@ impl std::fmt::Debug for ProtoWasmSandbox {
 
 impl Drop for ProtoWasmSandbox {
     fn drop(&mut self) {
-        int_gauge_dec!(&CurrentNumberOfProtoWasmSandboxes);
+        metrics::gauge!(METRIC_ACTIVE_PROTO_WASM_SANDBOXES).decrement(1);
     }
 }
 

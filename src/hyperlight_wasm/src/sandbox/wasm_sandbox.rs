@@ -20,13 +20,11 @@ use hyperlight_host::func::call_ctx::MultiUseGuestCallContext;
 use hyperlight_host::sandbox::Callable;
 use hyperlight_host::sandbox_state::sandbox::{EvolvableSandbox, Sandbox};
 use hyperlight_host::sandbox_state::transition::MultiUseContextCallback;
-use hyperlight_host::{
-    int_counter_inc, int_gauge_dec, int_gauge_inc, new_error, MultiUseSandbox, Result,
-};
+use hyperlight_host::{new_error, MultiUseSandbox, Result};
 
 use super::loaded_wasm_sandbox::LoadedWasmSandbox;
-use crate::sandbox::metrics::SandboxMetric::{
-    CurrentNumberOfWasmSandboxes, NumberOfLoadsOfWasmSandboxes, TotalNumberOfWasmSandboxes,
+use crate::sandbox::metrics::{
+    METRIC_ACTIVE_WASM_SANDBOXES, METRIC_SANDBOX_LOADS, METRIC_TOTAL_WASM_SANDBOXES,
 };
 use crate::{ParameterValue, ReturnType, ReturnValue};
 
@@ -40,7 +38,7 @@ pub struct WasmSandbox {
     // inner is an Option<MultiUseSandbox> as we need to take ownership of it
     // We implement drop on the WasmSandbox to decrement the count of Sandboxes when it is dropped
     // because of this we cannot implement drop without making inner an Option (alternatively we could make MultiUseSandbox Copy but that would introduce other issues)
-    pub(super) inner: Option<MultiUseSandbox>,
+    inner: Option<MultiUseSandbox>,
 }
 
 impl Sandbox for WasmSandbox {}
@@ -51,8 +49,8 @@ impl WasmSandbox {
     /// The difference between this function and creating  a `WasmSandbox` directly is that
     /// this function will increment the metrics for the number of `WasmSandbox`es in the system.
     pub(super) fn new(inner: MultiUseSandbox) -> Self {
-        int_gauge_inc!(&CurrentNumberOfWasmSandboxes);
-        int_counter_inc!(&TotalNumberOfWasmSandboxes);
+        metrics::gauge!(METRIC_ACTIVE_WASM_SANDBOXES).increment(1);
+        metrics::counter!(METRIC_TOTAL_WASM_SANDBOXES).increment(1);
         WasmSandbox { inner: Some(inner) }
     }
 
@@ -92,11 +90,11 @@ impl WasmSandbox {
         });
 
         let transition_func = MultiUseContextCallback::from(func);
-        int_counter_inc!(&NumberOfLoadsOfWasmSandboxes);
 
         match self.inner.take() {
             Some(sbox) => {
                 let new_sbox: MultiUseSandbox = sbox.evolve(transition_func)?;
+                metrics::counter!(METRIC_SANDBOX_LOADS).increment(1);
                 LoadedWasmSandbox::new(new_sbox)
             }
             None => Err(new_error!("WasmSandbox is None, cannot load module")),
@@ -112,7 +110,7 @@ impl std::fmt::Debug for WasmSandbox {
 
 impl Drop for WasmSandbox {
     fn drop(&mut self) {
-        int_gauge_dec!(&CurrentNumberOfWasmSandboxes);
+        metrics::gauge!(METRIC_ACTIVE_WASM_SANDBOXES).decrement(1);
     }
 }
 
