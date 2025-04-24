@@ -17,15 +17,11 @@ limitations under the License.
 use hyperlight_host::sandbox::Callable;
 use hyperlight_host::sandbox_state::sandbox::{DevolvableSandbox, Sandbox};
 use hyperlight_host::sandbox_state::transition::Noop;
-use hyperlight_host::{
-    int_counter_inc, int_gauge_dec, int_gauge_inc, log_then_return, MultiUseSandbox, Result,
-};
+use hyperlight_host::{log_then_return, MultiUseSandbox, Result};
 
+use super::metrics::METRIC_TOTAL_LOADED_WASM_SANDBOXES;
 use super::wasm_sandbox::WasmSandbox;
-use crate::sandbox::metrics::SandboxMetric::{
-    CurrentNumberOfLoadedWasmSandboxes, CurrentNumberOfWasmSandboxes,
-    NumberOfUnloadsOfLoadedWasmSandboxes, TotalNumberOfLoadedWasmSandboxes,
-};
+use crate::sandbox::metrics::{METRIC_ACTIVE_LOADED_WASM_SANDBOXES, METRIC_SANDBOX_UNLOADS};
 use crate::{ParameterValue, ReturnType, ReturnValue};
 
 /// A sandbox that has both a Wasm engine and an arbitrary Wasm module
@@ -67,13 +63,14 @@ impl LoadedWasmSandbox {
     }
     /// unload the wasm module and return a `WasmSandbox` that can be used to load another module
     pub fn unload_module(self) -> Result<WasmSandbox> {
-        int_counter_inc!(&NumberOfUnloadsOfLoadedWasmSandboxes);
-        self.devolve(Noop::default())
+        self.devolve(Noop::default()).inspect(|_| {
+            metrics::counter!(METRIC_SANDBOX_UNLOADS).increment(1);
+        })
     }
 
     pub(super) fn new(inner: MultiUseSandbox) -> Result<LoadedWasmSandbox> {
-        int_gauge_inc!(&CurrentNumberOfLoadedWasmSandboxes);
-        int_counter_inc!(&TotalNumberOfLoadedWasmSandboxes);
+        metrics::gauge!(METRIC_ACTIVE_LOADED_WASM_SANDBOXES).increment(1);
+        metrics::counter!(METRIC_TOTAL_LOADED_WASM_SANDBOXES).increment(1);
         Ok(LoadedWasmSandbox { inner: Some(inner) })
     }
 }
@@ -99,16 +96,13 @@ impl DevolvableSandbox<LoadedWasmSandbox, WasmSandbox, Noop<LoadedWasmSandbox, W
             Some(inner) => inner.devolve(Noop::default())?,
             None => log_then_return!("No inner MultiUseSandbox to devolve"),
         };
-        int_gauge_inc!(&CurrentNumberOfWasmSandboxes);
-        Ok(WasmSandbox {
-            inner: Some(new_inner),
-        })
+        Ok(WasmSandbox::new(new_inner))
     }
 }
 
 impl Drop for LoadedWasmSandbox {
     fn drop(&mut self) {
-        int_gauge_dec!(&CurrentNumberOfLoadedWasmSandboxes);
+        metrics::gauge!(METRIC_ACTIVE_LOADED_WASM_SANDBOXES).decrement(1);
     }
 }
 
