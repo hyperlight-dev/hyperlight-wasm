@@ -48,7 +48,7 @@ examples_common = { path = "../examples_common" }
 criterion = { version = "0.5.1", features = ["html_reports"] }
 crossbeam-queue = "0.3"
 blake3 = "1.8"
-toml = "0.8.19"
+toml = "0.8.21"
 metrics-util = "0.19.1"
 metrics-exporter-prometheus = "0.17"
 
