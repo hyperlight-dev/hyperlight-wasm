@@ -55,7 +55,7 @@ metrics-exporter-prometheus = "0.17"
 [build-dependencies]
 chrono = "0.4"
 blake3 = "1.8"
-built = { version = "0.7.7", features = ["chrono", "git2"] }
+built = { version = "0.8.0", features = ["chrono", "git2"] }
 anyhow = { version = "1.0" }
 goblin = "0.9.3"
 
