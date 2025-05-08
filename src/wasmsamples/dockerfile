@@ -1,6 +1,6 @@
 FROM ubuntu
 ENV DEBIAN_FRONTEND=noninteractive
-LABEL org.opencontainers.image.source=https://github.com/deislabs/hyperlight-wasm
+LABEL org.opencontainers.image.source=https://github.com/hyperlight-dev/hyperlight-wasm
 
 ARG GCC_VERSION=12
 
