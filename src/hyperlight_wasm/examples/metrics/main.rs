@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::sync::{Arc, Mutex};
+
 use examples_common::get_wasm_module_path;
 use hyperlight_wasm::{ParameterValue, Result, ReturnType, SandboxBuilder};
-use std::sync::{Arc, Mutex};
 
 fn main() -> Result<()> {
     // Install prometheus metrics exporter.
