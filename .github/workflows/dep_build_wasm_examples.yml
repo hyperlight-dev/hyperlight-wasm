@@ -4,13 +4,17 @@
 name: Build Wasm Examples
 
 on:
+  workflow_dispatch: {}
   workflow_call:
     inputs:
-        docs_only:
-          description: Skip building if docs only
-          required: false
-          type: string
-          default: "false"
+      docs_only:
+        description: Skip building if docs only
+        required: false
+        type: string
+        default: "false"
+  schedule:
+    # Run at 1am UTC daily
+    - cron: '0 1 * * *'
 
 permissions:
   packages: write
@@ -18,7 +22,7 @@ permissions:
 
 jobs:
     build-wasm-examples:
-      if: ${{ inputs.docs_only == 'false' }}
+      if: ${{ inputs.docs_only == 'false' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
       runs-on: ubuntu-latest
       steps:
         - uses: actions/checkout@v4
@@ -48,14 +52,13 @@ jobs:
           with:
             images: ${{ github.repository_owner }}/wasm-clang-builder
         - name: Build and push wasm-clang-builder
-        # depedabot does not have push access to update the wasm-clang-builder image
-          if: github.actor != 'dependabot[bot]'
+        # Only push if not from a fork, not from pull request, and not from dependabot
           uses: docker/build-push-action@v6
           with:
             context: src/wasmsamples
             file: src/wasmsamples/dockerfile
             load: true
-            push: true
+            push: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && github.actor != 'dependabot[bot]' }}
             build-args: |
               WASI_SDK_VERSION_FULL=20.0
               GCC_VERSION=12
