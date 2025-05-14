@@ -4,13 +4,20 @@
 name: Build Wasm Examples
 
 on:
+  workflow_dispatch:
+    inputs:
+      docs_only:
+        description: Skip building if docs only
+        required: false
+        type: string
+        default: "false"
   workflow_call:
     inputs:
-        docs_only:
-          description: Skip building if docs only
-          required: false
-          type: string
-          default: "false"
+      docs_only:
+        description: Skip building if docs only
+        required: false
+        type: string
+        default: "false"
 
 permissions:
   packages: write

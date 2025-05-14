@@ -15,7 +15,7 @@ concurrency:
 permissions:
   pull-requests: read
   contents: read
-  packages: read
+  packages: write
 
 jobs:
 
