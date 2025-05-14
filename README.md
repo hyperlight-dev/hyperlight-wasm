@@ -41,9 +41,9 @@ Make sure the following are installed:
 
 Ensure that KVM is enabled: On an Azure VM using a size that supports nested virtualisation:
 
-`sudo apt install cpu-checker && kvm-ok` 
+`sudo apt install cpu-checker && kvm-ok`
 
-If KVM is installed and available you should see the output 
+If KVM is installed and available you should see the output
 
 ``` console
 INFO: /dev/kvm exists
@@ -80,7 +80,7 @@ just test
 cargo run --example helloworld
 ```
 
-# Component Model support
+## Component Model support
 
 Hyperlight-Wasm has experimental support for running WebAssembly
 Component Model components, rather than core wasm modules.  In this
@@ -111,3 +111,7 @@ Conduct](https://opensource.microsoft.com/codeofconduct/).
 For more information see the [Code of Conduct
 FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact
 [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+## FOSSA Status
+[![FOSSA License Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fhyperlight-dev%2Fhyperlight-wasm.svg?type=shield&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2Fhyperlight-dev%2Fhyperlight-wasm?ref=badge_shield&issueType=license)
+[![FOSSA Security Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fhyperlight-dev%2Fhyperlight-wasm.svg?type=shield&issueType=security)](https://app.fossa.com/projects/git%2Bgithub.com%2Fhyperlight-dev%2Fhyperlight-wasm?ref=badge_shield&issueType=security)
