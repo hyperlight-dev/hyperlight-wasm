@@ -78,7 +78,7 @@ jobs:
           path: ./x64/${{ matrix.config }}
       
       - name: Fmt
-        run: just fmt
+        run: just fmt-check
 
       - name: Clippy
         run: just clippy ${{ matrix.config }}
