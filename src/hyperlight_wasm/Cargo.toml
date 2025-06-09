@@ -68,7 +68,6 @@ crashdump = ["hyperlight-host/crashdump"]
 kvm = ["hyperlight-host/kvm"]
 mshv2 = ["hyperlight-host/mshv2"]
 mshv3 = ["hyperlight-host/mshv3"]
-inprocess = ["hyperlight-host/inprocess"]
 
 [[bench]]
 name = "benchmarks"
