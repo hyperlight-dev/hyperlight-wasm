@@ -15,17 +15,34 @@ limitations under the License.
 */
 
 use alloc::format;
-use alloc::string::ToString;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
-use hyperlight_common::flatbuffer_wrappers::function_types::{ParameterType, ReturnType};
+use hyperlight_common::flatbuffer_wrappers::function_types::{
+    ParameterType, ReturnType, ReturnValue,
+};
 use hyperlight_common::flatbuffer_wrappers::guest_error::ErrorCode;
-use hyperlight_common::flatbuffer_wrappers::host_function_definition::HostFunctionDefinition;
 use hyperlight_guest::error::{HyperlightGuestError, Result};
 use hyperlight_guest_bin::host_comm::call_host_function;
 use wasmtime::{Caller, Engine, FuncType, Val, ValType};
 
 use crate::marshal;
+
+#[derive(Clone)]
+pub(crate) struct HostFunctionDefinition {
+    pub function_name: String,
+    pub parameter_types: Option<Vec<ParameterType>>,
+    pub return_type: ReturnType,
+}
+
+pub(crate) struct HostFunctionDetails {
+    /// The host functions.
+    pub host_functions: Option<Vec<HostFunctionDefinition>>,
+}
+
+pub(crate) fn get_host_function_details() -> HostFunctionDetails {
+    todo!("replace the missing hyperlight_guest_bin::host_functions::get_host_function_details");
+}
 
 pub(crate) fn hostfunc_type(d: &HostFunctionDefinition, e: &Engine) -> Result<FuncType> {
     let mut params = Vec::new();
@@ -57,7 +74,7 @@ pub(crate) fn hostfunc_type(d: &HostFunctionDefinition, e: &Engine) -> Result<Fu
         ReturnType::Int | ReturnType::UInt => results.push(ValType::I32),
         ReturnType::Long | ReturnType::ULong => results.push(ValType::I64),
         /* hyperlight_guest_bin::host_function_call::get_host_value_return_as_{bool,float,double,string} are missing */
-        // TODO: this commend is outdated, these are now implemented. Implement the other types
+        // TODO: this comment is outdated, these are now implemented. Implement the other types
         /* For compatibility with old host, we return
          * a packed i64 with a (wasm32) pointer in the lower half and
          * a length in the upper half. */

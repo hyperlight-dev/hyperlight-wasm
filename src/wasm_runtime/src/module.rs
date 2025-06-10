@@ -29,7 +29,6 @@ use hyperlight_guest::error::{HyperlightGuestError, Result};
 use hyperlight_guest_bin::guest_function::definition::GuestFunctionDefinition;
 use hyperlight_guest_bin::guest_function::register::register_function;
 use hyperlight_guest_bin::host_comm::print_output_with_host_print;
-use hyperlight_guest_bin::host_functions::get_host_function_details;
 use spin::Mutex;
 use wasmtime::{Config, Engine, Linker, Module, Store, Val};
 
@@ -98,7 +97,7 @@ fn init_wasm_runtime() -> Result<Vec<u8>> {
     let mut linker = Linker::new(&engine);
     wasip1::register_handlers(&mut linker)?;
 
-    let hostfuncs = get_host_function_details()
+    let hostfuncs = hostfuncs::get_host_function_details()
         .host_functions
         .unwrap_or_default();
     for hostfunc in hostfuncs.iter() {
