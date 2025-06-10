@@ -92,7 +92,7 @@ fn emit_import_extern_decl<'a, 'b, 'c>(
                         ::core::option::Option::Some(vec![#(#pus,)*]),
                         ::hyperlight_common::flatbuffer_wrappers::function_types::ReturnType::VecBytes,
                     ).unwrap();
-                    let #ret = ::hyperlight_guest::host_function_call::get_host_return_value::<Vec<u8>>().unwrap();
+                    let #ret = ::hyperlight_guest_bin::host_comm::get_host_return_value::<Vec<u8>>().unwrap();
                     ::core::result::Result::Ok(#ur)
                 });
             }
@@ -170,7 +170,7 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
             let ret = format_ident!("ret");
             let marshal_result = emit_hl_marshal_result(s, ret.clone(), &ft.result);
             quote! {
-                fn #n(fc: &::hyperlight_common::flatbuffer_wrappers::function_call::FunctionCall) -> ::hyperlight_guest::error::Result<::alloc::vec::Vec<u8>> {
+                fn #n(fc: &::hyperlight_common::flatbuffer_wrappers::function_call::FunctionCall) -> ::hyperlight_guest_bin::error::Result<::alloc::vec::Vec<u8>> {
                     #(#pds)*
                     let mut store = CUR_STORE.lock(); let mut store = store.as_mut().unwrap();
                     let instance = CUR_INSTANCE.lock(); let mut instance = instance.unwrap();
@@ -181,8 +181,8 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
                         .call(&mut *store, (#(#pus,)*))?.0;
                     ::core::result::Result::Ok(#marshal_result)
                 }
-                ::hyperlight_guest::guest_function_register::register_function(
-                    ::hyperlight_guest::guest_function_definition::GuestFunctionDefinition::new(
+                ::hyperlight_guest_bin::guest_function::register::register_function(
+                    ::hyperlight_guest_bin::guest_function::definition::GuestFunctionDefinition::new(
                         #fname.to_string(),
                         ::alloc::vec![#(#pts),*],
                         ::hyperlight_common::flatbuffer_wrappers::function_types::ReturnType::VecBytes,
