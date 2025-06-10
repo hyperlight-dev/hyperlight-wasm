@@ -22,7 +22,7 @@ use alloc::vec::Vec;
 
 use hyperlight_common::flatbuffer_wrappers::function_types::{ParameterValue, ReturnType};
 use hyperlight_guest::error::Result;
-use hyperlight_guest::host_function_call::{call_host_function, get_host_return_value};
+use hyperlight_guest_bin::host_comm::{call_host_function, get_host_return_value};
 use wasmtime::{Caller, Extern, Linker};
 
 pub(crate) fn register_handlers<T>(linker: &mut Linker<T>) -> Result<()> {
