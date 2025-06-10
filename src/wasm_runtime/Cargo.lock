@@ -25,9 +25,9 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
 name = "anyhow"
-version = "1.0.97"
+version = "1.0.98"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcfed56ad506cb2c684a14971b8861fdc3baaaae314b9e5f9bb532cbe3ba7a4f"
+checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
 
 [[package]]
 name = "arbitrary"
@@ -74,7 +74,7 @@ version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a1a0108968a3a2dab95b089c0fc3f1afa7759aa5ebe6f1d86d206d6f7ba726eb"
 dependencies = [
- "spin",
+ "spin 0.9.8",
 ]
 
 [[package]]
@@ -585,22 +585,24 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-common"
-version = "0.2.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?branch=hyperlight-component-macro#53872785af15505377ec0a37c0dc0130d3f87141"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3bb6a608bf19ef30c880bdabc32129e0cf52cbc85532e41d56da7f8bb79f1c3c"
 dependencies = [
  "anyhow",
  "flatbuffers",
  "log",
- "spin",
- "strum",
+ "spin 0.10.0",
 ]
 
 [[package]]
 name = "hyperlight-component-util"
-version = "0.2.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?branch=hyperlight-component-macro#53872785af15505377ec0a37c0dc0130d3f87141"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c40f520635dee748820a82c2a13bef6d0bfc20e5f3f82f0e700ed0a66d62771"
 dependencies = [
  "itertools 0.14.0",
+ "log",
  "prettyplease",
  "proc-macro2",
  "quote",
@@ -610,18 +612,29 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest"
-version = "0.2.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?branch=hyperlight-component-macro#53872785af15505377ec0a37c0dc0130d3f87141"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57f9ff48eedf7555b6b544d486a340dd15658a7628872a76ec521573d62ade24"
 dependencies = [
  "anyhow",
+ "hyperlight-common",
+ "serde_json",
+]
+
+[[package]]
+name = "hyperlight-guest-bin"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc13949f69d1175807f5b864dd5f4dc2da7b91afa92ee3d68a2f74f7cd6cc56d"
+dependencies = [
  "buddy_system_allocator",
  "cc",
  "cfg-if",
  "glob",
  "hyperlight-common",
+ "hyperlight-guest",
  "log",
- "serde_json",
- "spin",
+ "spin 0.10.0",
 ]
 
 [[package]]
@@ -875,9 +888,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.26"
+version = "0.4.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30bde2b3dc3671ae49d8e2e9f044c7c005836e7a023ee57cffa25ab82764bb9e"
+checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 
 [[package]]
 name = "mach2"
@@ -1394,6 +1407,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "spin"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d5fe4ccb98d9c292d56fec89a5e07da7fc4cf0dc11e156b41793132775d3e591"
+dependencies = [
+ "lock_api",
+]
+
+[[package]]
 name = "sptr"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1404,28 +1426,6 @@ name = "stable_deref_trait"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
-
-[[package]]
-name = "strum"
-version = "0.27.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f64def088c51c9510a8579e3c5d67c65349dcf755e5479ad3d010aa6454e2c32"
-dependencies = [
- "strum_macros",
-]
-
-[[package]]
-name = "strum_macros"
-version = "0.27.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c77a8c5abcaf0f9ce05d62342b7d298c346515365c36b673df4ebe3ced01fde8"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "rustversion",
- "syn",
-]
 
 [[package]]
 name = "subtle"
@@ -1776,9 +1776,10 @@ dependencies = [
  "cfg-if",
  "hyperlight-common",
  "hyperlight-guest",
+ "hyperlight-guest-bin",
  "hyperlight-wasm-macro",
  "reqwest",
- "spin",
+ "spin 0.9.8",
  "wasmtime",
 ]
 
