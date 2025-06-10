@@ -20,7 +20,7 @@ use hyperlight_host::func::call_ctx::MultiUseGuestCallContext;
 use hyperlight_host::sandbox::Callable;
 use hyperlight_host::sandbox_state::sandbox::{EvolvableSandbox, Sandbox};
 use hyperlight_host::sandbox_state::transition::MultiUseContextCallback;
-use hyperlight_host::{new_error, MultiUseSandbox, Result};
+use hyperlight_host::{MultiUseSandbox, Result, new_error};
 
 use super::loaded_wasm_sandbox::LoadedWasmSandbox;
 use crate::sandbox::metrics::{
@@ -120,7 +120,7 @@ mod tests {
     use std::path::Path;
     use std::sync::{Arc, Mutex};
 
-    use hyperlight_host::{is_hypervisor_present, HyperlightError};
+    use hyperlight_host::{HyperlightError, is_hypervisor_present};
 
     use super::*;
     use crate::sandbox::sandbox_builder::SandboxBuilder;

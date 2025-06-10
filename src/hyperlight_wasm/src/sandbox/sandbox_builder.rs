@@ -20,7 +20,7 @@ use std::time::Duration;
 use hyperlight_host::new_error;
 use hyperlight_host::sandbox::SandboxConfiguration;
 use hyperlight_host::{
-    is_hypervisor_present, GuestBinary, HyperlightError, Result, SandboxRunOptions,
+    GuestBinary, HyperlightError, Result, SandboxRunOptions, is_hypervisor_present,
 };
 
 use super::proto_wasm_sandbox::ProtoWasmSandbox;
@@ -57,13 +57,6 @@ impl<'a> SandboxBuilder<'a> {
             #[cfg(all(target_os = "windows", debug_assertions))]
             guest_path: None,
         }
-    }
-
-    #[cfg(all(feature = "inprocess", debug_assertions))]
-    /// Run the sandbox in-process
-    pub fn with_sandbox_running_in_process(mut self) -> Self {
-        self.opts = Some(SandboxRunOptions::RunInProcess(false));
-        self
     }
 
     /// Set the host print function
