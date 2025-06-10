@@ -1392,6 +1392,7 @@ dependencies = [
 name = "hyperlight-wasm-aot"
 version = "0.7.0"
 dependencies = [
+ "cargo-util-schemas",
  "cargo_metadata",
  "clap",
  "wasmtime",

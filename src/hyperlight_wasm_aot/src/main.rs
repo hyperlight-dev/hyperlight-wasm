@@ -17,6 +17,7 @@ limitations under the License.
 use std::path::Path;
 
 use cargo_metadata::{MetadataCommand, Package};
+use cargo_util_schemas::manifest::PackageName;
 use clap::{Arg, Command};
 use wasmtime::{Config, Engine, Module, Precompiled};
 fn main() {
@@ -85,8 +86,9 @@ fn main() {
         Some("check-wasmtime-version") => {
             // get the wasmtime version used by hyperlight-wasm-aot
             let metadata = MetadataCommand::new().exec().unwrap();
+            let package_name = PackageName::new("wasmtime".to_string()).unwrap();
             let wasmtime_package: Option<&Package> =
-                metadata.packages.iter().find(|p| p.name == "wasmtime");
+                metadata.packages.iter().find(|p| p.name == package_name);
             let version_number = match wasmtime_package {
                 Some(pkg) => pkg.version.clone(),
                 None => panic!("wasmtime dependency not found"),
