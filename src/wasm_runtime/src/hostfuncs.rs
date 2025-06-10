@@ -22,7 +22,7 @@ use hyperlight_common::flatbuffer_wrappers::function_types::{ParameterType, Retu
 use hyperlight_common::flatbuffer_wrappers::guest_error::ErrorCode;
 use hyperlight_common::flatbuffer_wrappers::host_function_definition::HostFunctionDefinition;
 use hyperlight_guest::error::{HyperlightGuestError, Result};
-use hyperlight_guest::host_function_call::call_host_function;
+use hyperlight_guest_bin::host_comm::call_host_function;
 use wasmtime::{Caller, Engine, FuncType, Val, ValType};
 
 use crate::marshal;
@@ -56,7 +56,8 @@ pub(crate) fn hostfunc_type(d: &HostFunctionDefinition, e: &Engine) -> Result<Fu
         ReturnType::Void => {}
         ReturnType::Int | ReturnType::UInt => results.push(ValType::I32),
         ReturnType::Long | ReturnType::ULong => results.push(ValType::I64),
-        /* hyperlight_guest::host_function_call::get_host_value_return_as_{bool,float,double,string} are missing */
+        /* hyperlight_guest_bin::host_function_call::get_host_value_return_as_{bool,float,double,string} are missing */
+        // TODO: this commend is outdated, these are now implemented. Implement the other types
         /* For compatibility with old host, we return
          * a packed i64 with a (wasm32) pointer in the lower half and
          * a length in the upper half. */
@@ -88,7 +89,7 @@ pub(crate) fn call(
             marshal::val_to_hl_param(&mut c, |c, n| c.get_export(n), s, t)
         })
         .collect();
-    call_host_function(&d.function_name, Some(params), d.return_type)
+    call_host_function::<ReturnValue>(&d.function_name, Some(params), d.return_type)
         .expect("Host function call failed");
     marshal::hl_return_to_val(&mut c, |c, n| c.get_export(n), &d.return_type, rs)
 }
