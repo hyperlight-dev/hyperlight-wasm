@@ -17,7 +17,7 @@ limitations under the License.
 use hyperlight_host::sandbox::Callable;
 use hyperlight_host::sandbox_state::sandbox::{DevolvableSandbox, Sandbox};
 use hyperlight_host::sandbox_state::transition::Noop;
-use hyperlight_host::{log_then_return, MultiUseSandbox, Result};
+use hyperlight_host::{MultiUseSandbox, Result, log_then_return};
 
 use super::metrics::METRIC_TOTAL_LOADED_WASM_SANDBOXES;
 use super::wasm_sandbox::WasmSandbox;
@@ -113,12 +113,12 @@ mod tests {
 
     use crossbeam_queue::ArrayQueue;
     use examples_common::get_wasm_module_path;
-    use hyperlight_host::{new_error, HyperlightError};
+    use hyperlight_host::{HyperlightError, new_error};
 
     use super::{LoadedWasmSandbox, ParameterValue, ReturnType, ReturnValue, WasmSandbox};
+    use crate::Result;
     use crate::sandbox::proto_wasm_sandbox::ProtoWasmSandbox;
     use crate::sandbox::sandbox_builder::SandboxBuilder;
-    use crate::Result;
 
     fn get_time_since_boot_microsecond() -> Result<i64> {
         let res = std::time::SystemTime::now()

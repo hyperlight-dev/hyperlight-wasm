@@ -16,7 +16,7 @@ limitations under the License.
 
 use std::sync::{Arc, Mutex};
 
-use criterion::{criterion_group, criterion_main, Bencher, Criterion};
+use criterion::{Bencher, Criterion, criterion_group, criterion_main};
 use hyperlight_host::HyperlightError;
 use hyperlight_wasm::{LoadedWasmSandbox, ParameterValue, Result, ReturnType, SandboxBuilder};
 

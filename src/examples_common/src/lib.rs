@@ -17,7 +17,7 @@ limitations under the License.
 use std::env;
 use std::path::Path;
 
-use hyperlight_host::{new_error, Result};
+use hyperlight_host::{Result, new_error};
 
 /// Get the Wasm module called `name` from the standard module location
 /// at `$REPO_ROOT/x64/[debug|release]/$name`.

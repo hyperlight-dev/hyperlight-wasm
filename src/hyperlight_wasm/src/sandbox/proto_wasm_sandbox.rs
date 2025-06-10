@@ -20,14 +20,14 @@ use hyperlight_host::func::{
     HostFunction0, HostFunction1, HostFunction2, HostFunction3, HyperlightFunction,
     SupportedParameterType, SupportedReturnType,
 };
-use hyperlight_host::sandbox::config::SandboxConfiguration;
 use hyperlight_host::sandbox::Callable;
 #[cfg(all(feature = "seccomp", target_os = "linux"))]
 use hyperlight_host::sandbox::ExtraAllowedSyscall;
+use hyperlight_host::sandbox::config::SandboxConfiguration;
 use hyperlight_host::sandbox_state::sandbox::{EvolvableSandbox, Sandbox};
 use hyperlight_host::sandbox_state::transition::{MultiUseContextCallback, Noop};
 use hyperlight_host::{
-    new_error, GuestBinary, MultiUseSandbox, Result, SandboxRunOptions, UninitializedSandbox,
+    GuestBinary, MultiUseSandbox, Result, SandboxRunOptions, UninitializedSandbox, new_error,
 };
 
 use super::metrics::{METRIC_ACTIVE_PROTO_WASM_SANDBOXES, METRIC_TOTAL_PROTO_WASM_SANDBOXES};
