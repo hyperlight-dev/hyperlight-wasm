@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use hyperlight_host::func::{ParameterTuple, SupportedReturnType};
 use hyperlight_host::sandbox::Callable;
 use hyperlight_host::sandbox_state::sandbox::{DevolvableSandbox, Sandbox};
 use hyperlight_host::sandbox_state::transition::Noop;
@@ -22,7 +23,6 @@ use hyperlight_host::{MultiUseSandbox, Result, log_then_return};
 use super::metrics::METRIC_TOTAL_LOADED_WASM_SANDBOXES;
 use super::wasm_sandbox::WasmSandbox;
 use crate::sandbox::metrics::{METRIC_ACTIVE_LOADED_WASM_SANDBOXES, METRIC_SANDBOX_UNLOADS};
-use crate::{ParameterValue, ReturnType, ReturnValue};
 
 /// A sandbox that has both a Wasm engine and an arbitrary Wasm module
 /// loaded into memory.
@@ -50,14 +50,13 @@ impl LoadedWasmSandbox {
     /// On success, return an `Ok` with the return
     /// value and a new copy of `Self` suitable for further use. On failure,
     /// return an appropriate `Err`.
-    pub fn call_guest_function(
+    pub fn call_guest_function<Output: SupportedReturnType>(
         &mut self,
         fn_name: &str,
-        params: Option<Vec<ParameterValue>>,
-        return_type: ReturnType,
-    ) -> Result<ReturnValue> {
+        params: impl ParameterTuple,
+    ) -> Result<Output> {
         match &mut self.inner {
-            Some(inner) => inner.call_guest_function_by_name(fn_name, return_type, params),
+            Some(inner) => inner.call_guest_function_by_name(fn_name, params),
             None => log_then_return!("No inner MultiUseSandbox to call_guest_function"),
         }
     }
@@ -76,13 +75,12 @@ impl LoadedWasmSandbox {
 }
 
 impl Callable for LoadedWasmSandbox {
-    fn call(
+    fn call<Output: SupportedReturnType>(
         &mut self,
         func_name: &str,
-        func_ret_type: ReturnType,
-        args: Option<Vec<ParameterValue>>,
-    ) -> Result<ReturnValue> {
-        self.call_guest_function(func_name, args, func_ret_type)
+        args: impl ParameterTuple,
+    ) -> Result<Output> {
+        self.call_guest_function(func_name, args)
     }
 }
 
@@ -108,14 +106,14 @@ impl Drop for LoadedWasmSandbox {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
     use std::thread;
 
     use crossbeam_queue::ArrayQueue;
     use examples_common::get_wasm_module_path;
     use hyperlight_host::{HyperlightError, new_error};
 
-    use super::{LoadedWasmSandbox, ParameterValue, ReturnType, ReturnValue, WasmSandbox};
+    use super::{LoadedWasmSandbox, WasmSandbox};
     use crate::Result;
     use crate::sandbox::proto_wasm_sandbox::ProtoWasmSandbox;
     use crate::sandbox::sandbox_builder::SandboxBuilder;
@@ -134,13 +132,10 @@ mod tests {
         for ext in [".aot", ".wasm"].iter() {
             let mut sandbox = ProtoWasmSandbox::default();
 
-            let get_time_since_boot_microsecond_func =
-                Arc::new(Mutex::new(get_time_since_boot_microsecond));
-
             sandbox
-                .register_host_func_0(
+                .register(
                     "GetTimeSinceBootMicrosecond",
-                    &get_time_since_boot_microsecond_func,
+                    get_time_since_boot_microsecond,
                 )
                 .unwrap();
 
@@ -166,13 +161,10 @@ mod tests {
             println!("Creating WasmSandbox instance {}", i);
             let mut sandbox = ProtoWasmSandbox::default();
 
-            let get_time_since_boot_microsecond_func =
-                Arc::new(Mutex::new(get_time_since_boot_microsecond));
-
             sandbox
-                .register_host_func_0(
+                .register(
                     "GetTimeSinceBootMicrosecond",
-                    &get_time_since_boot_microsecond_func,
+                    get_time_since_boot_microsecond,
                 )
                 .unwrap();
 
@@ -266,18 +258,13 @@ mod tests {
             let mut sandbox = SandboxBuilder::new()
                 .with_guest_stack_size(32 * 1024)
                 .with_guest_heap_size(128 * 1024)
-                .with_guest_error_buffer_size(4096)
-                .with_guest_function_call_max_execution_time_millis(5000)
                 .build()
                 .unwrap();
 
-            let get_time_since_boot_microsecond_func =
-                Arc::new(Mutex::new(get_time_since_boot_microsecond));
-
             sandbox
-                .register_host_func_0(
+                .register(
                     "GetTimeSinceBootMicrosecond",
-                    &get_time_since_boot_microsecond_func,
+                    get_time_since_boot_microsecond,
                 )
                 .unwrap();
 
@@ -296,7 +283,7 @@ mod tests {
 
     #[test]
     fn test_call_host_func_with_vecbytes() {
-        let host_func = Arc::new(Mutex::new(|b: Vec<u8>, l: i32| -> Result<i32> {
+        let host_func = |b: Vec<u8>, l: i32| {
             // get the C String from the vec of bytes
 
             let s = std::str::from_utf8(&b).unwrap();
@@ -310,14 +297,14 @@ mod tests {
             if l != 12 {
                 return Err(new_error!("Unexpected length of buffer {}", l));
             }
-            Ok(0)
-        }));
+            Ok(0i32)
+        };
 
         for ext in [".aot", ".wasm"].iter() {
             let mut proto_wasm_sandbox = SandboxBuilder::new().build().unwrap();
 
             proto_wasm_sandbox
-                .register_host_func_2("HostFuncWithBufferAndLength", &host_func)
+                .register("HostFuncWithBufferAndLength", host_func)
                 .unwrap();
 
             let wasm_sandbox = proto_wasm_sandbox.load_runtime().unwrap();
@@ -331,12 +318,9 @@ mod tests {
 
             // Call a guest function that calls a host function that takes a buffer and a length
 
-            let ReturnValue::Int(r) = loaded_wasm_sandbox
-                .call_guest_function("PassBufferAndLengthToHost", None, ReturnType::Int)
-                .unwrap()
-            else {
-                panic!("Failed to get result from call_guest_function",)
-            };
+            let r: i32 = loaded_wasm_sandbox
+                .call_guest_function("PassBufferAndLengthToHost", ())
+                .unwrap();
 
             assert_eq!(r, 0);
         }
@@ -349,19 +333,9 @@ mod tests {
         // Call a guest function that returns an int
 
         for i in 0..iterations {
-            let ReturnValue::Int(result) = loaded_wasm_sandbox
-                .call_guest_function(
-                    "CalcFib",
-                    Some(vec![ParameterValue::Int(4)]),
-                    ReturnType::Int,
-                )
-                .unwrap()
-            else {
-                panic!(
-                    "Failed to get result from call_guest_function  iteration {}",
-                    i
-                )
-            };
+            let result: i32 = loaded_wasm_sandbox
+                .call_guest_function("CalcFib", 4i32)
+                .unwrap();
 
             println!(
                 "Got result: {:?} from the host function! iteration {}",
@@ -372,21 +346,12 @@ mod tests {
         // Call a guest function that returns a string
 
         for i in 0..iterations {
-            let ReturnValue::String(result) = loaded_wasm_sandbox
+            let result: String = loaded_wasm_sandbox
                 .call_guest_function(
                     "Echo",
-                    Some(vec![ParameterValue::String(
-                        "Message from Rust Example to Wasm Function".to_string(),
-                    )]),
-                    ReturnType::String,
+                    "Message from Rust Example to Wasm Function".to_string(),
                 )
-                .unwrap()
-            else {
-                panic!(
-                    "Failed to get result from call_guest_function  iteration {}",
-                    i
-                )
-            };
+                .unwrap();
 
             println!(
                 "Got result: {:?} from the host function! iteration {}",
@@ -395,21 +360,12 @@ mod tests {
         }
 
         for i in 0..iterations {
-            let ReturnValue::String(result) = loaded_wasm_sandbox
+            let result: String = loaded_wasm_sandbox
                 .call_guest_function(
                     "ToUpper",
-                    Some(vec![ParameterValue::String(
-                        "Message from Rust Example to WASM Function".to_string(),
-                    )]),
-                    ReturnType::String,
+                    "Message from Rust Example to WASM Function".to_string(),
                 )
-                .unwrap()
-            else {
-                panic!(
-                    "Failed to get result from call_guest_function  iteration {}",
-                    i
-                )
-            };
+                .unwrap();
 
             println!(
                 "Got result: {:?} from the host function! iteration {}",
@@ -425,22 +381,9 @@ mod tests {
         // Call a guest function that returns a size prefixed buffer
 
         for i in 0..iterations {
-            let ReturnValue::VecBytes(result) = loaded_wasm_sandbox
-                .call_guest_function(
-                    "ReceiveByteArray",
-                    Some(vec![
-                        ParameterValue::VecBytes(vec![0x01, 0x02, 0x03]),
-                        ParameterValue::Int(3),
-                    ]),
-                    ReturnType::VecBytes,
-                )
-                .unwrap()
-            else {
-                panic!(
-                    "Failed to get result from call_guest_function  iteration {}",
-                    i
-                )
-            };
+            let result: Vec<u8> = loaded_wasm_sandbox
+                .call_guest_function("ReceiveByteArray", (vec![0x01, 0x02, 0x03], 3i32))
+                .unwrap();
 
             println!(
                 "Got result: {:?} from the host function! iteration {}",
@@ -451,21 +394,12 @@ mod tests {
         // Call a guest function that Prints a string using HostPrint Host function
 
         for i in 0..iterations {
-            let ReturnValue::Void = loaded_wasm_sandbox
-                .call_guest_function(
+            loaded_wasm_sandbox
+                .call_guest_function::<()>(
                     "Print",
-                    Some(vec![ParameterValue::String(
-                        "Message from Rust Example to Wasm Function\n".to_string(),
-                    )]),
-                    ReturnType::Void,
+                    "Message from Rust Example to Wasm Function\n".to_string(),
                 )
-                .unwrap()
-            else {
-                panic!(
-                    "Failed to get result from call_guest_function  iteration {}",
-                    i
-                )
-            };
+                .unwrap();
 
             println!("Called the host function! iteration {}", i,);
         }
@@ -473,15 +407,9 @@ mod tests {
         // Call a guest function that calls prints a string constant using printf
 
         for i in 0..iterations {
-            let ReturnValue::Void = loaded_wasm_sandbox
-                .call_guest_function("PrintHelloWorld", None, ReturnType::Void)
-                .unwrap()
-            else {
-                panic!(
-                    "Failed to get result from call_guest_function iteration {}",
-                    i
-                )
-            };
+            loaded_wasm_sandbox
+                .call_guest_function::<()>("PrintHelloWorld", ())
+                .unwrap();
 
             println!("Called the host function! iteration {}", i,);
         }

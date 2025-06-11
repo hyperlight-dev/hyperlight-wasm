@@ -14,11 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::sync::{Arc, Mutex};
-
 use examples_common::get_wasm_module_path;
 use hyperlight_host::HyperlightError;
-use hyperlight_wasm::{ParameterValue, Result, ReturnType, ReturnValue, SandboxBuilder};
+use hyperlight_wasm::{Result, SandboxBuilder};
 
 fn get_time_since_boot_microsecond() -> Result<i64> {
     let res = std::time::SystemTime::now()
@@ -32,52 +30,35 @@ fn main() -> Result<()> {
         (
             "HelloWorld.wasm",
             "HelloWorld",
-            Some(vec![ParameterValue::String(
-                "Message from Rust Example to Wasm Function".to_string(),
-            )]),
+            "Message from Rust Example to Wasm Function".to_string(),
         ),
         (
             "HelloWorld.aot",
             "HelloWorld",
-            Some(vec![ParameterValue::String(
-                "Message from Rust Example to Wasm Function".to_string(),
-            )]),
+            "Message from Rust Example to Wasm Function".to_string(),
         ),
         (
             "RunWasm.wasm",
             "Echo",
-            Some(vec![ParameterValue::String(
-                "Message from Rust Example to Wasm Function".to_string(),
-            )]),
+            "Message from Rust Example to Wasm Function".to_string(),
         ),
         (
             "RunWasm.aot",
             "Echo",
-            Some(vec![ParameterValue::String(
-                "Message from Rust Example to Wasm Function".to_string(),
-            )]),
+            "Message from Rust Example to Wasm Function".to_string(),
         ),
     ];
     for (idx, case) in tests.iter().enumerate() {
         let (mod_path, fn_name, params_opt) = case;
 
-        #[cfg(all(debug_assertions, feature = "inprocess"))]
-        let mut sandbox = SandboxBuilder::new()
-            .with_sandbox_running_in_process()
-            .build()?;
-
-        #[cfg(not(all(debug_assertions, feature = "inprocess")))]
         let mut sandbox = SandboxBuilder::new().build()?;
 
         let wasm_sandbox = match mod_path.starts_with("RunWasm") {
             true => {
-                let get_time_since_boot_microsecond_func =
-                    Arc::new(Mutex::new(get_time_since_boot_microsecond));
-
                 sandbox
-                    .register_host_func_0(
+                    .register(
                         "GetTimeSinceBootMicrosecond",
-                        &get_time_since_boot_microsecond_func,
+                        get_time_since_boot_microsecond,
                     )
                     .unwrap();
 
@@ -93,14 +74,8 @@ fn main() -> Result<()> {
 
         if *fn_name == "Echo" {
             // Call a function in the Wasm module
-            let ReturnValue::String(result) = loaded_wasm_sandbox.call_guest_function(
-                fn_name,
-                params_opt.clone(),
-                ReturnType::String,
-            )?
-            else {
-                panic!("Failed to get result from call_guest_function to Echo Function")
-            };
+            let result: String =
+                loaded_wasm_sandbox.call_guest_function(fn_name, params_opt.clone())?;
             println!(
                 "Result from calling Echo Function in Wasm Module \
                 test case {idx}) is: {}",
@@ -108,14 +83,8 @@ fn main() -> Result<()> {
             );
         } else if *fn_name == "HelloWorld" {
             // Call a function in the Wasm module
-            let ReturnValue::Int(result) = loaded_wasm_sandbox.call_guest_function(
-                fn_name,
-                params_opt.clone(),
-                ReturnType::Int,
-            )?
-            else {
-                panic!("Failed to get result from call_guest_function to HelloWorld Function")
-            };
+            let result: i32 =
+                loaded_wasm_sandbox.call_guest_function(fn_name, params_opt.clone())?;
 
             println!(
                 "Result from calling HelloWorld Function in Wasm Module \
