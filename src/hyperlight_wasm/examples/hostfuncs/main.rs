@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 use examples_common::get_wasm_module_path;
-use hyperlight_wasm::{Result, SandboxBuilder};
+use hyperlight_wasm::SandboxBuilder;
 
 fn main() {
     // Create a Wasm Sandbox (this is running in the local Hypervisor)
