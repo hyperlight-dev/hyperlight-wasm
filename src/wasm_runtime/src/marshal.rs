@@ -270,7 +270,7 @@ pub fn hl_return_to_val<C: AsContextMut>(
             ret[0] = Val::I64(get_host_return_value::<u64>()? as i64);
         }
         /* hyperlight_guest_bin::host_comm::get_host_value_return_as_{bool,float,double,string} are missing */
-        // TODO: this comment is outdated, implemente these
+        // TODO: this comment is outdated, implement these
         ReturnType::VecBytes => {
             let b = get_host_return_value::<Vec<u8>>()?;
             let addr = malloc(ctx, &get_export, b.len())?;
