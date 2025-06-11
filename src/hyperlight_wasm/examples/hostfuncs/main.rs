@@ -27,12 +27,9 @@ fn main() {
         .unwrap();
 
     // Create a host-provided function and register it on the WasmSandbox.
-    //
-    // Note that you must wrap the function in an Arc/Mutex before you
-    // pass it into the register_host_func_1 method below.
-    let host_func = |a: i32| -> Result<i32> {
+    let host_func = |a: i32| {
         println!("host_func called with {}", a);
-        Ok(a + 1)
+        a + 1
     };
 
     proto_wasm_sandbox
