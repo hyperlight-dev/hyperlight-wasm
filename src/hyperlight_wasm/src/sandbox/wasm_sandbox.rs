@@ -26,7 +26,6 @@ use super::loaded_wasm_sandbox::LoadedWasmSandbox;
 use crate::sandbox::metrics::{
     METRIC_ACTIVE_WASM_SANDBOXES, METRIC_SANDBOX_LOADS, METRIC_TOTAL_WASM_SANDBOXES,
 };
-use crate::{ParameterValue, ReturnType, ReturnValue};
 
 /// A sandbox with just the Wasm engine loaded into memory. `WasmSandbox`es
 /// are not yet ready to execute guest functions.
@@ -76,11 +75,8 @@ impl WasmSandbox {
     fn load_module_inner(mut self, wasm_bytes: Vec<u8>) -> Result<LoadedWasmSandbox> {
         let func = Box::new(move |call_ctx: &mut MultiUseGuestCallContext| {
             let len = wasm_bytes.len() as i32;
-            let p1 = ParameterValue::VecBytes(wasm_bytes);
-            let p2 = ParameterValue::Int(len);
-
-            let res = call_ctx.call("LoadWasmModule", ReturnType::Int, Some(vec![p1, p2]))?;
-            if res != ReturnValue::Int(0) {
+            let res: i32 = call_ctx.call("LoadWasmModule", (wasm_bytes, len))?;
+            if res != 0 {
                 return Err(new_error!(
                     "LoadWasmModule Failed with error code {:?}",
                     res
@@ -118,7 +114,6 @@ impl Drop for WasmSandbox {
 mod tests {
     use std::env;
     use std::path::Path;
-    use std::sync::{Arc, Mutex};
 
     use hyperlight_host::{HyperlightError, is_hypervisor_present};
 
@@ -140,17 +135,11 @@ mod tests {
 
     #[test]
     fn test_termination() -> Result<()> {
-        let mut sandbox = SandboxBuilder::new()
-            .with_guest_function_call_max_execution_time_millis(1000)
-            .with_guest_function_call_max_cancel_wait_millis(1000)
-            .build()?;
+        let mut sandbox = SandboxBuilder::new().build()?;
 
-        let get_time_since_boot_microsecond_func =
-            Arc::new(Mutex::new(get_time_since_boot_microsecond));
-
-        sandbox.register_host_func_0(
+        sandbox.register(
             "GetTimeSinceBootMicrosecond",
-            &get_time_since_boot_microsecond_func,
+            get_time_since_boot_microsecond,
         )?;
 
         let loaded = sandbox.load_runtime()?;
@@ -159,11 +148,7 @@ mod tests {
 
         let mut loaded = loaded.load_module(run_wasm)?;
 
-        let result = loaded.call_guest_function(
-            "KeepCPUBusy",
-            Some(vec![ParameterValue::Int(10000)]),
-            ReturnType::Int,
-        );
+        let result = loaded.call_guest_function::<i32>("KeepCPUBusy", 10000i32);
 
         match result {
             Ok(_) => panic!("Expected error"),
@@ -187,14 +172,8 @@ mod tests {
 
             let helloworld_wasm = get_test_file_path("HelloWorld.wasm").unwrap();
             let mut loaded_wasm_sandbox = wasm_sandbox.load_module(helloworld_wasm).unwrap();
-            let result = loaded_wasm_sandbox
-                .call_guest_function(
-                    "HelloWorld",
-                    Some(vec![ParameterValue::String(
-                        "Message from Rust Test".to_string(),
-                    )]),
-                    ReturnType::Int,
-                )
+            let result: i32 = loaded_wasm_sandbox
+                .call_guest_function("HelloWorld", "Message from Rust Test".to_string())
                 .unwrap();
 
             // TODO: Validate the output from the Wasm Modules.
@@ -216,14 +195,8 @@ mod tests {
             let mut loaded_wasm_sandbox = wasm_sandbox
                 .load_module_from_buffer(&wasm_module_buffer)
                 .unwrap();
-            let result = loaded_wasm_sandbox
-                .call_guest_function(
-                    "HelloWorld",
-                    Some(vec![ParameterValue::String(
-                        "Message from Rust Test".to_string(),
-                    )]),
-                    ReturnType::Int,
-                )
+            let result: i32 = loaded_wasm_sandbox
+                .call_guest_function("HelloWorld", "Message from Rust Test".to_string())
                 .unwrap();
 
             // TODO: Validate the output from the Wasm Modules.
@@ -262,43 +235,17 @@ mod tests {
         Ok(full_path)
     }
 
-    /// Get the max execution time and the max wait time until cancellation
-    /// for a sandbox. For MSHV, both of these return values will be 100ms,
-    /// while for KVM (linux) and HyperV (windows), this function will return
-    /// 200ms for both values.
-    fn get_timeouts() -> (u64, u64) {
-        #[cfg(target_os = "linux")]
-        {
-            if is_hypervisor_present() {
-                return (200, 200);
-            }
-            (100, 100)
-        }
-        #[cfg(target_os = "windows")]
-        {
-            (200, 200)
-        }
-    }
-
     struct SandboxTest {
         sbox: WasmSandbox,
         name: String,
     }
 
     fn get_test_wasm_sandboxes() -> Result<Vec<SandboxTest>> {
-        let (max_exec_time, max_cancel_wait) = get_timeouts();
-
         let builder = SandboxBuilder::new()
-            .with_guest_error_buffer_size(0x1000)
             .with_guest_input_buffer_size(0x8000)
             .with_guest_output_buffer_size(0x8000)
-            .with_host_function_buffer_size(0x1000)
-            .with_host_exception_buffer_size(0x1000)
             .with_guest_stack_size(0x2000)
-            .with_guest_heap_size(0x100000)
-            .with_guest_panic_context_buffer_size(0x800)
-            .with_guest_function_call_max_execution_time_millis(max_exec_time)
-            .with_guest_function_call_max_cancel_wait_millis(max_cancel_wait);
+            .with_guest_heap_size(0x100000);
 
         let mut sandboxes: Vec<SandboxTest> = Vec::new();
         if is_hypervisor_present() {
@@ -308,19 +255,6 @@ mod tests {
             });
         }
 
-        #[cfg(all(debug_assertions, feature = "inprocess"))]
-        {
-            let sbox = builder
-                .clone()
-                .with_sandbox_running_in_process()
-                .build()?
-                .load_runtime()?;
-
-            sandboxes.push(SandboxTest {
-                sbox,
-                name: "in-process, using manual load".to_string(),
-            });
-        }
         Ok(sandboxes)
     }
 }

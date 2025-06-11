@@ -22,7 +22,6 @@ pub mod build_info;
 mod sandbox;
 
 use build_info::BuildInfo;
-use hyperlight_host::func::HostFunction1;
 pub use sandbox::loaded_wasm_sandbox::LoadedWasmSandbox;
 pub use sandbox::proto_wasm_sandbox::ProtoWasmSandbox;
 pub use sandbox::sandbox_builder::SandboxBuilder;
@@ -38,13 +37,8 @@ pub type ReturnType = hyperlight_host::func::ReturnType;
 pub type Result<T> = hyperlight_host::Result<T>;
 /// Check if there is a hypervisor present
 pub use hyperlight_host::is_hypervisor_present;
-/// Set the metrics registry for hyperlight
-pub use hyperlight_host::metrics::set_metrics_registry;
 /// Create a generic HyperlightError
 pub use hyperlight_host::new_error;
-/// The function to pass to a new `WASMSandbox` to tell it how to handle
-/// guest requests to print some output.
-pub type HostPrintFn<'a> = &'a dyn HostFunction1<'a, String, i32>;
 
 /// Get the build information for this version of hyperlight-wasm
 pub fn get_build_info() -> BuildInfo {

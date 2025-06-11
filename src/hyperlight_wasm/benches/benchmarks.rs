@@ -14,11 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::sync::{Arc, Mutex};
-
 use criterion::{Bencher, Criterion, criterion_group, criterion_main};
 use hyperlight_host::HyperlightError;
-use hyperlight_wasm::{LoadedWasmSandbox, ParameterValue, Result, ReturnType, SandboxBuilder};
+use hyperlight_wasm::{LoadedWasmSandbox, Result, SandboxBuilder};
 
 fn get_time_since_boot_microsecond() -> Result<i64> {
     let res = std::time::SystemTime::now()
@@ -35,11 +33,7 @@ fn wasm_guest_call_benchmark(c: &mut Criterion) {
 
         b.iter(|| {
             loaded_wasm_sandbox
-                .call_guest_function(
-                    "Echo",
-                    Some(vec![ParameterValue::String("Hello World!".to_string())]),
-                    ReturnType::String,
-                )
+                .call_guest_function::<String>("Echo", "Hello World!".to_string())
                 .unwrap()
         });
     };
@@ -75,13 +69,10 @@ fn wasm_sandbox_benchmark(c: &mut Criterion) {
 fn get_loaded_wasm_sandbox(ext: &str) -> LoadedWasmSandbox {
     let mut sandbox = SandboxBuilder::new().build().unwrap();
 
-    let get_time_since_boot_microsecond_func =
-        Arc::new(Mutex::new(get_time_since_boot_microsecond));
-
     sandbox
-        .register_host_func_0(
+        .register(
             "GetTimeSinceBootMicrosecond",
-            &get_time_since_boot_microsecond_func,
+            get_time_since_boot_microsecond,
         )
         .unwrap();
 
