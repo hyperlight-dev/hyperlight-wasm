@@ -24,8 +24,8 @@ limitations under the License.
 //    the `Resources` struct with.)
 
 use hyperlight_component_util::emit::{
-    kebab_to_fn, kebab_to_namespace, kebab_to_type, kebab_to_var, split_wit_name, FnName, State,
-    WitName,
+    FnName, State, WitName, kebab_to_fn, kebab_to_namespace, kebab_to_type, kebab_to_var,
+    split_wit_name,
 };
 use hyperlight_component_util::etypes::{
     self, Component, Defined, ExternDecl, ExternDesc, Handleable, Instance, Tyvar,
