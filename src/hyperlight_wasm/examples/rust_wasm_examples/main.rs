@@ -27,6 +27,7 @@ fn main() -> Result<()> {
             Some(vec![ParameterValue::Int(5), ParameterValue::Int(3)]),
         ),
         ("call_host_function", Some(vec![ParameterValue::Int(5)])),
+        ("simd_test", None),
     ];
 
     for (idx, case) in tests.iter().enumerate() {
