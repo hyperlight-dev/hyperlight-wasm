@@ -58,8 +58,7 @@ pub extern "C" fn wasmtime_mprotect(_ptr: *mut u8, _size: usize, prot_flags: u32
 
 #[no_mangle]
 pub extern "C" fn wasmtime_page_size() -> usize {
-    todo!("fixme: missing hyperlight_guest_bin::OS_PAGE_SIZE")
-    //unsafe { hyperlight_guest_bin::OS_PAGE_SIZE as usize }
+    unsafe { hyperlight_guest_bin::OS_PAGE_SIZE as usize }
 }
 
 #[allow(non_camel_case_types)] // we didn't choose the name!
