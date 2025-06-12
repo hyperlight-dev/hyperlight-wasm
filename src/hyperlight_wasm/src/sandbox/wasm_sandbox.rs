@@ -148,6 +148,13 @@ mod tests {
 
         let mut loaded = loaded.load_module(run_wasm)?;
 
+        let interrupt = loaded.interrupt_handle()?;
+
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(1000));
+            interrupt.kill();
+        });
+
         let result = loaded.call_guest_function::<i32>("KeepCPUBusy", 10000i32);
 
         match result {

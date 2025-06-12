@@ -14,11 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::sync::Arc;
+
 use hyperlight_host::func::{ParameterTuple, SupportedReturnType};
+// re-export the InterruptHandle trait as it's part of the public API
+pub use hyperlight_host::hypervisor::InterruptHandle;
 use hyperlight_host::sandbox::Callable;
 use hyperlight_host::sandbox_state::sandbox::{DevolvableSandbox, Sandbox};
 use hyperlight_host::sandbox_state::transition::Noop;
-use hyperlight_host::{MultiUseSandbox, Result, log_then_return};
+use hyperlight_host::{MultiUseSandbox, Result, log_then_return, new_error};
 
 use super::metrics::METRIC_TOTAL_LOADED_WASM_SANDBOXES;
 use super::wasm_sandbox::WasmSandbox;
@@ -71,6 +75,18 @@ impl LoadedWasmSandbox {
         metrics::gauge!(METRIC_ACTIVE_LOADED_WASM_SANDBOXES).increment(1);
         metrics::counter!(METRIC_TOTAL_LOADED_WASM_SANDBOXES).increment(1);
         Ok(LoadedWasmSandbox { inner: Some(inner) })
+    }
+
+    /// Get a handle to the interrupt handler for this sandbox,
+    /// capable of interrupting guest execution.
+    pub fn interrupt_handle(&self) -> Result<Arc<dyn InterruptHandle>> {
+        if let Some(inner) = &self.inner {
+            Ok(inner.interrupt_handle())
+        } else {
+            Err(new_error!(
+                "WasmSandbox is None, cannot get interrupt handle"
+            ))
+        }
     }
 }
 
