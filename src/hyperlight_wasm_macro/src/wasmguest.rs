@@ -87,12 +87,11 @@ fn emit_import_extern_decl<'a, 'b, 'c>(
             };
             quote! {
                 #li.func_wrap::<_, (#(#pts,)*), #rt>(#edkn, |_, (#(#pds,)*)| {
-                    call_host_function(
+                    let #ret = call_host_function::<Vec<u8>>(
                         #fname,
                         ::core::option::Option::Some(vec![#(#pus,)*]),
                         ::hyperlight_common::flatbuffer_wrappers::function_types::ReturnType::VecBytes,
                     ).unwrap();
-                    let #ret = ::hyperlight_guest_bin::host_comm::get_host_return_value::<Vec<u8>>().unwrap();
                     ::core::result::Result::Ok(#ur)
                 });
             }
