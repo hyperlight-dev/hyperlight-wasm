@@ -33,8 +33,6 @@ pub const MIN_HEAP_SIZE: u64 = 1024 * 1024;
 pub struct SandboxBuilder {
     config: SandboxConfiguration,
     host_print_fn: Option<HostFunction<i32, (String,)>>,
-    #[cfg(all(target_os = "windows", debug_assertions))]
-    guest_path: Option<String>,
 }
 
 impl SandboxBuilder {
@@ -47,8 +45,6 @@ impl SandboxBuilder {
         Self {
             config,
             host_print_fn: None,
-            #[cfg(all(target_os = "windows", debug_assertions))]
-            guest_path: None,
         }
     }
 
