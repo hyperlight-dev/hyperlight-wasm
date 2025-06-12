@@ -27,20 +27,13 @@ use wasmtime::{Caller, Engine, FuncType, Val, ValType};
 
 use crate::marshal;
 
-#[derive(Clone)]
-pub(crate) struct HostFunctionDefinition {
-    pub function_name: String,
-    pub parameter_types: Option<Vec<ParameterType>>,
-    pub return_type: ReturnType,
-}
-
-pub(crate) struct HostFunctionDetails {
-    /// The host functions.
-    pub host_functions: Option<Vec<HostFunctionDefinition>>,
-}
+pub(crate) type HostFunctionDefinition =
+    hyperlight_common::flatbuffer_wrappers::host_function_definition::HostFunctionDefinition;
+pub(crate) type HostFunctionDetails =
+    hyperlight_common::flatbuffer_wrappers::host_function_details::HostFunctionDetails;
 
 pub(crate) fn get_host_function_details() -> HostFunctionDetails {
-    todo!("replace the missing hyperlight_guest_bin::host_functions::get_host_function_details");
+    hyperlight_guest_bin::host_comm::get_host_function_details()
 }
 
 pub(crate) fn hostfunc_type(d: &HostFunctionDefinition, e: &Engine) -> Result<FuncType> {
