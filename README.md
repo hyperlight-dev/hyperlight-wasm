@@ -94,15 +94,6 @@ generate bindings from the same component type in the host.  For a
 complete (albeit small) example of this, see [this
 example](https://aka.ms/hyperlight-wasm-sockets-sample).
 
-> [!NOTE]
-> Currently, component model support in Hyperlight-Wasm requires using
-> [the `hyperlight-component-macro` branch of core
-> hyperlight](https://github.com/hyperlight-dev/hyperlight/pull/376). The
-> Hyperlight-Wasm [`Cargo.toml`](./Cargo.toml) already depends on this
-> version, rather than the published one, but you should be careful to
-> use the same dependency specification to avoid Cargo pulling two
-> instances of core hyperlight into your dependency graph.
-
 ## Code of Conduct
 
 This project has adopted the [Microsoft Open Source Code of
