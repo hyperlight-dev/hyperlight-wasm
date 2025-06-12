@@ -22,12 +22,11 @@ use alloc::vec::Vec;
 use alloc::{format, vec};
 
 use hyperlight_common::flatbuffer_wrappers::function_types::{
-    ParameterType, ParameterValue, ReturnType,
+    ParameterType, ParameterValue, ReturnType, ReturnValue,
 };
 use hyperlight_common::flatbuffer_wrappers::guest_error::ErrorCode;
 use hyperlight_common::flatbuffer_wrappers::util::get_flatbuffer_result;
 use hyperlight_guest::error::{HyperlightGuestError, Result};
-use hyperlight_guest_bin::host_comm::get_host_return_value;
 use wasmtime::{AsContextMut, Extern, Val};
 
 fn malloc<C: AsContextMut>(
@@ -252,34 +251,29 @@ pub fn val_to_hl_param<'a, C: AsContextMut>(
 pub fn hl_return_to_val<C: AsContextMut>(
     ctx: &mut C,
     get_export: impl Fn(&mut C, &str) -> Option<Extern>,
-    rt: &ReturnType,
-    ret: &mut [Val],
-) -> Result<()> {
-    match rt {
-        ReturnType::Void => get_host_return_value::<()>()?,
-        ReturnType::Int => {
-            ret[0] = Val::I32(get_host_return_value::<i32>()?);
+    rv: ReturnValue,
+) -> Result<Val> {
+    match rv {
+        ReturnValue::Int(i) => Ok(Val::I32(i)),
+        ReturnValue::UInt(u) => Ok(Val::I32(u as i32)),
+        ReturnValue::Long(l) => Ok(Val::I64(l)),
+        ReturnValue::ULong(u) => Ok(Val::I64(u as i64)),
+        ReturnValue::Bool(b) => Ok(Val::I32(if b { 1 } else { 0 })),
+        ReturnValue::Float(f) => Ok(Val::F32(f.to_bits())),
+        ReturnValue::Double(f) => Ok(Val::F64(f.to_bits())),
+        ReturnValue::String(s) => {
+            let s = CString::new(s.as_str()).unwrap();
+            let nbytes = s.count_bytes() + 1; // include the NUL terminator
+            let addr = malloc(ctx, &get_export, nbytes)?;
+            write(ctx, &get_export, addr, s.as_bytes_with_nul())?;
+            Ok(Val::I32(addr))
         }
-        ReturnType::Long => {
-            ret[0] = Val::I64(get_host_return_value::<i64>()?);
-        }
-        ReturnType::UInt => {
-            ret[0] = Val::I32(get_host_return_value::<u32>()? as i32);
-        }
-        ReturnType::ULong => {
-            ret[0] = Val::I64(get_host_return_value::<u64>()? as i64);
-        }
-        /* hyperlight_guest_bin::host_comm::get_host_value_return_as_{bool,float,double,string} are missing */
-        // TODO: this comment is outdated, implement these
-        ReturnType::VecBytes => {
-            let b = get_host_return_value::<Vec<u8>>()?;
+        ReturnValue::VecBytes(b) => {
             let addr = malloc(ctx, &get_export, b.len())?;
             write(ctx, &get_export, addr, b.as_ref())?;
-            ret[0] = Val::I32(addr);
+            Ok(Val::I32(addr))
+            // TODO: check that the next parameter is the correct length
         }
-        _ => {
-            panic!("unimplemented");
-        }
+        ReturnValue::Void(()) => Ok(Val::I32(0)),
     }
-    Ok(())
 }

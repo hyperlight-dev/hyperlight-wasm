@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
@@ -73,21 +72,16 @@ pub(crate) fn hostfunc_type(d: &HostFunctionDefinition, e: &Engine) -> Result<Fu
         ReturnType::Void => {}
         ReturnType::Int | ReturnType::UInt => results.push(ValType::I32),
         ReturnType::Long | ReturnType::ULong => results.push(ValType::I64),
-        /* hyperlight_guest_bin::host_function_call::get_host_value_return_as_{bool,float,double,string} are missing */
-        // TODO: this comment is outdated, these are now implemented. Implement the other types
+        ReturnType::Bool => results.push(ValType::I32),
+        ReturnType::Float => results.push(ValType::F32),
+        ReturnType::Double => results.push(ValType::F64),
+        ReturnType::String => results.push(ValType::I32),
+        // TODO: this comment about using i64 for VecBytes doesn't seem to match with what
+        //       hl_return_to_val was doing, check if this is still correct.
         /* For compatibility with old host, we return
          * a packed i64 with a (wasm32) pointer in the lower half and
          * a length in the upper half. */
         ReturnType::VecBytes => results.push(ValType::I64),
-        _ => {
-            return Err(HyperlightGuestError::new(
-                ErrorCode::GuestError,
-                format!(
-                    "Host function return type {:?} must be (u)int or (u)long, if present",
-                    d.return_type
-                ),
-            ));
-        }
     }
     Ok(FuncType::new(e, params, results))
 }
@@ -106,7 +100,39 @@ pub(crate) fn call(
             marshal::val_to_hl_param(&mut c, |c, n| c.get_export(n), s, t)
         })
         .collect();
-    call_host_function::<ReturnValue>(&d.function_name, Some(params), d.return_type)
+
+    let rv = call_host_function::<ReturnValue>(&d.function_name, Some(params), d.return_type)
         .expect("Host function call failed");
-    marshal::hl_return_to_val(&mut c, |c, n| c.get_export(n), &d.return_type, rs)
+
+    assert!(
+        return_type_from_val(&rv) == d.return_type,
+        "Host function return type mismatch"
+    );
+
+    if rs.is_empty() {
+        assert!(
+            d.return_type == ReturnType::Void,
+            "Host function return type mismatch"
+        );
+        return Ok(());
+    }
+
+    rs[0] = marshal::hl_return_to_val(&mut c, |c, n| c.get_export(n), rv)?;
+
+    Ok(())
+}
+
+fn return_type_from_val(val: &ReturnValue) -> ReturnType {
+    match val {
+        ReturnValue::Int(_) => ReturnType::Int,
+        ReturnValue::UInt(_) => ReturnType::UInt,
+        ReturnValue::Long(_) => ReturnType::Long,
+        ReturnValue::ULong(_) => ReturnType::ULong,
+        ReturnValue::Float(_) => ReturnType::Float,
+        ReturnValue::Double(_) => ReturnType::Double,
+        ReturnValue::String(_) => ReturnType::String,
+        ReturnValue::VecBytes(_) => ReturnType::VecBytes,
+        ReturnValue::Bool(_) => ReturnType::Bool,
+        ReturnValue::Void(_) => ReturnType::Void,
+    }
 }
