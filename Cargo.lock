@@ -800,6 +800,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
+name = "elfcore"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "824386967a6a98e7f99d5c15d40cd1534b0ebfc4193a7109689dcf5322e8d744"
+dependencies = [
+ "libc",
+ "nix",
+ "smallvec",
+ "thiserror 1.0.69",
+ "tracing",
+ "zerocopy 0.7.35",
+]
+
+[[package]]
 name = "embedded-io"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -854,12 +868,6 @@ name = "fallible-iterator"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2acce4a10f12dc2fb14a218589d4f1f62ef011b2d0cc4b3cb1bba8e94da14649"
-
-[[package]]
-name = "fastrand"
-version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
 
 [[package]]
 name = "flatbuffers"
@@ -1203,8 +1211,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-common"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3bb6a608bf19ef30c880bdabc32129e0cf52cbc85532e41d56da7f8bb79f1c3c"
+source = "git+https://github.com/hyperlight-dev/hyperlight.git?rev=aeb1899eede9c4210df2691ffd3830913c5e404c#aeb1899eede9c4210df2691ffd3830913c5e404c"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -1216,15 +1223,16 @@ dependencies = [
 [[package]]
 name = "hyperlight-host"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc0e204fc75c89187367b49c5489610f51ffbd9c302e1c1f2ad205e25e105fab"
+source = "git+https://github.com/hyperlight-dev/hyperlight.git?rev=aeb1899eede9c4210df2691ffd3830913c5e404c#aeb1899eede9c4210df2691ffd3830913c5e404c"
 dependencies = [
  "anyhow",
  "bitflags 2.9.1",
  "cfg-if",
  "cfg_aliases",
+ "chrono",
  "crossbeam",
  "crossbeam-channel",
+ "elfcore",
  "flatbuffers",
  "goblin 0.10.0",
  "hyperlight-common",
@@ -1244,7 +1252,6 @@ dependencies = [
  "seccompiler",
  "serde_json",
  "sha256",
- "tempfile",
  "termcolor",
  "thiserror 2.0.12",
  "tracing",
@@ -1607,12 +1614,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d26c52dbd32dccf2d10cac7725f8eae5296885fb5703b261f7d0a0739ec807ab"
 
 [[package]]
-name = "linux-raw-sys"
-version = "0.9.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd945864f07fe9f5371a27ad7b52a172b4b499999f1d97574c9fa68373937e12"
-
-[[package]]
 name = "litemap"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1655,7 +1656,7 @@ version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b2cffa4ad52c6f791f4f8b15f0c05f9824b2ced1160e88cc393d64fff9a8ac64"
 dependencies = [
- "rustix 0.38.44",
+ "rustix",
 ]
 
 [[package]]
@@ -1790,6 +1791,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77a5d83df9f36fe23f0c3648c6bbb8b0298bb5f1939c8f2704431371f4b84d43"
 dependencies = [
  "smallvec",
+]
+
+[[package]]
+name = "nix"
+version = "0.26.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "598beaf3cc6fdd9a5dfb1630c2800c7acd31df7aaf0f565796fba2b53ca1af1b"
+dependencies = [
+ "bitflags 1.3.2",
+ "cfg-if",
+ "libc",
 ]
 
 [[package]]
@@ -2278,20 +2290,7 @@ dependencies = [
  "bitflags 2.9.1",
  "errno",
  "libc",
- "linux-raw-sys 0.4.15",
- "windows-sys 0.59.0",
-]
-
-[[package]]
-name = "rustix"
-version = "1.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c71e83d6afe7ff64890ec6b71d6a69bb8a610ab78ce364b3352876bb4c801266"
-dependencies = [
- "bitflags 2.9.1",
- "errno",
- "libc",
- "linux-raw-sys 0.9.4",
+ "linux-raw-sys",
  "windows-sys 0.59.0",
 ]
 
@@ -2633,19 +2632,6 @@ name = "target-lexicon"
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e502f78cdbb8ba4718f566c418c52bc729126ffd16baee5baa718cf25dd5a69a"
-
-[[package]]
-name = "tempfile"
-version = "3.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8a64e3985349f2441a1a9ef0b853f869006c3855f2cda6862a94d26ebb9d6a1"
-dependencies = [
- "fastrand",
- "getrandom 0.3.3",
- "once_cell",
- "rustix 1.0.7",
- "windows-sys 0.59.0",
-]
 
 [[package]]
 name = "termcolor"
@@ -3077,7 +3063,7 @@ dependencies = [
  "postcard",
  "psm",
  "pulley-interpreter",
- "rustix 0.38.44",
+ "rustix",
  "semver",
  "serde",
  "serde_derive",
@@ -3189,7 +3175,7 @@ dependencies = [
  "anyhow",
  "cc",
  "cfg-if",
- "rustix 0.38.44",
+ "rustix",
  "wasmtime-asm-macros",
  "wasmtime-versioned-export-macros",
  "windows-sys 0.59.0",
@@ -3281,7 +3267,7 @@ dependencies = [
  "either",
  "home",
  "once_cell",
- "rustix 0.38.44",
+ "rustix",
 ]
 
 [[package]]
