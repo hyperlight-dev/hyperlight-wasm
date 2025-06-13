@@ -32,8 +32,6 @@ mod wasip1;
 
 #[cfg(component)]
 mod component;
-#[cfg(component)]
-use component::*;
 
 // The file referenced in this include! macro is created by the
 // build.rs script.  The build.rs script gets the current version of
