@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 use hyperlight_host::func::call_ctx::MultiUseGuestCallContext;
-use hyperlight_host::func::{HostFunction, ParameterTuple, SupportedReturnType};
+use hyperlight_host::func::{HostFunction, ParameterTuple, Registerable, SupportedReturnType};
 use hyperlight_host::sandbox::Callable;
 #[cfg(all(feature = "seccomp", target_os = "linux"))]
 use hyperlight_host::sandbox::ExtraAllowedSyscall;
@@ -40,6 +40,31 @@ pub struct ProtoWasmSandbox {
 }
 
 impl Sandbox for ProtoWasmSandbox {}
+
+impl Registerable for ProtoWasmSandbox {
+    fn register_host_function<Args: ParameterTuple, Output: SupportedReturnType>(
+        &mut self,
+        name: &str,
+        hf: impl Into<HostFunction<Output, Args>>,
+    ) -> Result<()> {
+        self.inner
+            .as_mut()
+            .ok_or(new_error!("inner sandbox was none"))
+            .and_then(|sb| sb.register(name, hf))
+    }
+    #[cfg(all(feature = "seccomp", target_os = "linux"))]
+    fn register_host_function_with_syscalls<Args: ParameterTuple, Output: SupportedReturnType>(
+        &mut self,
+        name: &str,
+        hf: impl Into<HostFunction<Output, Args>>,
+        eas: Vec<ExtraAllowedSyscall>,
+    ) -> Result<()> {
+        self.inner
+            .as_mut()
+            .ok_or(new_error!("inner sandbox was none"))
+            .and_then(|sb| sb.register_host_function_with_syscalls(name, hf, eas))
+    }
+}
 
 impl ProtoWasmSandbox {
     /// Create a new sandbox complete with no Wasm runtime and no end-user
