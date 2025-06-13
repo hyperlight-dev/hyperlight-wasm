@@ -15,8 +15,6 @@ limitations under the License.
 */
 
 use hyperlight_host::func::HostFunction;
-#[cfg(all(target_os = "windows", not(debug_assertions)))]
-use hyperlight_host::new_error;
 use hyperlight_host::sandbox::SandboxConfiguration;
 use hyperlight_host::{GuestBinary, HyperlightError, Result, is_hypervisor_present};
 
