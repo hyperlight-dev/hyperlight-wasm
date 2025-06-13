@@ -45,7 +45,7 @@ fn build_wasm_runtime() -> PathBuf {
     let _ = std::io::stdout()
         .write_all(AsRef::<std::ffi::OsStr>::as_ref(&in_repo_dir).as_encoded_bytes());
     println!();
-    println!("cargo::rerun-if-env-changed=HYPERLIGHT_WASM_WORLD");
+    println!("cargo::rerun-if-env-changed=WIT_WORLD");
     // the PROFILE env var unfortunately only gives us 1 bit of "dev or release"
     let cargo_profile = if profile == "debug" { "dev" } else { "release" };
     let mut cmd = std::process::Command::new("cargo");

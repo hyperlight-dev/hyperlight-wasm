@@ -98,9 +98,9 @@ fn main() {
     }
     cfg.compile("wasm_runtime");
 
-    println!("cargo::rerun-if-env-changed=HYPERLIGHT_WASM_WORLD");
+    println!("cargo::rerun-if-env-changed=WIT_WORLD");
     println!("cargo::rustc-check-cfg=cfg(component)");
-    if env::var_os("HYPERLIGHT_WASM_WORLD").is_some() {
+    if env::var_os("WIT_WORLD").is_some() {
         println!("cargo::rustc-cfg=component");
     }
 }

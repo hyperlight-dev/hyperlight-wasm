@@ -84,7 +84,7 @@ cargo run --example helloworld
 
 Hyperlight-Wasm has experimental support for running WebAssembly
 Component Model components, rather than core wasm modules.  In this
-mode, set the `HYPERLIGHT_WASM_WORLD` environment variable to point to
+mode, set the `WIT_WORLD` environment variable to point to
 a binary encoding of a component type (e.g. the result of running
 `wasm-tools component wit -w -o /path/to/output.wasm
 /path/to/input.wit`), which will ensure that the resultant library
