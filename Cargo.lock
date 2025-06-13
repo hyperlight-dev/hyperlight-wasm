@@ -1210,8 +1210,8 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-common"
-version = "0.6.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight.git?rev=aeb1899eede9c4210df2691ffd3830913c5e404c#aeb1899eede9c4210df2691ffd3830913c5e404c"
+version = "0.6.1"
+source = "git+https://github.com/hyperlight-dev/hyperlight.git?rev=6c301e3202e6dd27b89bea2747b7b42bf9949a39#6c301e3202e6dd27b89bea2747b7b42bf9949a39"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -1222,8 +1222,8 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-host"
-version = "0.6.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight.git?rev=aeb1899eede9c4210df2691ffd3830913c5e404c#aeb1899eede9c4210df2691ffd3830913c5e404c"
+version = "0.6.1"
+source = "git+https://github.com/hyperlight-dev/hyperlight.git?rev=6c301e3202e6dd27b89bea2747b7b42bf9949a39#6c301e3202e6dd27b89bea2747b7b42bf9949a39"
 dependencies = [
  "anyhow",
  "bitflags 2.9.1",

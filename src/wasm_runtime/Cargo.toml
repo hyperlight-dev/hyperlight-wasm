@@ -14,9 +14,9 @@ bench = false
 #hyperlight-common = { version = "0.6", default-features = false }
 #hyperlight-guest-bin = { version = "0.6", features = [ "printf" ] }
 #hyperlight-guest = { version = "0.6" }
-hyperlight-common = { git = "https://github.com/hyperlight-dev/hyperlight.git", rev = "aeb1899eede9c4210df2691ffd3830913c5e404c", default-features = false }
-hyperlight-guest-bin = { git = "https://github.com/hyperlight-dev/hyperlight.git", rev = "aeb1899eede9c4210df2691ffd3830913c5e404c", features = [ "printf" ] }
-hyperlight-guest = { git = "https://github.com/hyperlight-dev/hyperlight.git", rev = "aeb1899eede9c4210df2691ffd3830913c5e404c" }
+hyperlight-common = { git = "https://github.com/hyperlight-dev/hyperlight.git", rev = "6c301e3202e6dd27b89bea2747b7b42bf9949a39", default-features = false }
+hyperlight-guest-bin = { git = "https://github.com/hyperlight-dev/hyperlight.git", rev = "6c301e3202e6dd27b89bea2747b7b42bf9949a39", features = [ "printf" ] }
+hyperlight-guest = { git = "https://github.com/hyperlight-dev/hyperlight.git", rev = "6c301e3202e6dd27b89bea2747b7b42bf9949a39" }
 wasmtime = { version = "30.0.2", default-features = false, features = [ "runtime", "custom-virtual-memory", "custom-native-signals", "component-model" ] }
 hyperlight-wasm-macro = { path = "../hyperlight_wasm_macro" }
 spin = "0.9.8"

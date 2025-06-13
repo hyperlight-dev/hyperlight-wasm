@@ -5,4 +5,4 @@ resolver = "2"
 
 [workspace.dependencies]
 #hyperlight-host = { version = "0.6", default-features = false, features = ["executable_heap"] }
-hyperlight-host = { git = "https://github.com/hyperlight-dev/hyperlight.git", rev = "aeb1899eede9c4210df2691ffd3830913c5e404c", default-features = false, features = ["executable_heap"] }
+hyperlight-host = { git = "https://github.com/hyperlight-dev/hyperlight.git", rev = "6c301e3202e6dd27b89bea2747b7b42bf9949a39", default-features = false, features = ["executable_heap"] }
