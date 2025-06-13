@@ -93,7 +93,7 @@ fn emit_import_extern_decl<'a, 'b, 'c>(
                         ::hyperlight_common::flatbuffer_wrappers::function_types::ReturnType::VecBytes,
                     ).unwrap();
                     ::core::result::Result::Ok(#ur)
-                });
+                }).unwrap();
             }
         }
         ExternDesc::Type(t) => match t {
@@ -144,7 +144,7 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
             let n = match kebab_to_fn(ed.kebab_name) {
                 FnName::Plain(n) => n,
                 FnName::Associated(_, _) => {
-                    panic!("resorurces exported from wasm not yet supported")
+                    panic!("resources exported from wasm not yet supported")
                 }
             };
             let nlit = n.unraw().to_string();
@@ -158,7 +158,7 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
             let (pds, pus) = ft.params.iter().enumerate()
                 .map(|(i, p)| {
                     let id = kebab_to_var(p.name.name);
-                    let pd = quote! { let ::hyperlight_common::flatbuffer_wrappers::ParameterValue::VecBytes(ref #id) = &fc.parameters.as_ref().unwrap()[#i]; };
+                    let pd = quote! { let ::hyperlight_common::flatbuffer_wrappers::function_types::ParameterValue::VecBytes(#id) = &fc.parameters.as_ref().unwrap()[#i] else { panic!("invariant violation: host passed non-VecBytes core hyperlight argument"); }; };
                     let pu = emit_hl_unmarshal_param(s, id, &p.ty);
                     (pd, pu)
                 })
@@ -169,7 +169,7 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
             let ret = format_ident!("ret");
             let marshal_result = emit_hl_marshal_result(s, ret.clone(), &ft.result);
             quote! {
-                fn #n(fc: &::hyperlight_common::flatbuffer_wrappers::function_call::FunctionCall) -> ::hyperlight_guest_bin::error::Result<::alloc::vec::Vec<u8>> {
+                fn #n(fc: &::hyperlight_common::flatbuffer_wrappers::function_call::FunctionCall) -> ::hyperlight_guest::error::Result<::alloc::vec::Vec<u8>> {
                     #(#pds)*
                     let mut store = CUR_STORE.lock(); let mut store = store.as_mut().unwrap();
                     let instance = CUR_INSTANCE.lock(); let mut instance = instance.unwrap();
@@ -178,7 +178,7 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
                     let func_idx = instance.get_export(&mut *store, instance_idx.as_ref(), #nlit).unwrap();
                     let #ret = instance.get_typed_func::<(#(#pwts,)*), (#rwt,)>(&mut *store, func_idx)?
                         .call(&mut *store, (#(#pus,)*))?.0;
-                    ::core::result::Result::Ok(#marshal_result)
+                    ::core::result::Result::Ok(::hyperlight_common::flatbuffer_wrappers::util::get_flatbuffer_result::<&[u8]>(&#marshal_result))
                 }
                 ::hyperlight_guest_bin::guest_function::register::register_function(
                     ::hyperlight_guest_bin::guest_function::definition::GuestFunctionDefinition::new(
