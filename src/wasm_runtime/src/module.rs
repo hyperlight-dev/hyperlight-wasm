@@ -26,10 +26,9 @@ use hyperlight_common::flatbuffer_wrappers::function_types::{
 use hyperlight_common::flatbuffer_wrappers::guest_error::ErrorCode;
 use hyperlight_common::flatbuffer_wrappers::util::get_flatbuffer_result;
 use hyperlight_guest::error::{HyperlightGuestError, Result};
-use hyperlight_guest::guest_function_definition::GuestFunctionDefinition;
-use hyperlight_guest::guest_function_register::register_function;
-use hyperlight_guest::host_function_call::print_output_as_guest_function;
-use hyperlight_guest::host_functions::get_host_function_details;
+use hyperlight_guest_bin::guest_function::definition::GuestFunctionDefinition;
+use hyperlight_guest_bin::guest_function::register::register_function;
+use hyperlight_guest_bin::host_comm::print_output_with_host_print;
 use spin::Mutex;
 use wasmtime::{Config, Engine, Linker, Module, Store, Val};
 
@@ -98,7 +97,7 @@ fn init_wasm_runtime() -> Result<Vec<u8>> {
     let mut linker = Linker::new(&engine);
     wasip1::register_handlers(&mut linker)?;
 
-    let hostfuncs = get_host_function_details()
+    let hostfuncs = hostfuncs::get_host_function_details()
         .host_functions
         .unwrap_or_default();
     for hostfunc in hostfuncs.iter() {
@@ -146,7 +145,7 @@ pub extern "C" fn hyperlight_main() {
         "PrintOutput".to_string(),
         vec![ParameterType::String],
         ReturnType::Int,
-        print_output_as_guest_function as usize,
+        print_output_with_host_print as usize,
     ));
 
     register_function(GuestFunctionDefinition::new(

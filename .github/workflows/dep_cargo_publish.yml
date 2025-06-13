@@ -22,7 +22,7 @@ jobs:
       - name: Hyperlight setup 
         uses: hyperlight-dev/ci-setup-workflow@v1.4.0
         with:
-          rust-toolchain: "1.82.0"
+          rust-toolchain: "1.85.0"
 
       - name: Download Wasm Host (debug)
         uses: actions/download-artifact@v4

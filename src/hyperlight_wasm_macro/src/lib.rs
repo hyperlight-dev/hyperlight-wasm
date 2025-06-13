@@ -21,16 +21,16 @@ mod wasmguest;
 
 /// Create the hyperlight_guest_wasm_init() function (called by
 /// wasm_runtime:component.rs) for the wasm component type located at
-/// $HYPERLIGHT_WASM_WORLD. This function registers Hyperlight
+/// $WIT_WORLD. This function registers Hyperlight
 /// functions for component exports (which are implemented by calling
 /// into wasmtime) and registers wasmtime host functions with the
 /// wasmtime linker for component imports (which are implemented by
 /// calling to the Hyperlight host).
 #[proc_macro]
 pub fn wasm_guest_bindgen(_: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let path = std::env::var_os("HYPERLIGHT_WASM_WORLD").unwrap();
+    let path = std::env::var_os("WIT_WORLD").unwrap();
     util::read_wit_type_from_file(path, |kebab_name, ct| {
-        let decls = emit::run_state(true, |s| {
+        let decls = emit::run_state(true, true, |s| {
             // Emit type/trait definitions for all instances in the world
             rtypes::emit_toplevel(s, &kebab_name, ct);
             // Emit the host/guest function registrations
