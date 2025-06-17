@@ -14,10 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::sync::{Arc, Mutex};
-
 use examples_common::get_wasm_module_path;
-use hyperlight_wasm::{ParameterValue, Result, ReturnType, SandboxBuilder};
+use hyperlight_wasm::{Result, SandboxBuilder};
 
 fn main() -> Result<()> {
     // Install prometheus metrics exporter.
@@ -29,17 +27,16 @@ fn main() -> Result<()> {
         .expect("Failed to install Prometheus exporter");
 
     for _ in 0..10 {
-        let host_func = Arc::new(Mutex::new(|a: i32| -> Result<i32> {
+        let host_func = |a: i32| {
             println!("host_func called with {}", a);
-            Ok(a + 1)
-        }));
+            a + 1
+        };
 
         let mut wasm_sandbox = SandboxBuilder::new()
-            .with_guest_function_call_max_cancel_wait_millis(100)
             .with_guest_input_buffer_size(1000000)
             .build()?;
 
-        wasm_sandbox.register_host_func_1("TestHostFunc", &host_func)?;
+        wasm_sandbox.register("TestHostFunc", host_func)?;
 
         let wasm_sandbox = wasm_sandbox.load_runtime()?;
 
@@ -47,11 +44,7 @@ fn main() -> Result<()> {
             wasm_sandbox.load_module(get_wasm_module_path("rust_wasm_samples.wasm")?)?;
 
         loaded_wasm_sandbox
-            .call_guest_function(
-                "add",
-                Some(vec![ParameterValue::Int(5), ParameterValue::Int(10)]),
-                ReturnType::Int,
-            )
+            .call_guest_function::<i32>("add", (5i32, 10i32))
             .unwrap();
     }
 

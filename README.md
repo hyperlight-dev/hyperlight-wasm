@@ -54,11 +54,11 @@ You should also add your user to the kvm group: `sudo adduser $USER kvm`
 
 ## Building
 
-NOTE: Ensure that you use version 1.82.0 of rust toolchain.
+NOTE: Ensure that you use version 1.85.0 of rust toolchain.
 
 ```Console
-rustup install 1.82.0
-rustup default 1.82.0
+rustup install 1.85.0
+rustup default 1.85.0
 ```
 
 Now you can build the Rust Wasm library:
@@ -84,7 +84,7 @@ cargo run --example helloworld
 
 Hyperlight-Wasm has experimental support for running WebAssembly
 Component Model components, rather than core wasm modules.  In this
-mode, set the `HYPERLIGHT_WASM_WORLD` environment variable to point to
+mode, set the `WIT_WORLD` environment variable to point to
 a binary encoding of a component type (e.g. the result of running
 `wasm-tools component wit -w -o /path/to/output.wasm
 /path/to/input.wit`), which will ensure that the resultant library
@@ -93,15 +93,6 @@ that type. Then, use `hyperlight_component_macro::host_bindgen!()` to
 generate bindings from the same component type in the host.  For a
 complete (albeit small) example of this, see [this
 example](https://aka.ms/hyperlight-wasm-sockets-sample).
-
-> [!NOTE]
-> Currently, component model support in Hyperlight-Wasm requires using
-> [the `hyperlight-component-macro` branch of core
-> hyperlight](https://github.com/hyperlight-dev/hyperlight/pull/376). The
-> Hyperlight-Wasm [`Cargo.toml`](./Cargo.toml) already depends on this
-> version, rather than the published one, but you should be careful to
-> use the same dependency specification to avoid Cargo pulling two
-> instances of core hyperlight into your dependency graph.
 
 ## Code of Conduct
 

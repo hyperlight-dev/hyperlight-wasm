@@ -22,7 +22,7 @@ use alloc::vec::Vec;
 
 use hyperlight_common::flatbuffer_wrappers::function_types::{ParameterValue, ReturnType};
 use hyperlight_guest::error::Result;
-use hyperlight_guest::host_function_call::{call_host_function, get_host_return_value};
+use hyperlight_guest_bin::host_comm::call_host_function;
 use wasmtime::{Caller, Extern, Linker};
 
 pub(crate) fn register_handlers<T>(linker: &mut Linker<T>) -> Result<()> {
@@ -63,15 +63,12 @@ pub(crate) fn register_handlers<T>(linker: &mut Linker<T>) -> Result<()> {
                 let Ok(str) = core::str::from_utf8(&string_bytes) else {
                     return -2;
                 };
-                let Ok(()) = call_host_function(
+                let Ok(written) = call_host_function::<i32>(
                     "HostPrint",
                     Some(Vec::from(&[ParameterValue::String(str.to_string())])),
                     ReturnType::Int,
                 ) else {
                     return -3;
-                };
-                let Ok(written) = get_host_return_value::<i32>() else {
-                    return -4;
                 };
                 total_written += written;
             }

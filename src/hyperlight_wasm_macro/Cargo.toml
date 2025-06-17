@@ -1,7 +1,7 @@
 [package]
 name = "hyperlight-wasm-macro"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 description = """
 Procedural macros to generate Hyperlight Wasm host and guest bindings from component types
 """
@@ -17,4 +17,4 @@ proc-macro2 = { version = "1.0.93" }
 syn = { version = "2.0.96" }
 itertools = { version = "0.14.0" }
 prettyplease = { version = "0.2.31" }
-hyperlight-component-util = { git = "https://github.com/hyperlight-dev/hyperlight", branch = "hyperlight-component-macro" }
+hyperlight-component-util = { version = "0.6.1" }

@@ -19,11 +19,11 @@ component type of the relevant encoding (of the form produced by
 encoding a WIT package; in particular, instance imports/exports need
 WIT-formatted "wit:package/instance@version" names) needs to be
 available at compile-time. To enable this world, set
-`HYPERLIGHT_WASM_WORLD` when building `hyperlight-wasm`:
+`WIT_WORLD` when building `hyperlight-wasm`:
 
 ```sh
 wasm-tools component wit -w -o world.wasm world.wit
-export HYPERLIGHT_WASM_WORLD=$(readlink -f world.wasm)
+export WIT_WORLD=$(readlink -f world.wasm)
 ```
 
 ## `ProtoWasmSandbox` vs `WasmSandbox` vs `LoadedWasmSandbox`

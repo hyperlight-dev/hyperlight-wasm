@@ -24,8 +24,8 @@ limitations under the License.
 //    the `Resources` struct with.)
 
 use hyperlight_component_util::emit::{
-    kebab_to_fn, kebab_to_namespace, kebab_to_type, kebab_to_var, split_wit_name, FnName, State,
-    WitName,
+    FnName, State, WitName, kebab_to_fn, kebab_to_namespace, kebab_to_type, kebab_to_var,
+    split_wit_name,
 };
 use hyperlight_component_util::etypes::{
     self, Component, Defined, ExternDecl, ExternDesc, Handleable, Instance, Tyvar,
@@ -87,14 +87,13 @@ fn emit_import_extern_decl<'a, 'b, 'c>(
             };
             quote! {
                 #li.func_wrap::<_, (#(#pts,)*), #rt>(#edkn, |_, (#(#pds,)*)| {
-                    call_host_function(
+                    let #ret = call_host_function::<Vec<u8>>(
                         #fname,
                         ::core::option::Option::Some(vec![#(#pus,)*]),
                         ::hyperlight_common::flatbuffer_wrappers::function_types::ReturnType::VecBytes,
                     ).unwrap();
-                    let #ret = ::hyperlight_guest::host_function_call::get_host_return_value::<Vec<u8>>().unwrap();
                     ::core::result::Result::Ok(#ur)
-                });
+                }).unwrap();
             }
         }
         ExternDesc::Type(t) => match t {
@@ -145,10 +144,10 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
             let n = match kebab_to_fn(ed.kebab_name) {
                 FnName::Plain(n) => n,
                 FnName::Associated(_, _) => {
-                    panic!("resorurces exported from wasm not yet supported")
+                    panic!("resources exported from wasm not yet supported")
                 }
             };
-            let nlit = n.unraw().to_string();
+            let nlit = ed.kebab_name;
             let pts = ft.params.iter().map(|_| quote! { ::hyperlight_common::flatbuffer_wrappers::function_types::ParameterType::VecBytes }).collect::<Vec<_>>();
             let pwts = ft
                 .params
@@ -159,7 +158,7 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
             let (pds, pus) = ft.params.iter().enumerate()
                 .map(|(i, p)| {
                     let id = kebab_to_var(p.name.name);
-                    let pd = quote! { let ::hyperlight_common::flatbuffer_wrappers::ParameterValue::VecBytes(ref #id) = &fc.parameters.as_ref().unwrap()[#i]; };
+                    let pd = quote! { let ::hyperlight_common::flatbuffer_wrappers::function_types::ParameterValue::VecBytes(#id) = &fc.parameters.as_ref().unwrap()[#i] else { panic!("invariant violation: host passed non-VecBytes core hyperlight argument"); }; };
                     let pu = emit_hl_unmarshal_param(s, id, &p.ty);
                     (pd, pu)
                 })
@@ -179,10 +178,10 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
                     let func_idx = instance.get_export(&mut *store, instance_idx.as_ref(), #nlit).unwrap();
                     let #ret = instance.get_typed_func::<(#(#pwts,)*), (#rwt,)>(&mut *store, func_idx)?
                         .call(&mut *store, (#(#pus,)*))?.0;
-                    ::core::result::Result::Ok(#marshal_result)
+                    ::core::result::Result::Ok(::hyperlight_common::flatbuffer_wrappers::util::get_flatbuffer_result::<&[u8]>(&#marshal_result))
                 }
-                ::hyperlight_guest::guest_function_register::register_function(
-                    ::hyperlight_guest::guest_function_definition::GuestFunctionDefinition::new(
+                ::hyperlight_guest_bin::guest_function::register::register_function(
+                    ::hyperlight_guest_bin::guest_function::definition::GuestFunctionDefinition::new(
                         #fname.to_string(),
                         ::alloc::vec![#(#pts),*],
                         ::hyperlight_common::flatbuffer_wrappers::function_types::ReturnType::VecBytes,

@@ -14,10 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::sync::{Arc, Mutex};
-
 use examples_common::get_wasm_module_path;
-use hyperlight_wasm::{ParameterValue, Result, ReturnType, ReturnValue, SandboxBuilder};
+use hyperlight_wasm::SandboxBuilder;
 
 fn main() {
     // Create a Wasm Sandbox (this is running in the local Hypervisor)
@@ -29,16 +27,13 @@ fn main() {
         .unwrap();
 
     // Create a host-provided function and register it on the WasmSandbox.
-    //
-    // Note that you must wrap the function in an Arc/Mutex before you
-    // pass it into the register_host_func_1 method below.
-    let host_func = Arc::new(Mutex::new(|a: i32| -> Result<i32> {
+    let host_func = |a: i32| {
         println!("host_func called with {}", a);
-        Ok(a + 1)
-    }));
+        a + 1
+    };
 
     proto_wasm_sandbox
-        .register_host_func_1("TestHostFunc", &host_func)
+        .register("TestHostFunc", host_func)
         .unwrap();
 
     let wasm_sandbox = proto_wasm_sandbox.load_runtime().unwrap();
@@ -49,16 +44,9 @@ fn main() {
     }
     .unwrap();
 
-    let ReturnValue::Int(result) = loaded_wasm_sandbox
-        .call_guest_function(
-            "call_host_function",
-            Some(vec![ParameterValue::Int(5)]),
-            ReturnType::Int,
-        )
-        .unwrap()
-    else {
-        panic!("Failed to get result from call_guest_function")
-    };
+    let result: i32 = loaded_wasm_sandbox
+        .call_guest_function("call_host_function", 5i32)
+        .unwrap();
 
     println!("got result: {:?} from the host function!", result);
 }
