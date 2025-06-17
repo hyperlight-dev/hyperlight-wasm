@@ -17,5 +17,4 @@ proc-macro2 = { version = "1.0.93" }
 syn = { version = "2.0.96" }
 itertools = { version = "0.14.0" }
 prettyplease = { version = "0.2.31" }
-#hyperlight-component-util = { version = "0.6" }
-hyperlight-component-util = { git = "https://github.com/hyperlight-dev/hyperlight.git", rev = "6c301e3202e6dd27b89bea2747b7b42bf9949a39" }
+hyperlight-component-util = { version = "0.6.1" }
