@@ -202,9 +202,8 @@ impl Drop for ProtoWasmSandbox {
 /// The default configuration is as follows:
 ///
 /// * The Hyperlight default Host Print implementation is used.
-/// * The Sandbox will attempt to run in a hypervisor if and will fail if no Hypervisor is available.
+/// * The Sandbox will attempt to run in a hypervisor and will fail if no Hypervisor is available.
 /// * The Sandbox will have  a stack size of 8K and a heap size of 64K
-/// * The Sandbox will have a max execution time of 1000ms and a max wait for cancellation of 100ms
 /// * All other Hyperlight configuration values will be set to their defaults.
 ///
 /// This will result in a memory footprint for the VM backing the Sandbox of approximately 434K
