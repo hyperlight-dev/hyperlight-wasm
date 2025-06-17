@@ -147,7 +147,7 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
                     panic!("resources exported from wasm not yet supported")
                 }
             };
-            let nlit = n.unraw().to_string();
+            let nlit = ed.kebab_name;
             let pts = ft.params.iter().map(|_| quote! { ::hyperlight_common::flatbuffer_wrappers::function_types::ParameterType::VecBytes }).collect::<Vec<_>>();
             let pwts = ft
                 .params
