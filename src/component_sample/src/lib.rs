@@ -14,8 +14,11 @@ impl Guest for Component {
 
     fn call_host(input: String) -> String {
         let host_result = host_function(&format!("{} from component", &input));
-        print(&host_result);
         host_result.to_string()
+    }
+
+    fn do_something(number: u32) {
+        print(&format!("{number}"));
     }
 }
 

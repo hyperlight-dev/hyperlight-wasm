@@ -25,6 +25,7 @@ impl Default for State {
 
 impl bindings::component_sample::example::Host for State {
     fn r#print(&mut self, message: alloc::string::String) {
+        assert_eq!("42", message);
         println!("Logged from component: {message}");
     }
 
@@ -66,6 +67,7 @@ fn main() {
     let result = instance.add(4, 3);
     assert_eq!(7, result);
     println!("Add result is {result}");
+    instance.do_something(42);
 
     let result = instance.call_host("Hello".to_string());
     assert_eq!("Hello from component and the host!", result);

@@ -118,9 +118,16 @@ pub mod exports {
                         .cast::<usize>();
                     _rt::cabi_dealloc(l0, l1, 1);
                 }
+                #[doc(hidden)]
+                #[allow(non_snake_case)]
+                pub unsafe fn _export_do_something_cabi<T: Guest>(arg0: i32) {
+                    #[cfg(target_arch = "wasm32")] _rt::run_ctors_once();
+                    T::do_something(arg0 as u32);
+                }
                 pub trait Guest {
                     fn add(left: u32, right: u32) -> u32;
                     fn call_host(input: _rt::String) -> _rt::String;
+                    fn do_something(number: u32) -> ();
                 }
                 #[doc(hidden)]
                 macro_rules! __export_component_sample_example_adder_cabi {
