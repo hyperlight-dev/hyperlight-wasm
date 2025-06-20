@@ -3,6 +3,7 @@ default-tag:= "latest"
 build-wasm-examples-command := if os() == "windows" { "./src/hyperlight_wasm/scripts/build-wasm-examples.bat" } else { "./src/hyperlight_wasm/scripts/build-wasm-examples.sh" }
 mkdir-arg := if os() == "windows" { "-Force" } else { "-p" }
 latest-release:= if os() == "windows" {"$(git tag -l --sort=v:refname | select -last 2 | select -first 1)"} else {`git tag -l --sort=v:refname | tail -n 2 | head -n 1`}
+wit-world := if os() == "windows" { "$env:WIT_WORLD=\"" + justfile_directory() + "\\src\\wasi_samples\\wit\\component-world.wasm" + "\"" } else { "WIT_WORLD=" + justfile_directory() + "/src/wasi_samples/wit/component-world.wasm" }
 
 set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
 
@@ -88,7 +89,7 @@ examples-ci target=default-target features="": (build-rust-wasm-examples target)
     cargo run {{ if features =="" {"--no-default-features --features kvm,mshv2"} else {"--no-default-features -F function_call_metrics," + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example metrics 
 
 examples-wasi target=default-target features="": (build-rust-wasi-examples target) 
-    WIT_WORLD={{ justfile_directory() }}/src/wasi_samples/wit/component-world.wasm cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example wasi_examples
+    {{ wit-world }} cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example wasi_examples
 
 # warning, compares to and then OVERWRITES the given baseline
 bench-ci baseline target=default-target features="":
