@@ -205,7 +205,12 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
     }
 }
 
-fn emit_wasm_function_call(s: &mut State, result: &etypes::Result, pwts: Vec<TokenStream>, pus: Vec<TokenStream>) -> (TokenStream, proc_macro2::Ident) {
+fn emit_wasm_function_call(
+    s: &mut State,
+    result: &etypes::Result,
+    pwts: Vec<TokenStream>,
+    pus: Vec<TokenStream>,
+) -> (TokenStream, proc_macro2::Ident) {
     let ret = format_ident!("ret");
 
     // if the result is empty we don't want a return result with `get_typed_func`
@@ -215,9 +220,9 @@ fn emit_wasm_function_call(s: &mut State, result: &etypes::Result, pwts: Vec<Tok
                 instance.get_typed_func::<(#(#pwts,)*), ()>(&mut *store, func_idx)?
                     .call(&mut *store, (#(#pus,)*))?;
             }
-        },
+        }
         _ => {
-            let r =  rtypes::emit_func_result(s, result); 
+            let r = rtypes::emit_func_result(s, result);
             quote! {
                 let #ret = instance.get_typed_func::<(#(#pwts,)*), ((#r,))>(&mut *store, func_idx)?
                     .call(&mut *store, (#(#pus,)*))?.0;

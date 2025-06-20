@@ -1,3 +1,6 @@
+#![allow(renamed_and_removed_lints)]
+#![allow(unused_unit)]
+
 use bindings::wasi_sample::example::Adder;
 use examples_common::get_wasm_module_path;
 

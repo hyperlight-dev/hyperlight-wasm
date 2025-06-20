@@ -57,9 +57,9 @@ fmt-check:
 fmt:
     rustup toolchain install nightly -c rustfmt
     cargo +nightly fmt --all
-    cd src/rust_wasm_samples &&  cargo +nightly fmt
-    cd src/wasi_samples &&  cargo +nightly fmt
-    cd src/wasm_runtime && cargo +nightly fmt
+    cd src/rust_wasm_samples &&  cargo +nightly fmt -v --all
+    cd src/wasi_samples &&  cargo +nightly fmt -v --all
+    cd src/wasm_runtime && cargo +nightly fmt -v --all
 
 clippy target=default-target: (check target)
     cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
