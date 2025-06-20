@@ -1,4 +1,5 @@
 #[allow(warnings)]
+#[rustfmt::skip]
 mod bindings;
 
 use bindings::exports::wasi_sample::example::adder::Guest;
