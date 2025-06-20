@@ -35,6 +35,7 @@ use hyperlight_component_util::hl::{
     emit_hl_unmarshal_result,
 };
 use hyperlight_component_util::{resource, rtypes};
+use proc_macro::Ident;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::ext::IdentExt;
@@ -154,7 +155,6 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
                 .iter()
                 .map(|p| rtypes::emit_value(s, &p.ty))
                 .collect::<Vec<_>>();
-            let rwt = rtypes::emit_func_result(s, &ft.result);
             let (pds, pus) = ft.params.iter().enumerate()
                 .map(|(i, p)| {
                     let id = kebab_to_var(p.name.name);
@@ -166,7 +166,7 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
             let get_instance = path.iter().map(|export| quote! {
                 let instance_idx = Some(instance.get_export(&mut *store, instance_idx.as_ref(), #export).unwrap());
             }).collect::<Vec<_>>();
-            let ret = format_ident!("ret");
+            let (function_call, ret) = emit_wasm_function_call(s, &ft.result, pwts, pus);
             let marshal_result = emit_hl_marshal_result(s, ret.clone(), &ft.result);
             quote! {
                 fn #n(fc: &::hyperlight_common::flatbuffer_wrappers::function_call::FunctionCall) -> ::hyperlight_guest::error::Result<::alloc::vec::Vec<u8>> {
@@ -176,8 +176,7 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
                     let instance_idx = None;
                     #(#get_instance;)*
                     let func_idx = instance.get_export(&mut *store, instance_idx.as_ref(), #nlit).unwrap();
-                    let #ret = instance.get_typed_func::<(#(#pwts,)*), (#rwt,)>(&mut *store, func_idx)?
-                        .call(&mut *store, (#(#pus,)*))?.0;
+                    #function_call
                     ::core::result::Result::Ok(::hyperlight_common::flatbuffer_wrappers::util::get_flatbuffer_result::<&[u8]>(&#marshal_result))
                 }
                 ::hyperlight_guest_bin::guest_function::register::register_function(
@@ -204,6 +203,34 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
             panic!("nested components not yet supported in rust bindings");
         }
     }
+}
+
+fn emit_wasm_function_call(
+    s: &mut State,
+    result: &etypes::Result,
+    pwts: Vec<TokenStream>,
+    pus: Vec<TokenStream>,
+) -> (TokenStream, proc_macro2::Ident) {
+    let ret = format_ident!("ret");
+
+    // if the result is empty we don't want a return result with `get_typed_func`
+    let rwt = match result {
+        etypes::Result::Named(rs) if rs.is_empty() => {
+            quote! {
+                instance.get_typed_func::<(#(#pwts,)*), ()>(&mut *store, func_idx)?
+                    .call(&mut *store, (#(#pus,)*))?;
+            }
+        }
+        _ => {
+            let r = rtypes::emit_func_result(s, result);
+            quote! {
+                let #ret = instance.get_typed_func::<(#(#pwts,)*), ((#r,))>(&mut *store, func_idx)?
+                    .call(&mut *store, (#(#pus,)*))?.0;
+            }
+        }
+    };
+
+    (rwt, ret)
 }
 
 // Emit code to register each export of the given instance with the

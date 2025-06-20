@@ -3,10 +3,11 @@ default-tag:= "latest"
 build-wasm-examples-command := if os() == "windows" { "./src/hyperlight_wasm/scripts/build-wasm-examples.bat" } else { "./src/hyperlight_wasm/scripts/build-wasm-examples.sh" }
 mkdir-arg := if os() == "windows" { "-Force" } else { "-p" }
 latest-release:= if os() == "windows" {"$(git tag -l --sort=v:refname | select -last 2 | select -first 1)"} else {`git tag -l --sort=v:refname | tail -n 2 | head -n 1`}
+wit-world := if os() == "windows" { "$env:WIT_WORLD=\"" + justfile_directory() + "\\src\\wasi_samples\\wit\\component-world.wasm" + "\"" } else { "WIT_WORLD=" + justfile_directory() + "/src/wasi_samples/wit/component-world.wasm" }
 
 set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
 
-build-all target=default-target: (build target) (build-wasm-examples target) (build-rust-wasm-examples target) (build-wasm-runtime target)
+build-all target=default-target: (build target) (build-wasm-examples target) (build-rust-wasm-examples target) (build-wasm-runtime target) (build-rust-wasi-examples target)
 
 build target=default-target features="": (build-wasm-runtime target) (fmt-check)
     cargo build {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }} --verbose --profile={{ if target == "debug" {"dev"} else { target } }}
@@ -31,23 +32,39 @@ build-rust-wasm-examples target=default-target: (mkdir-redist target)
     cargo run -p hyperlight-wasm-aot compile ./src/rust_wasm_samples/target/wasm32-unknown-unknown/{{ target }}/rust_wasm_samples.wasm ./x64/{{ target }}/rust_wasm_samples.aot
     cp ./x64/{{ target }}/rust_wasm_samples.aot ./x64/{{ target }}/rust_wasm_samples.wasm
 
+build-rust-wasi-examples target=default-target:
+    cargo install --locked wasm-tools
+    cargo install cargo-component --locked
+    wasm-tools component wit ./src/wasi_samples/wit/example.wit -w -o ./src/wasi_samples/wit/component-world.wasm
+    # use cargo component so we don't get all the wasi imports https://github.com/bytecodealliance/cargo-component?tab=readme-ov-file#relationship-with-wasm32-wasip2
+    # we also explicitly target wasm32-unknown-unknown since cargo component might try to pull in wasi imports https://github.com/bytecodealliance/cargo-component/issues/290
+    rustup target add wasm32-unknown-unknown
+    cd ./src/wasi_samples && cargo component build --target wasm32-unknown-unknown --profile={{ if target == "debug" {"dev"} else { target } }}
+    cargo run -p hyperlight-wasm-aot compile --component ./src/wasi_samples/target/wasm32-unknown-unknown/{{ target }}/wasi_samples.wasm ./x64/{{ target }}/wasi_samples.aot
+    cp ./x64/{{ target }}/wasi_samples.aot ./x64/{{ target }}/wasi_samples.wasm
+
 check target=default-target:
     cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
     cd src/rust_wasm_samples  && cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
+    cd src/wasi_samples  && cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
     cd src/wasm_runtime && cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
 
 fmt-check:
     rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
     cd src/rust_wasm_samples && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
+    cd src/wasi_samples && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
     cd src/wasm_runtime && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
-fmt: 
+fmt:
+    rustup toolchain install nightly -c rustfmt
     cargo +nightly fmt --all
-    cd src/rust_wasm_samples &&  cargo +nightly fmt
-    cd src/wasm_runtime && cargo +nightly fmt
+    cd src/rust_wasm_samples &&  cargo +nightly fmt -v --all
+    cd src/wasi_samples &&  cargo +nightly fmt -v --all
+    cd src/wasm_runtime && cargo +nightly fmt -v --all
 
 clippy target=default-target: (check target)
     cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/rust_wasm_samples &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
+    cd src/wasi_samples &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/wasm_runtime && cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
 
 # TESTING
@@ -70,6 +87,9 @@ examples-ci target=default-target features="": (build-rust-wasm-examples target)
     cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example rust_wasm_examples
     cargo run {{ if features =="" {''} else {"--no-default-features -F function_call_metrics," + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example metrics
     cargo run {{ if features =="" {"--no-default-features --features kvm,mshv2"} else {"--no-default-features -F function_call_metrics," + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example metrics 
+
+examples-wasi target=default-target features="": (build-rust-wasi-examples target) 
+    {{ wit-world }} cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example wasi_examples
 
 # warning, compares to and then OVERWRITES the given baseline
 bench-ci baseline target=default-target features="":

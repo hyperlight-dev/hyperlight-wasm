@@ -1,0 +1,17 @@
+package wasi-sample:example;
+
+world example {
+  import host;
+  export adder;
+}
+
+interface adder {
+  add: func(left: u32, right: u32) -> u32;
+  call-host: func(input: string) -> string;
+  do-something: func(number: u32);
+}
+
+interface host {
+  print: func(message: string);
+  host-function: func(input: string) -> string;
+}
