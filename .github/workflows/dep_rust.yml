@@ -124,6 +124,10 @@ jobs:
           # required for gh cli when downloading
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
+      - name: Test Wasi Examples
+        run: just examples-wasi ${{ matrix.config }} ${{ matrix.hypervisor == 'mshv3' && 'mshv3' || ''}}
+        working-directory: ./src/hyperlight_wasm
+      
       ### Benchmarks ###
 
       - name: Download benchmarks from "latest"

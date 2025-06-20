@@ -21,6 +21,8 @@ Make sure the following are installed:
 1. [pwsh](https://github.com/PowerShell/PowerShell)
 1. [git](https://gitforwindows.org/)
 1. [GitHub CLI](https://github.com/cli/cli#installation)
+1. [wasm-tools](https://github.com/bytecodealliance/wasm-tools?tab=readme-ov-file#installation)
+1. [cargo component](https://github.com/bytecodealliance/cargo-component?tab=readme-ov-file#installation)   
 
 Ensure that Windows Hypervisor Platform is enabled:
 
@@ -38,6 +40,8 @@ Make sure the following are installed:
 1. [Rust](https://www.rust-lang.org/tools/install) `curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh`
 1. [just](https://github.com/casey/just).  is used as a command runner  `cargo install just`. Do not install `just` through a package manager as it may install an older incompatible version, make sure to use at least version 1.5.0 if not installed through cargo.
 1. [GitHub CLI](https://github.com/cli/cli#installation)
+1. [wasm-tools](https://github.com/bytecodealliance/wasm-tools?tab=readme-ov-file#installation)
+1. [cargo component](https://github.com/bytecodealliance/cargo-component?tab=readme-ov-file#installation)   
 
 Ensure that KVM is enabled: On an Azure VM using a size that supports nested virtualisation:
 
@@ -93,6 +97,17 @@ that type. Then, use `hyperlight_component_macro::host_bindgen!()` to
 generate bindings from the same component type in the host.  For a
 complete (albeit small) example of this, see [this
 example](https://aka.ms/hyperlight-wasm-sockets-sample).
+
+### Debugging the macro
+
+You can get more detailed error messages by expanding the Macro locally:
+
+```
+cargo clean -p hyperlight-wasm
+WIT_WORLD=</path/to/output.wasm>  HYPERLIGHT_COMPONENT_MACRO_DEBUG=/tmp/guest.rs cargo build -p hyperlight-wasm
+HYPERLIGHT_COMPONENT_MACRO_DEBUG=/tmp/host.rs cargo build
+```
+
 
 ## Code of Conduct
 
