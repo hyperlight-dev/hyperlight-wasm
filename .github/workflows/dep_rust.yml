@@ -76,6 +76,13 @@ jobs:
         with:
           name: guest-modules
           path: ./x64/${{ matrix.config }}
+
+      - name: Build Rust component model examples
+        run:  |
+          # this must be build before the formatting and other jobs run
+          # because the component model example depends on the wasm component built here
+          just ensure-tools
+          just build-rust-component-examples ${{ matrix.config }}
       
       - name: Fmt
         run: just fmt-check
@@ -123,6 +130,10 @@ jobs:
         env:
           # required for gh cli when downloading
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Test Component Model Examples
+        run: just examples-components ${{ matrix.config }} ${{ matrix.hypervisor == 'mshv3' && 'mshv3' || ''}}
+        working-directory: ./src/hyperlight_wasm
       
       ### Benchmarks ###
 

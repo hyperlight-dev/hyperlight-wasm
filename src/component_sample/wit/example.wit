@@ -1,0 +1,16 @@
+package component-sample:example;
+
+world example {
+  import host;
+  export adder;
+}
+
+interface adder {
+  add: func(left: u32, right: u32) -> u32;
+  call-host: func(input: string) -> string;
+}
+
+interface host {
+  print: func(message: string);
+  host-function: func(input: string) -> string;
+}
