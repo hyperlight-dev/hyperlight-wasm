@@ -32,6 +32,7 @@ build-rust-wasm-examples target=default-target: (mkdir-redist target)
     cp ./x64/{{ target }}/rust_wasm_samples.aot ./x64/{{ target }}/rust_wasm_samples.wasm
 
 build-rust-wasi-examples target=default-target:
+    cargo install --locked wasm-tools
     wasm-tools component wit ./src/wasi_samples/wit/example.wit -w -o ./src/wasi_samples/wit/component-world.wasm
     # use cargo component so we don't get all the wasi imports https://github.com/bytecodealliance/cargo-component?tab=readme-ov-file#relationship-with-wasm32-wasip2
     # we also explicitly target wasm32-unknown-unknown since cargo component might try to pull in wasi imports https://github.com/bytecodealliance/cargo-component/issues/290
