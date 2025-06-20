@@ -118,9 +118,16 @@ pub mod exports {
                         .cast::<usize>();
                     _rt::cabi_dealloc(l0, l1, 1);
                 }
+                #[doc(hidden)]
+                #[allow(non_snake_case)]
+                pub unsafe fn _export_do_something_cabi<T: Guest>(arg0: i32) {
+                    #[cfg(target_arch = "wasm32")] _rt::run_ctors_once();
+                    T::do_something(arg0 as u32);
+                }
                 pub trait Guest {
                     fn add(left: u32, right: u32) -> u32;
                     fn call_host(input: _rt::String) -> _rt::String;
+                    fn do_something(number: u32) -> ();
                 }
                 #[doc(hidden)]
                 macro_rules! __export_wasi_sample_example_adder_cabi {
@@ -136,7 +143,10 @@ pub mod exports {
                         (export_name = "cabi_post_wasi-sample:example/adder#call-host")]
                         unsafe extern "C" fn _post_return_call_host(arg0 : * mut u8,) {
                         unsafe { $($path_to_types)*:: __post_return_call_host::<$ty >
-                        (arg0) } } };
+                        (arg0) } } #[unsafe (export_name =
+                        "wasi-sample:example/adder#do-something")] unsafe extern "C" fn
+                        export_do_something(arg0 : i32,) { unsafe { $($path_to_types)*::
+                        _export_do_something_cabi::<$ty > (arg0) } } };
                     };
                 }
                 #[doc(hidden)]
@@ -272,17 +282,20 @@ macro_rules! __export_example_impl {
 #[doc(inline)]
 pub(crate) use __export_example_impl as export;
 #[cfg(target_arch = "wasm32")]
-#[unsafe(link_section = "component-type:wit-bindgen:0.41.0:wasi-sample:example:example:encoded world")]
+#[unsafe(
+    link_section = "component-type:wit-bindgen:0.41.0:wasi-sample:example:example:encoded world"
+)]
 #[doc(hidden)]
 #[allow(clippy::octal_escapes)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 335] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xd1\x01\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 365] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xef\x01\x01A\x02\x01\
 A\x04\x01B\x04\x01@\x01\x07messages\x01\0\x04\0\x05print\x01\0\x01@\x01\x05input\
 s\0s\x04\0\x0dhost-function\x01\x01\x03\0\x18wasi-sample:example/host\x05\0\x01B\
-\x04\x01@\x02\x04lefty\x05righty\0y\x04\0\x03add\x01\0\x01@\x01\x05inputs\0s\x04\
-\0\x09call-host\x01\x01\x04\0\x19wasi-sample:example/adder\x05\x01\x04\0\x1bwasi\
--sample:example/example\x04\0\x0b\x0d\x01\0\x07example\x03\0\0\0G\x09producers\x01\
-\x0cprocessed-by\x02\x0dwit-component\x070.227.1\x10wit-bindgen-rust\x060.41.0";
+\x06\x01@\x02\x04lefty\x05righty\0y\x04\0\x03add\x01\0\x01@\x01\x05inputs\0s\x04\
+\0\x09call-host\x01\x01\x01@\x01\x06numbery\x01\0\x04\0\x0cdo-something\x01\x02\x04\
+\0\x19wasi-sample:example/adder\x05\x01\x04\0\x1bwasi-sample:example/example\x04\
+\0\x0b\x0d\x01\0\x07example\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dw\
+it-component\x070.227.1\x10wit-bindgen-rust\x060.41.0";
 #[inline(never)]
 #[doc(hidden)]
 pub fn __link_custom_section_describing_imports() {
