@@ -13,8 +13,14 @@ impl State {
     }
 }
 
+impl Default for State {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl bindings::wasi_sample::example::Host for State {
-    fn r#print(&mut self, message: alloc::string::String) -> () {
+    fn r#print(&mut self, message: alloc::string::String) {
         println!("Logged from component: {message}");
     }
 

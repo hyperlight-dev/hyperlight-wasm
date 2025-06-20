@@ -32,6 +32,7 @@ build-rust-wasm-examples target=default-target: (mkdir-redist target)
     cp ./x64/{{ target }}/rust_wasm_samples.aot ./x64/{{ target }}/rust_wasm_samples.wasm
 
 build-rust-wasi-examples target=default-target:
+    wasm-tools component wit ./src/wasi_samples/wit/example.wit -w -o ./src/wasi_samples/wit/component-world.wasm
     # use cargo component so we don't get all the wasi imports https://github.com/bytecodealliance/cargo-component?tab=readme-ov-file#relationship-with-wasm32-wasip2
     # we also explicitly target wasm32-unknown-unknown since cargo component might try to pull in wasi imports https://github.com/bytecodealliance/cargo-component/issues/290
     rustup target add wasm32-unknown-unknown
@@ -60,6 +61,7 @@ fmt:
 clippy target=default-target: (check target)
     cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/rust_wasm_samples &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
+    cd src/wasi_samples &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/wasm_runtime && cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
 
 # TESTING
@@ -84,7 +86,6 @@ examples-ci target=default-target features="": (build-rust-wasm-examples target)
     cargo run {{ if features =="" {"--no-default-features --features kvm,mshv2"} else {"--no-default-features -F function_call_metrics," + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example metrics 
 
 examples-wasi target=default-target features="": (build-rust-wasi-examples target) 
-    wasm-tools component wit ./src/wasi_samples/wit/example.wit -w -o ./src/wasi_samples/wit/component-world.wasm
     WIT_WORLD={{ justfile_directory() }}/src/wasi_samples/wit/component-world.wasm cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example wasi_examples
 
 # warning, compares to and then OVERWRITES the given baseline

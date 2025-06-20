@@ -76,6 +76,9 @@ jobs:
         with:
           name: guest-modules
           path: ./x64/${{ matrix.config }}
+
+      - name: Build Rust Wasi examples
+        run:  just build-rust-wasi-examples ${{ matrix.config }}
       
       - name: Fmt
         run: just fmt-check
