@@ -164,7 +164,7 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
                 })
                 .unzip::<_, _, Vec<_>, Vec<_>>();
             let get_instance = path.iter().map(|export| quote! {
-                let instance_idx = Some(instance.get_export(&mut *store, instance_idx.as_ref(), #export).unwrap());
+                let instance_idx = Some(instance.get_export_index(&mut *store, instance_idx.as_ref(), #export).unwrap());
             }).collect::<Vec<_>>();
             let (function_call, ret) = emit_wasm_function_call(s, &ft.result, pwts, pus);
             let marshal_result = emit_hl_marshal_result(s, ret.clone(), &ft.result);
@@ -175,7 +175,7 @@ fn emit_export_extern_decl<'a, 'b, 'c>(
                     let instance = CUR_INSTANCE.lock(); let mut instance = instance.unwrap();
                     let instance_idx = None;
                     #(#get_instance;)*
-                    let func_idx = instance.get_export(&mut *store, instance_idx.as_ref(), #nlit).unwrap();
+                    let func_idx = instance.get_export_index(&mut *store, instance_idx.as_ref(), #nlit).unwrap();
                     #function_call
                     ::core::result::Result::Ok(::hyperlight_common::flatbuffer_wrappers::util::get_flatbuffer_result::<&[u8]>(&#marshal_result))
                 }

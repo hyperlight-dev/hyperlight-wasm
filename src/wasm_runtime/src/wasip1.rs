@@ -25,7 +25,7 @@ use hyperlight_guest::error::Result;
 use hyperlight_guest_bin::host_comm::call_host_function;
 use wasmtime::{Caller, Extern, Linker};
 
-pub(crate) fn register_handlers<T>(linker: &mut Linker<T>) -> Result<()> {
+pub(crate) fn register_handlers<T: 'static>(linker: &mut Linker<T>) -> Result<()> {
     linker.func_wrap(
         "wasi_snapshot_preview1",
         "fd_seek",
