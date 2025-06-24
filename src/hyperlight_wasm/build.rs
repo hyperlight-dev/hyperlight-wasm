@@ -30,25 +30,78 @@ use std::{env, fs};
 use anyhow::Result;
 use built::write_built_file;
 
-fn build_wasm_runtime() -> PathBuf {
-    let proj_dir = env::var_os("CARGO_MANIFEST_DIR").unwrap();
-    let profile = env::var_os("PROFILE").unwrap();
+fn get_wasm_runtime_path() -> PathBuf {
+    let manifest_dir = env::var_os("CARGO_MANIFEST_DIR").unwrap();
+    let manifest_dir = PathBuf::from(manifest_dir);
 
-    let in_repo_dir = PathBuf::from(&proj_dir)
-        .parent()
-        .unwrap_or_else(|| panic!("could not find parent of cargo manifest directory"))
-        .join("wasm_runtime");
-    if !in_repo_dir.exists() {
-        panic!("hyperlight_wasm does not yet support being compiled from a release package");
+    let tar_path = manifest_dir.join("vendor.tar");
+
+    let out_dir = env::var_os("OUT_DIR").unwrap();
+    let out_dir = PathBuf::from(out_dir);
+    let vendor_dir = out_dir.join("vendor");
+
+    if vendor_dir.exists() {
+        fs::remove_dir_all(&vendor_dir).unwrap();
     }
-    print!("cargo::rerun-if-changed=");
-    let _ = std::io::stdout()
-        .write_all(AsRef::<std::ffi::OsStr>::as_ref(&in_repo_dir).as_encoded_bytes());
-    println!();
+
+    println!("cargo::rerun-if-changed={}", tar_path.display());
+
+    if tar_path.exists() {
+        let out_dir = env::var_os("OUT_DIR").unwrap();
+        let out_dir = PathBuf::from(out_dir);
+        let vendor_dir = out_dir.join("vendor");
+
+        let mut tar = tar::Archive::new(fs::File::open(&tar_path).unwrap());
+        tar.unpack(&vendor_dir).unwrap();
+
+        let wasm_runtime_dir = vendor_dir.join("wasm_runtime");
+
+        println!(
+            "cargo::warning=using vendor wasm_runtime from {}",
+            tar_path.display()
+        );
+        return wasm_runtime_dir;
+    }
+
+    let crates_dir = manifest_dir.parent().unwrap();
+
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(crates_dir, &vendor_dir).unwrap();
+
+    #[cfg(not(unix))]
+    std::os::windows::fs::symlink_dir(crates_dir, &vendor_dir).unwrap();
+
+    let wasm_runtime_dir = crates_dir.join("wasm_runtime");
+    if wasm_runtime_dir.exists() {
+        return wasm_runtime_dir;
+    }
+
+    panic!(
+        r#"
+        The wasm_runtime directory not found in the expected locations.
+        If you are using hyperlight-wasm from a crates.io release, please file an issue: https://github.com/hyperlight-dev/hyperlight-wasm/issues
+        "#
+    );
+}
+
+fn build_wasm_runtime() -> PathBuf {
+    let cargo_bin = env::var_os("CARGO").unwrap();
+    let profile = env::var_os("PROFILE").unwrap();
+    let out_dir = env::var_os("OUT_DIR").unwrap();
+
+    let target_dir = Path::new("").join(&out_dir).join("target");
+
+    let in_repo_dir = get_wasm_runtime_path();
+
+    if !in_repo_dir.exists() {
+        panic!("missing wasm_runtime in-tree dependency");
+    }
+
+    println!("cargo::rerun-if-changed={}", in_repo_dir.display());
     println!("cargo::rerun-if-env-changed=WIT_WORLD");
     // the PROFILE env var unfortunately only gives us 1 bit of "dev or release"
     let cargo_profile = if profile == "debug" { "dev" } else { "release" };
-    let mut cmd = std::process::Command::new("cargo");
+    let mut cmd = std::process::Command::new(cargo_bin);
 
     // Clear the variables that control Cargo's behaviour (as listed
     // at https://doc.rust-lang.org/cargo/reference/environment-variables.html):
@@ -57,7 +110,12 @@ fn build_wasm_runtime() -> PathBuf {
     env_vars.retain(|(key, _)| !key.starts_with("CARGO_"));
 
     let cmd = cmd
-        .args(["build", &format!("--profile={}", cargo_profile), "-v"])
+        .arg("build")
+        .arg("--profile")
+        .arg(cargo_profile)
+        .arg("-v")
+        .arg("--target-dir")
+        .arg(&target_dir)
         .current_dir(&in_repo_dir)
         .env_clear()
         .envs(env_vars);
@@ -68,8 +126,7 @@ fn build_wasm_runtime() -> PathBuf {
     if !status.success() {
         panic!("could not compile wasm_runtime");
     }
-    let resource = in_repo_dir
-        .join("target")
+    let resource = target_dir
         .join("x86_64-unknown-none")
         .join(profile)
         .join("wasm_runtime");

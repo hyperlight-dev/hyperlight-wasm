@@ -7,6 +7,11 @@ wit-world := if os() == "windows" { "$env:WIT_WORLD=\"" + justfile_directory() +
 
 set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
 
+make-vendor-tar:
+    tar cf ./src/hyperlight_wasm/vendor.tar \
+        --exclude-vcs-ignores \
+        -C ./src wasm_runtime hyperlight_wasm_macro
+
 ensure-tools:
     cargo install --locked wasm-tools --version 1.235.0
     cargo install cargo-component --locked --version 0.21.1

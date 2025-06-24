@@ -3,7 +3,17 @@ name = "hyperlight-wasm"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
-include = ["*"] # Make sure wasm_runtime is included!
+description = "Library that enables wasm modules and components to be run inside lightweight Virtual Machine backed Sandbox. It is built on top of Hyperlight."
+license = "Apache-2.0"
+repository = "https://github.com/hyperlight-dev/hyperlight-wasm"
+include = [
+    "/src",
+    "/scripts",
+    "/examples",
+    "benches",
+    "/build.rs",
+    "/vendor.tar", # Make sure vendor.tar is included!
+]
 
 [lib]
 name = "hyperlight_wasm"
@@ -59,6 +69,7 @@ blake3 = "1.8"
 built = { version = "0.8.0", features = ["chrono", "git2"] }
 anyhow = { version = "1.0" }
 goblin = "0.10.0"
+tar = "0.4.44"
 
 [features]
 default = ["function_call_metrics", "kvm", "mshv2"]
