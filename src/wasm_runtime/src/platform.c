@@ -15,7 +15,8 @@ limitations under the License.
 */
 
 #include <setjmp.h>
-#include "wasmtime-platform.h"
+#include <stdbool.h>
+#include <stdint.h>
 
 typedef void (*wasmtime_setjmp_cb_t)(void *, void *);
 

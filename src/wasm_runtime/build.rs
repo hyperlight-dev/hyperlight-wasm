@@ -14,13 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::fs::File;
-use std::io::copy;
 use std::path::Path;
 use std::{env, fs, path};
 
 use cargo_metadata::{MetadataCommand, Package};
-use reqwest::blocking::get;
 
 fn main() {
     println!("cargo:rerun-if-changed=.");
@@ -44,32 +41,6 @@ fn main() {
         Some(pkg) => pkg.version.clone(),
         None => panic!("wasmtime dependency not found"),
     };
-
-    // download the wasmtime wasm_platform.h header file from GitHub releases and write it to the src/include directory
-
-    // ensure the include directory exists
-    let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let include_file = path::Path::new(&crate_dir)
-        .join("src")
-        .join("include")
-        .join("wasmtime-platform.h");
-    std::fs::create_dir_all(include_file.parent().unwrap()).unwrap();
-
-    // get the wasm_platform.h header file from github release with matching version e.g. https://github.com/bytecodealliance/wasmtime/releases/download/v29.0.1/wasmtime-platform.h
-    let path = format!(
-        "https://github.com/bytecodealliance/wasmtime/releases/download/v{}/wasmtime-platform.h",
-        version_number
-    );
-    let response = get(&path).expect("Failed to download header file");
-
-    // write the include file to the src/include directory
-    let out_file = include_file.to_str().unwrap();
-    let mut dest = File::create(out_file).expect("Failed to create header file");
-    copy(
-        &mut response.bytes().expect("Failed to read response").as_ref(),
-        &mut dest,
-    )
-    .expect("Failed to copy content");
 
     // Write the version number to the metadata.rs file so that it is included in the binary
 
