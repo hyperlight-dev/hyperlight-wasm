@@ -38,7 +38,6 @@ use hyperlight_component_util::{resource, rtypes};
 use proc_macro::Ident;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::ext::IdentExt;
 
 // Emit code to register this particular extern definition with the
 // wasmtime linker, calling through Hyperlight.
