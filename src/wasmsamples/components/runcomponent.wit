@@ -1,0 +1,14 @@
+package example:runcomponent@0.1.0;
+
+interface guest {
+    echo: func(msg: string) -> string;
+}
+
+interface host {
+    get-time-since-boot-microsecond: func() -> s64;
+}
+
+world runcomponent {
+    export guest;
+    import host;
+}
