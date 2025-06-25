@@ -55,24 +55,29 @@ check target=default-target:
     cd src/rust_wasm_samples  && cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
     cd src/component_sample  && cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
     cd src/wasm_runtime && cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
+    cd src/hyperlight_wasm_macro && cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
 
 fmt-check:
     rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
     cd src/rust_wasm_samples && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
     cd src/component_sample && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
     cd src/wasm_runtime && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
+    cd src/hyperlight_wasm_macro && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
+
 fmt:
     rustup toolchain install nightly -c rustfmt
     cargo +nightly fmt --all
     cd src/rust_wasm_samples &&  cargo +nightly fmt -v --all
     cd src/component_sample &&  cargo +nightly fmt -v --all
     cd src/wasm_runtime && cargo +nightly fmt -v --all
+    cd src/hyperlight_wasm_macro && cargo +nightly fmt -v --all
 
 clippy target=default-target: (check target)
     cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/rust_wasm_samples &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/component_sample &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/wasm_runtime && cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
+    cd src/hyperlight_wasm_macro && cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
 
 # TESTING
 # Metrics tests cannot run with other tests they are marked as ignored so that cargo test works

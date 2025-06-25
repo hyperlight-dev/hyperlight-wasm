@@ -35,7 +35,6 @@ use hyperlight_component_util::hl::{
     emit_hl_unmarshal_result,
 };
 use hyperlight_component_util::{resource, rtypes};
-use proc_macro::Ident;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
@@ -44,10 +43,10 @@ use quote::{format_ident, quote};
 //
 // depth: how many instances deep (from the root component) this is,
 // used to keep track of which linker instance to register on
-fn emit_import_extern_decl<'a, 'b, 'c>(
-    s: &'c mut State<'a, 'b>,
+fn emit_import_extern_decl<'b>(
+    s: &mut State<'_, 'b>,
     depth: u32,
-    ed: &'c ExternDecl<'b>,
+    ed: &ExternDecl<'b>,
 ) -> TokenStream {
     match &ed.desc {
         ExternDesc::CoreModule(_) => panic!("core module (im/ex)ports are not supported"),
@@ -69,10 +68,7 @@ fn emit_import_extern_decl<'a, 'b, 'c>(
                 })
                 .unzip::<_, _, Vec<_>, Vec<_>>();
             let ret = format_ident!("ret");
-            let is_ret_empty = match &ft.result {
-                etypes::Result::Named(rs) if rs.len() == 0 => true,
-                _ => false,
-            };
+            let is_ret_empty = matches!(&ft.result, etypes::Result::Named(rs) if rs.is_empty());
             let ur = if is_ret_empty {
                 quote! { () }
             } else {
@@ -132,10 +128,10 @@ fn emit_import_extern_decl<'a, 'b, 'c>(
 // path: the instance path (from the root component) where this
 // definition may be found, used to locate the wasmtime function to
 // call.
-fn emit_export_extern_decl<'a, 'b, 'c>(
-    s: &'c mut State<'a, 'b>,
+fn emit_export_extern_decl<'b>(
+    s: &mut State<'_, 'b>,
     path: Vec<String>,
-    ed: &'c ExternDecl<'b>,
+    ed: &ExternDecl<'b>,
 ) -> TokenStream {
     match &ed.desc {
         ExternDesc::CoreModule(_) => panic!("core module (im/ex)ports are not supported"),
@@ -237,11 +233,11 @@ fn emit_wasm_function_call(
 //
 // depth: how many instances deep (from the root component) this is,
 // used to keep track of which linker instance to register on
-fn emit_import_instance<'a, 'b, 'c>(
-    s: &'c mut State<'a, 'b>,
+fn emit_import_instance<'b>(
+    s: &mut State<'_, 'b>,
     wn: WitName,
     depth: u32,
-    it: &'c Instance<'b>,
+    it: &Instance<'b>,
 ) -> TokenStream {
     let mut s = s.with_cursor(wn.namespace_idents());
     s.cur_helper_mod = Some(kebab_to_namespace(wn.name));
@@ -260,11 +256,11 @@ fn emit_import_instance<'a, 'b, 'c>(
 // path: the instance path (from the root component) where this
 // definition may be found, used to locate the wasmtime function to
 // call.
-fn emit_export_instance<'a, 'b, 'c>(
-    s: &'c mut State<'a, 'b>,
+fn emit_export_instance<'b>(
+    s: &mut State<'_, 'b>,
     wn: WitName,
     path: Vec<String>,
-    it: &'c Instance<'b>,
+    it: &Instance<'b>,
 ) -> TokenStream {
     let mut s = s.with_cursor(wn.namespace_idents());
     s.cur_helper_mod = Some(kebab_to_namespace(wn.name));
@@ -282,11 +278,7 @@ fn emit_export_instance<'a, 'b, 'c>(
 //   keep track of resources sent to the host
 // - code to register each import with the wasmtime linker
 // - code to register each export with Hyperlight
-fn emit_component<'a, 'b, 'c>(
-    s: &'c mut State<'a, 'b>,
-    wn: WitName,
-    ct: &'c Component<'b>,
-) -> TokenStream {
+fn emit_component<'b>(s: &mut State<'_, 'b>, wn: WitName, ct: &Component<'b>) -> TokenStream {
     let mut s = s.with_cursor(wn.namespace_idents());
     let ns = wn.namespace_path();
     let r#trait = kebab_to_type(wn.name);
@@ -343,7 +335,7 @@ fn emit_component<'a, 'b, 'c>(
     }
 }
 
-pub fn emit_toplevel<'a, 'b, 'c>(s: &'c mut State<'a, 'b>, n: &str, ct: &'c Component<'b>) {
+pub fn emit_toplevel<'b>(s: &mut State<'_, 'b>, n: &str, ct: &Component<'b>) {
     s.is_impl = true;
     let wn = split_wit_name(n);
     let tokens = emit_component(s, wn, ct);
