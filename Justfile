@@ -24,16 +24,12 @@ build target=default-target features="": (build-wasm-runtime target) (fmt-check)
 mkdir-redist target=default-target:
     mkdir {{ mkdir-arg }} x64
     mkdir {{ mkdir-arg }} x64/{{ target }}
-    mkdir {{ mkdir-arg }} src/hyperlight_wasm/redist
-    mkdir {{ mkdir-arg }} src/hyperlight_wasm/redist/{{ target }}
 
-build-wasm-runtime target=default-target: (mkdir-redist target)
-    cd ./src/wasm_runtime && cargo build --verbose --profile={{ if target == "debug" {"dev"} else { target } }}
-    cp ./src/wasm_runtime/target/x86_64-unknown-none/{{target}}/wasm_runtime ./x64/{{target}}/wasm_runtime
-    cp ./src/wasm_runtime/target/x86_64-unknown-none/{{target}}/wasm_runtime ./src/hyperlight_wasm/redist/{{target}}/wasm_runtime
+build-wasm-runtime target=default-target:
+    cd ./src/wasm_runtime && cargo build --verbose --profile={{ if target == "debug" {"dev"} else { target } }} && rm -R target
 
 build-wasm-examples target=default-target:
-    {{ build-wasm-examples-command}} {{target}}
+    {{ build-wasm-examples-command }} {{target}}
 
 build-rust-wasm-examples target=default-target: (mkdir-redist target)
     rustup target add wasm32-unknown-unknown
