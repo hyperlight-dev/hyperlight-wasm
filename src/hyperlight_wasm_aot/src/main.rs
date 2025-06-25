@@ -100,7 +100,7 @@ fn main() {
             let bytes = std::fs::read(file).unwrap();
             let config = get_config();
             let engine = Engine::new(&config).unwrap();
-            match engine.detect_precompiled(&bytes) {
+            match Engine::detect_precompiled(&bytes) {
                 Some(pre_compiled) => {
                     match pre_compiled {
                         Precompiled::Module => {
