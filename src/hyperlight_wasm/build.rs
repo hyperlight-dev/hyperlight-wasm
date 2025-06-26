@@ -46,6 +46,11 @@ fn get_wasm_runtime_path() -> PathBuf {
 
     println!("cargo::rerun-if-changed={}", tar_path.display());
 
+    // If the vendor.tar file exists, extract it to the OUT_DIR/vendor directory
+    // and return the wasm_runtime directory inside it.
+    // This is useful for vendoring the wasm_runtime crate in a release build, since crates.io
+    // does not allow vendoring folders with Cargo.toml files (i.e., other crates).
+    // The vendor.tar file is expected to be in the same directory as this build script.
     if tar_path.exists() {
         let out_dir = env::var_os("OUT_DIR").unwrap();
         let out_dir = PathBuf::from(out_dir);
