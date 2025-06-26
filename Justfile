@@ -7,6 +7,11 @@ wit-world := if os() == "windows" { "$env:WIT_WORLD=\"" + justfile_directory() +
 
 set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
 
+make-vendor-tar:
+    tar cf ./src/hyperlight_wasm/vendor.tar \
+        --exclude-vcs-ignores \
+        -C ./src wasm_runtime hyperlight_wasm_macro
+
 ensure-tools:
     cargo install --locked wasm-tools --version 1.235.0
     cargo install cargo-component --locked --version 0.21.1
@@ -19,16 +24,12 @@ build target=default-target features="": (build-wasm-runtime target) (fmt-check)
 mkdir-redist target=default-target:
     mkdir {{ mkdir-arg }} x64
     mkdir {{ mkdir-arg }} x64/{{ target }}
-    mkdir {{ mkdir-arg }} src/hyperlight_wasm/redist
-    mkdir {{ mkdir-arg }} src/hyperlight_wasm/redist/{{ target }}
 
-build-wasm-runtime target=default-target: (mkdir-redist target)
-    cd ./src/wasm_runtime && cargo build --verbose --profile={{ if target == "debug" {"dev"} else { target } }}
-    cp ./src/wasm_runtime/target/x86_64-unknown-none/{{target}}/wasm_runtime ./x64/{{target}}/wasm_runtime
-    cp ./src/wasm_runtime/target/x86_64-unknown-none/{{target}}/wasm_runtime ./src/hyperlight_wasm/redist/{{target}}/wasm_runtime
+build-wasm-runtime target=default-target:
+    cd ./src/wasm_runtime && cargo build --verbose --profile={{ if target == "debug" {"dev"} else { target } }} && rm -R target
 
 build-wasm-examples target=default-target:
-    {{ build-wasm-examples-command}} {{target}}
+    {{ build-wasm-examples-command }} {{target}}
 
 build-rust-wasm-examples target=default-target: (mkdir-redist target)
     rustup target add wasm32-unknown-unknown
@@ -50,24 +51,29 @@ check target=default-target:
     cd src/rust_wasm_samples  && cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
     cd src/component_sample  && cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
     cd src/wasm_runtime && cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
+    cd src/hyperlight_wasm_macro && cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
 
 fmt-check:
     rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
     cd src/rust_wasm_samples && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
     cd src/component_sample && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
     cd src/wasm_runtime && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
+    cd src/hyperlight_wasm_macro && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
+
 fmt:
     rustup toolchain install nightly -c rustfmt
     cargo +nightly fmt --all
     cd src/rust_wasm_samples &&  cargo +nightly fmt -v --all
     cd src/component_sample &&  cargo +nightly fmt -v --all
     cd src/wasm_runtime && cargo +nightly fmt -v --all
+    cd src/hyperlight_wasm_macro && cargo +nightly fmt -v --all
 
 clippy target=default-target: (check target)
     cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/rust_wasm_samples &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/component_sample &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/wasm_runtime && cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
+    cd src/hyperlight_wasm_macro && cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
 
 # TESTING
 # Metrics tests cannot run with other tests they are marked as ignored so that cargo test works

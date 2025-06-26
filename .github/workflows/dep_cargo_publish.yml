@@ -24,18 +24,6 @@ jobs:
         with:
           rust-toolchain: "1.85.0"
 
-      - name: Download Wasm Host (debug)
-        uses: actions/download-artifact@v4
-        with:
-          name: wasm-runtime-debug
-          path: ${{ github.workspace }}/src/hyperlight_wasm/redist/debug/
-
-      - name: Download Wasm Host (release)
-        uses: actions/download-artifact@v4
-        with:
-          name: wasm-runtime-release
-          path: ${{ github.workspace }}/src/hyperlight_wasm/redist/release/
-
         # github actions that run against PRs check out a ref to the PR merge branch
         # we need to switch / create a branch for cargo ws to run late
       - name: set-branch-for-PRs

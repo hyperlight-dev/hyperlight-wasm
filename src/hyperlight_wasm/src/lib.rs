@@ -72,10 +72,8 @@ mod tests {
     fn test_wasmtime_version() {
         let wasmtime_version = super::get_wasmtime_version();
         // get the wasmtime version from the wasm_runtime binary's Cargo.toml
-        let proj_dir = env::var_os("CARGO_MANIFEST_DIR").unwrap();
-        let cargo_toml_path = Path::new(&proj_dir)
-            .parent()
-            .unwrap()
+        let cargo_toml_path = Path::new(env!("OUT_DIR"))
+            .join("vendor")
             .join("wasm_runtime")
             .join("Cargo.toml");
         let cargo_toml_content =

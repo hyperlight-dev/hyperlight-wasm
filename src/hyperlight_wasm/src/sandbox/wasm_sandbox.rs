@@ -221,11 +221,7 @@ mod tests {
                 .expect("Failed to get CARGO_MANIFEST_DIR  or RUST_DIR_FOR_DEBUGGING_TESTS env var")
         });
 
-        let relative_path = if filename == "wasm_runtime" {
-            "redist"
-        } else {
-            "../../x64"
-        };
+        let relative_path = "../../x64";
 
         let filename_path = Path::new(&proj_dir)
             .join(relative_path)
