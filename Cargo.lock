@@ -811,6 +811,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
+name = "elfcore"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "824386967a6a98e7f99d5c15d40cd1534b0ebfc4193a7109689dcf5322e8d744"
+dependencies = [
+ "libc",
+ "nix",
+ "smallvec",
+ "thiserror 1.0.69",
+ "tracing",
+ "zerocopy 0.7.35",
+]
+
+[[package]]
 name = "embedded-io"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -888,12 +902,6 @@ name = "fallible-iterator"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2acce4a10f12dc2fb14a218589d4f1f62ef011b2d0cc4b3cb1bba8e94da14649"
-
-[[package]]
-name = "fastrand"
-version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
 
 [[package]]
 name = "filetime"
@@ -1237,9 +1245,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-common"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "102b63aa5b49a5b22d8b50bdedaad54a9f89ecdd4bf71442e859444429fbbc87"
+checksum = "c6b9232222e023b84c7c10bdb67327f503567a1a5ff68db935683af0147d73ba"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -1250,9 +1258,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-component-macro"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d009bb99c6fbb8f6fec0230a834669ed304f20b9ebeddb5b3384315d97c2561d"
+checksum = "9bc0fc7f0d77ab2c16277da4efb58fa99c56f607f9407fd5c0490909c327facd"
 dependencies = [
  "env_logger",
  "hyperlight-component-util",
@@ -1266,9 +1274,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-component-util"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be3a11b5c5967729ea7c5dedb017097e709da44eca3de3a2ee7681f5502eb751"
+checksum = "88137b20c4761f4b309d36b22574e2283745afad5959df7ecc5928557417d098"
 dependencies = [
  "itertools 0.14.0",
  "log",
@@ -1281,16 +1289,18 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-host"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "728f6adb638cca498eb4f3db748257f19065d062ec95e3327690c7d9b3f29c23"
+checksum = "1cb5d2db5c1325df0c1042680ccbff16958105a2842140736ac463d67df89fba"
 dependencies = [
  "anyhow",
  "bitflags 2.9.1",
  "cfg-if",
  "cfg_aliases",
+ "chrono",
  "crossbeam",
  "crossbeam-channel",
+ "elfcore",
  "flatbuffers",
  "goblin",
  "hyperlight-common",
@@ -1310,7 +1320,6 @@ dependencies = [
  "seccompiler",
  "serde_json",
  "sha256",
- "tempfile",
  "termcolor",
  "thiserror 2.0.12",
  "tracing",
@@ -1608,18 +1617,18 @@ dependencies = [
 
 [[package]]
 name = "kvm-bindings"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4b153a59bb3ca930ff8148655b2ef68c34259a623ae08cf2fb9b570b2e45363"
+checksum = "cf3432d9f609fbede9f624d1dbefcce77985a9322de1d0e6d460ec05502b7fd0"
 dependencies = [
  "vmm-sys-util",
 ]
 
 [[package]]
 name = "kvm-ioctls"
-version = "0.22.0"
+version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b702df98508cb63ad89dd9beb9f6409761b30edca10d48e57941d3f11513a006"
+checksum = "0e00243d27a20feb05cf001ae52ddc79831ac70c020f215ba1153ff9270b650a"
 dependencies = [
  "bitflags 2.9.1",
  "kvm-bindings",
@@ -1895,6 +1904,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "nix"
+version = "0.26.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "598beaf3cc6fdd9a5dfb1630c2800c7acd31df7aaf0f565796fba2b53ca1af1b"
+dependencies = [
+ "bitflags 1.3.2",
+ "cfg-if",
+ "libc",
+]
+
+[[package]]
 name = "nom"
 version = "7.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2099,9 +2119,9 @@ dependencies = [
 
 [[package]]
 name = "prettyplease"
-version = "0.2.34"
+version = "0.2.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6837b9e10d61f45f987d50808f83d1ee3d206c66acf650c3e4ae2e1f6ddedf55"
+checksum = "061c1221631e079b26479d25bbf2275bfe5917ae8419cd7e34f13bfc2aa7539a"
 dependencies = [
  "proc-macro2",
  "syn",
@@ -2708,9 +2728,9 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "syn"
-version = "2.0.103"
+version = "2.0.104"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4307e30089d6fd6aff212f2da3a1f9e32f3223b1f010fb09b7c95f90f3ca1e8"
+checksum = "17b6f705963418cdb9927482fa304bc562ece2fdd4f616084c50b7023b435a40"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2744,19 +2764,6 @@ name = "target-lexicon"
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e502f78cdbb8ba4718f566c418c52bc729126ffd16baee5baa718cf25dd5a69a"
-
-[[package]]
-name = "tempfile"
-version = "3.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8a64e3985349f2441a1a9ef0b853f869006c3855f2cda6862a94d26ebb9d6a1"
-dependencies = [
- "fastrand",
- "getrandom 0.3.3",
- "once_cell",
- "rustix 1.0.7",
- "windows-sys 0.59.0",
-]
 
 [[package]]
 name = "termcolor"
