@@ -3,7 +3,7 @@ name: Create a Release
 on:
   workflow_dispatch:
   push:
-    branches: [ release/**, dev ]
+    branches: [ release/**, main ]
 
 permissions:
   contents: write
@@ -15,14 +15,21 @@ jobs:
     uses: ./.github/workflows/Benchmarks.yml
 
   publish:
+    # see https://github.com/orgs/community/discussions/26286#discussioncomment-3251208 for why we need to check the ref
+    if: ${{ contains(github.ref, 'refs/heads/release/') }} ||  ${{ github.ref=='refs/heads/main' }}
     needs: [ benchmarks ]
     runs-on: windows-latest
-    strategy:
-      matrix:
-        config: [debug, release]
     env:
         PLATFORM: x64
     steps:
+    - name: Set Debug Configuration
+      if: ${{ github.ref=='refs/heads/main' }}
+      run: echo "CONFIG=debug" >> $GITHUB_ENV
+
+    - name: Set Release Configuration
+      if: ${{ contains(github.ref, 'refs/heads/release/') }}
+      run: echo "CONFIG=release" >> $GITHUB_ENV
+
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
@@ -31,6 +38,18 @@ jobs:
       uses: hyperlight-dev/ci-setup-workflow@v1.5.0
       with:
           rust-toolchain: "1.85.0"
+    - name: Verify vendor.tar
+      run: |
+        mv ./src/hyperlight_wasm/vendor.tar ./vendor.tar
+        just make-vendor-tar
+        if ! git diff --no-index ./vendor.tar ./src/hyperlight_wasm/vendor.tar; then
+          echo "vendor.tar is not up to date, please run 'just make-vendor-tar' and commit the changes"
+          exit 1
+        fi
+      shell: bash
+    - name: Package hyperlight-wasm crate
+      run: cargo package -p hyperlight-wasm
+      shell: bash
     - name: Install minver_rs
       run: |
           cargo install minver_rs
@@ -44,18 +63,13 @@ jobs:
         echo "HYPERLIGHTWASM_VERSION=$(minver)"| Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
         echo "HYPERLIGHTWASM_VERSION=$(minver)"
       shell: pwsh
-    - name: Download Wasm Host
-      uses: actions/download-artifact@v4
-      with:
-        name: wasm-runtime-${{ matrix.config }}
-        path: ${{ env.PLATFORM }}/${{ matrix.config }}
     - name: Download Wasm Modules
       uses: actions/download-artifact@v4
       with:
         name: guest-modules
-        path: ${{ env.PLATFORM }}/${{ matrix.config }}
+        path: ${{ env.PLATFORM }}/${{ env.CONFIG }}
     - name: Build rust wasm modules
-      run: just build-rust-wasm-examples ${{ matrix.config }}
+      run: just build-rust-wasm-examples ${{ env.CONFIG }}
       shell: bash
     - name: Download Benchmarks (Windows)
       uses: actions/download-artifact@v4
@@ -89,18 +103,12 @@ jobs:
           Write-Host "msiexec exited with code $LASTEXITCCODE"
           if ($LASTEXITCODE -ne 0) { cat log.txt; exit 1 }
     - name: Create pre-release
-      if:  (!contains(github.ref, 'refs/heads/release/')) &&  matrix.config == 'debug' 
+      if: ${{ github.ref=='refs/heads/main' }}
       run:  |
             echo "PWD: $PWD"
             ls -alR
             gh release delete dev-latest -y --cleanup-tag  || true
             gh release create dev-latest -t "Latest Development Build From Dev Branch" --latest=false -p \
-                ${{ env.PLATFORM }}/${{ matrix.config }}/HelloWorld.wasm \
-                ${{ env.PLATFORM }}/${{ matrix.config }}/RunWasm.wasm \
-                ${{ env.PLATFORM }}/${{ matrix.config }}/HelloWorld.aot \
-                ${{ env.PLATFORM }}/${{ matrix.config }}/wasm_runtime.* \
-                ${{ env.PLATFORM }}/${{ matrix.config }}/rust_wasm_samples.aot \
-                ${{ env.PLATFORM }}/${{ matrix.config }}/rust_wasm_samples.wasm \
                 benchmarks_Windows_whp.tar.gz \
                 benchmarks_Linux_hyperv.tar.gz \
                 benchmarks_Linux_kvm.tar.gz
@@ -108,21 +116,20 @@ jobs:
         GH_TOKEN: ${{ github.token }}
       shell: bash
     - name: Create Release
-      if:   contains(github.ref, 'refs/heads/release/') &&  matrix.config == 'release'
+      if: ${{ contains(github.ref, 'refs/heads/release/') }}
       run:  |
             echo "PWD: $PWD"
             ls -alR
             gh release create v${{ env.HYPERLIGHTWASM_VERSION }} -t "Release v${{ env.HYPERLIGHTWASM_VERSION }}" --generate-notes \
-                ${{ env.PLATFORM }}/${{ matrix.config }}/HelloWorld.wasm \
-                ${{ env.PLATFORM }}/${{ matrix.config }}/RunWasm.wasm \
-                ${{ env.PLATFORM }}/${{ matrix.config }}/HelloWorld.aot \
-                ${{ env.PLATFORM }}/${{ matrix.config }}/RunWasm.aot \
-                ${{ env.PLATFORM }}/${{ matrix.config }}/wasm_runtime.* \
-                ${{ env.PLATFORM }}/${{ matrix.config }}/rust_wasm_samples.aot \
-                ${{ env.PLATFORM }}/${{ matrix.config }}/rust_wasm_samples.wasm \
                 benchmarks_Windows_whp.tar.gz \
                 benchmarks_Linux_hyperv.tar.gz \
                 benchmarks_Linux_kvm.tar.gz
       env:
         GH_TOKEN: ${{ github.token }}
+      shell: bash
+    - name: Publish to crates.io
+      if: ${{ contains(github.ref, 'refs/heads/release/') }}
+      run: cargo publish hyperlight-wasm
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_PUBLISH_TOKEN }}
       shell: bash
