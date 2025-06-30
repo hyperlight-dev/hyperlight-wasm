@@ -1250,9 +1250,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-component-macro"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d009bb99c6fbb8f6fec0230a834669ed304f20b9ebeddb5b3384315d97c2561d"
+checksum = "9bc0fc7f0d77ab2c16277da4efb58fa99c56f607f9407fd5c0490909c327facd"
 dependencies = [
  "env_logger",
  "hyperlight-component-util",
@@ -1266,9 +1266,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-component-util"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be3a11b5c5967729ea7c5dedb017097e709da44eca3de3a2ee7681f5502eb751"
+checksum = "88137b20c4761f4b309d36b22574e2283745afad5959df7ecc5928557417d098"
 dependencies = [
  "itertools 0.14.0",
  "log",
@@ -2099,9 +2099,9 @@ dependencies = [
 
 [[package]]
 name = "prettyplease"
-version = "0.2.34"
+version = "0.2.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6837b9e10d61f45f987d50808f83d1ee3d206c66acf650c3e4ae2e1f6ddedf55"
+checksum = "061c1221631e079b26479d25bbf2275bfe5917ae8419cd7e34f13bfc2aa7539a"
 dependencies = [
  "proc-macro2",
  "syn",
@@ -2708,9 +2708,9 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "syn"
-version = "2.0.103"
+version = "2.0.104"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4307e30089d6fd6aff212f2da3a1f9e32f3223b1f010fb09b7c95f90f3ca1e8"
+checksum = "17b6f705963418cdb9927482fa304bc562ece2fdd4f616084c50b7023b435a40"
 dependencies = [
  "proc-macro2",
  "quote",
