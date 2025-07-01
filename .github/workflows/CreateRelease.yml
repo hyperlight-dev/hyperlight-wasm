@@ -39,6 +39,7 @@ jobs:
       with:
           rust-toolchain: "1.85.0"
     - name: Verify vendor.tar
+      if: ${{ contains(github.ref, 'refs/heads/release/') }}
       run: |
         mv ./src/hyperlight_wasm/vendor.tar ./vendor.tar
         just make-vendor-tar
@@ -48,6 +49,7 @@ jobs:
         fi
       shell: bash
     - name: Package hyperlight-wasm crate
+      if: ${{ contains(github.ref, 'refs/heads/release/') }}
       run: cargo package -p hyperlight-wasm
       shell: bash
     - name: Install minver_rs
