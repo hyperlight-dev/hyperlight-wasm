@@ -11,10 +11,9 @@ name = "hyperlight_wasm_macro"
 proc-macro = true
 
 [dependencies]
-wasmparser = { version = "0.224.0" }
 quote = { version = "1.0.38" }
 proc-macro2 = { version = "1.0.93" }
 syn = { version = "2.0.96" }
 itertools = { version = "0.14.0" }
 prettyplease = { version = "0.2.31" }
-hyperlight-component-util = { version = "0.7.0", git = "https://github.com/hyperlight-dev/hyperlight", rev = "ea6fa8f" }
+hyperlight-component-util = { version = "0.7.0", git = "https://github.com/hyperlight-dev/hyperlight", rev = "b61265e4aa9e2ecf8d648b994022caeea0205352" }
