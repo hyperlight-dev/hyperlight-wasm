@@ -18,8 +18,16 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
+    - uses: extractions/setup-just@v3
+      with:
+        just-version: "1.40"
     - name: Create Release Branch
       run: |
         git checkout -b release/${GITHUB_REF_NAME}
+        just make-vendor-tar
+        sed '/vendor.tar/d' ./src/hyperlight_wasm/.gitignore
+        git add ./src/hyperlight_wasm/vendor.tar
+        git add ./src/hyperlight_wasm/.gitignore
+        git commit -m "Vendor dependencies for release ${GITHUB_REF_NAME}" -s -S
         git push --set-upstream origin release/${GITHUB_REF_NAME}
       shell: bash
