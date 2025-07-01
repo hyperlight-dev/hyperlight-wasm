@@ -3,14 +3,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Imported Functions from `example:runcomponent/host@0.1.0`
+// Imported Functions from `example:runcomponent/host`
 
-__attribute__((__import_module__("example:runcomponent/host@0.1.0"), __import_name__("get-time-since-boot-microsecond")))
+__attribute__((__import_module__("example:runcomponent/host"), __import_name__("get-time-since-boot-microsecond")))
 extern int64_t __wasm_import_example_runcomponent_host_get_time_since_boot_microsecond(void);
 
-// Exported Functions from `example:runcomponent/guest@0.1.0`
+// Exported Functions from `example:runcomponent/guest`
 
-__attribute__((__weak__, __export_name__("cabi_post_example:runcomponent/guest@0.1.0#echo")))
+__attribute__((__weak__, __export_name__("cabi_post_example:runcomponent/guest#echo")))
 void __wasm_export_exports_example_runcomponent_guest_echo_post_return(uint8_t * arg0) {
   if ((*((size_t*) (arg0 + 4))) > 0) {
     free(*((uint8_t **) (arg0 + 0)));
@@ -59,7 +59,7 @@ int64_t example_runcomponent_host_get_time_since_boot_microsecond(void) {
   return ret;
 }
 
-__attribute__((__export_name__("example:runcomponent/guest@0.1.0#echo")))
+__attribute__((__export_name__("example:runcomponent/guest#echo")))
 uint8_t * __wasm_export_exports_example_runcomponent_guest_echo(uint8_t * arg, size_t arg0) {
   runcomponent_string_t arg1 = (runcomponent_string_t) { (uint8_t*)(arg), (arg0) };
   runcomponent_string_t ret;

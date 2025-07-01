@@ -29,6 +29,7 @@ build-wasm-runtime target=default-target:
     cd ./src/wasm_runtime && cargo build --verbose --profile={{ if target == "debug" {"dev"} else { target } }} && rm -R target
 
 build-wasm-examples target=default-target:
+    wasm-tools component wit ./src/wasmsamples/components/runcomponent.wit -w -o ./src/wasmsamples/components/runcomponent-world.wasm
     {{ build-wasm-examples-command }} {{target}}
 
 build-rust-wasm-examples target=default-target: (mkdir-redist target)
@@ -100,10 +101,11 @@ examples-components target=default-target features="": (build-rust-component-exa
     {{ wit-world }} cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_example
 
 # warning, compares to and then OVERWRITES the given baseline
-bench-ci baseline target=default-target features="":
+bench-ci baseline target="release" features="":
     cd src/hyperlight_wasm && cargo bench --profile={{ if target == "debug" {"dev"} else { target } }} {{ if features =="" {''} else { "--features " + features } }} -- --verbose --save-baseline {{baseline}}
-bench target=default-target features="":
-    cd src/hyperlight_wasm &&  cargo bench --profile={{ if target == "debug" {"dev"} else { target } }} {{ if features =="" {''} else { "--features " + features } }} -- --verbose
+bench target="release" features="":
+    #cd src/hyperlight_wasm &&  cargo bench --profile={{ if target == "debug" {"dev"} else { target } }} {{ if features =="" {''} else { "--features " + features } }} --bench benchmarks -- --verbose 
+    cd src/hyperlight_wasm && {{wit-world}} cargo bench --profile={{ if target == "debug" {"dev"} else { target } }} {{ if features =="" {''} else { "--features " + features } }} --bench benchmarks_components -- --verbose
 bench-download os hypervisor tag="":
     gh release download {{ tag }} -D ./src/hyperlight_wasm/target/ -p benchmarks_{{ os }}_{{ hypervisor }}.tar.gz
     mkdir {{ mkdir-arg }} ./src/hyperlight_wasm/target/criterion

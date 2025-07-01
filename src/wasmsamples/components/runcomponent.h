@@ -14,10 +14,10 @@ typedef struct runcomponent_string_t {
   size_t len;
 } runcomponent_string_t;
 
-// Imported Functions from `example:runcomponent/host@0.1.0`
+// Imported Functions from `example:runcomponent/host`
 extern int64_t example_runcomponent_host_get_time_since_boot_microsecond(void);
 
-// Exported Functions from `example:runcomponent/guest@0.1.0`
+// Exported Functions from `example:runcomponent/guest`
 void exports_example_runcomponent_guest_echo(runcomponent_string_t *msg, runcomponent_string_t *ret);
 
 // Helper Functions

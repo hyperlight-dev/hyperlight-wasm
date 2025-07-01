@@ -1,4 +1,4 @@
-package example:runcomponent@0.1.0;
+package example:runcomponent;
 
 interface guest {
     echo: func(msg: string) -> string;

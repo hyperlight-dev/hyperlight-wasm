@@ -47,11 +47,15 @@ else
 
     echo Building component
     # Build the wasm file with wasi-libc for wasmtime
+    wit-bindgen c ${PWD}/components/runcomponent.wit --out-dir ${PWD}/components
     docker run --rm -i -v "${PWD}:/tmp/host" -v "${OUTPUT_DIR}:/tmp/output/" wasm-clang-builder:latest /opt/wasi-sdk/bin/clang -flto -ffunction-sections -mexec-model=reactor -O3 -z stack-size=4096 -Wl,--initial-memory=65536 -Wl,--export=__data_end -Wl,--export=__heap_base,--export=malloc,--export=free -o /tmp/output/runcomponent-p1.wasm /tmp/host/components/component.c /tmp/host/components/runcomponent.c  /tmp/host/components/runcomponent_component_type.o
+
+    # tooling currently builds a p1 wasm component so convert it
+    wasm-tools component new ${OUTPUT_DIR}/runcomponent-p1.wasm -o ${OUTPUT_DIR}/runcomponent-p2.wasm
 
     # Build AOT for Wasmtime; note that Wasmtime does not support
     # interpreting, so its wasm binary is secretly an AOT binary.
-    cargo run -p hyperlight-wasm-aot compile ${OUTPUT_DIR}/runcomponent-p1.wasm ${OUTPUT_DIR}/runcomponent.aot
+    cargo run -p hyperlight-wasm-aot compile --component ${OUTPUT_DIR}/runcomponent-p2.wasm ${OUTPUT_DIR}/runcomponent.aot
     cp ${OUTPUT_DIR}/runcomponent.aot ${OUTPUT_DIR}/runcomponent.wasm
 fi
 
