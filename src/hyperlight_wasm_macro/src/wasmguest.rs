@@ -68,7 +68,7 @@ fn emit_import_extern_decl<'b>(
                 })
                 .unzip::<_, _, Vec<_>, Vec<_>>();
             let ret = format_ident!("ret");
-            let is_ret_empty = matches!(&ft.result, etypes::Result::Named(rs) if rs.is_empty());
+            let is_ret_empty = ft.result.is_none();
             let ur = if is_ret_empty {
                 quote! { () }
             } else {
@@ -210,7 +210,7 @@ fn emit_wasm_function_call(
 
     // if the result is empty we don't want a return result with `get_typed_func`
     let rwt = match result {
-        etypes::Result::Named(rs) if rs.is_empty() => {
+        None => {
             quote! {
                 instance.get_typed_func::<(#(#pwts,)*), ()>(&mut *store, func_idx)?
                     .call(&mut *store, (#(#pus,)*))?;
