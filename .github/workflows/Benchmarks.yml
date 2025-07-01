@@ -77,7 +77,7 @@ jobs:
 
     - name: Run Benchmarks
       run: |
-        just bench-ci dev release
+        just bench-ci dev release ${{ matrix.hypervisor == 'mshv3' && 'mshv3' || ''}}
       working-directory: ./src/hyperlight_wasm
 
     - name: Upload Benchmarks
