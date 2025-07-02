@@ -104,9 +104,21 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
       shell: bash
+    - name: Publish dry-run
+      if: ${{ contains(github.ref, 'refs/heads/release/') }}
+      run: |
+        set -euxo pipefail
+        cargo publish -p hyperlight-wasm-aot --dry-run
+        cargo publish -p hyperlight-wasm --dry-run
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_PUBLISH_TOKEN }}
+      shell: bash
     - name: Publish to crates.io
       if: ${{ contains(github.ref, 'refs/heads/release/') }}
-      run: cargo publish hyperlight-wasm
+      run: |
+        set -euxo pipefail
+        cargo publish -p hyperlight-wasm-aot
+        cargo publish -p hyperlight-wasm
       env:
         CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_PUBLISH_TOKEN }}
       shell: bash
