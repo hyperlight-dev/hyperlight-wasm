@@ -78,6 +78,7 @@ jobs:
       with:
         pattern: benchmarks_*
     - name: Archive benchmarks
+      shell: bash
       run: |
         for BENCHMARK in benchmarks_*; do
           tar -zcvf $BENCHMARK.tar.gz $BENCHMARK
