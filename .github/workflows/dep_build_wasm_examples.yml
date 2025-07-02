@@ -51,6 +51,17 @@ jobs:
           uses: docker/metadata-action@v5
           with:
             images: ${{ github.repository_owner }}/wasm-clang-builder
+        - name: Calculate ghcr cache destination
+          env:
+            CAN_WRITE: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && github.actor != 'dependabot[bot]' }}
+          run: |
+            if [ "$CAN_WRITE" = "true" ]; then
+              echo "CACHE_TO=type=registry,ref=ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:buildcache,mode=max" >> $GITHUB_ENV
+              echo "DO_PUSH=true" >> $GITHUB_ENV
+            else
+              echo "CACHE_TO=type=local,dest=/tmp/wasm-clang-builder-cache/" >> $GITHUB_ENV
+              echo "DO_PUSH=false" >> $GITHUB_ENV
+            fi
         - name: Build and push wasm-clang-builder
         # Only push if not from a fork, not from pull request, and not from dependabot
           uses: docker/build-push-action@v6
@@ -58,13 +69,13 @@ jobs:
             context: src/wasmsamples
             file: src/wasmsamples/dockerfile
             load: true
-            push: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && github.actor != 'dependabot[bot]' }}
+            push: ${{ env.DO_PUSH }}
             build-args: |
               WASI_SDK_VERSION_FULL=20.0
               GCC_VERSION=12
             tags: ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:latest
             cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:buildcache
-            cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:buildcache,mode=max
+            cache-to: ${{ env.CACHE_TO }}
         - name: Build Modules
           run: |
               for FILENAME in $(find . -name '*.c')

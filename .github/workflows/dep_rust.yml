@@ -131,7 +131,7 @@ jobs:
 
       - name: Download benchmarks from "latest"
         run: |
-          just bench-download ${{ runner.os }} ${{ matrix.hypervisor }} dev-latest
+          just bench-download ${{ runner.os }} ${{ matrix.hypervisor }} ${{ matrix.cpu }} dev-latest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
