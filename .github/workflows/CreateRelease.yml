@@ -73,59 +73,33 @@ jobs:
     - name: Build rust wasm modules
       run: just build-rust-wasm-examples ${{ env.CONFIG }}
       shell: bash
-    - name: Download Benchmarks (Windows)
+    - name: Download all benchmarks
       uses: actions/download-artifact@v4
       with:
-        name: benchmarks_Windows_whp
-        path: benchmarks_Windows_whp
-    - name: Download Benchmarks (Linux hyperv)
-      uses: actions/download-artifact@v4
-      with:
-        name: benchmarks_Linux_hyperv
-        path: benchmarks_Linux_hyperv
-    - name: Download Benchmarks (Linux kvm)
-      uses: actions/download-artifact@v4
-      with:
-        name: benchmarks_Linux_kvm
-        path: benchmarks_Linux_kvm
+        pattern: benchmarks_*
     - name: Archive benchmarks
       run: |
-        tar -zcvf benchmarks_Windows_whp.tar.gz benchmarks_Windows_whp
-        tar -zcvf benchmarks_Linux_hyperv.tar.gz benchmarks_Linux_hyperv
-        tar -zcvf benchmarks_Linux_kvm.tar.gz benchmarks_Linux_kvm
-    - name: Install github-cli
-      run: |
-          $ProgressPreference = 'SilentlyContinue'
-          # check if gh cli is installed
-          $installed = [bool](Get-Command -ErrorAction Ignore -Type Application gh)
-          if ($installed) { Write-Host "gh cli already installed"; exit 0 }
-          # download and install gh cli
-          Invoke-WebRequest https://github.com/cli/cli/releases/download/v2.50.0/gh_2.50.0_windows_amd64.msi -OutFile gh.msi
-          msiexec.exe /i gh.msi /quiet /l log.txt | Out-Null
-          Write-Host "msiexec exited with code $LASTEXITCCODE"
-          if ($LASTEXITCODE -ne 0) { cat log.txt; exit 1 }
+        for BENCHMARK in benchmarks_*; do
+          tar -zcvf $BENCHMARK.tar.gz $BENCHMARK
+        done
     - name: Create pre-release
       if: ${{ github.ref=='refs/heads/main' }}
       run:  |
-            echo "PWD: $PWD"
-            ls -alR
-            gh release delete dev-latest -y --cleanup-tag  || true
-            gh release create dev-latest -t "Latest Development Build From Dev Branch" --latest=false -p \
-                benchmarks_Windows_whp.tar.gz \
-                benchmarks_Linux_hyperv.tar.gz \
-                benchmarks_Linux_kvm.tar.gz
+        echo "PWD: $PWD"
+        ls -alR
+        gh release delete dev-latest -y --cleanup-tag  || true
+        gh release create dev-latest -t "Latest Development Build From Dev Branch" --latest=false -p \
+            benchmarks_*.tar.gz
       env:
         GH_TOKEN: ${{ github.token }}
       shell: bash
     - name: Create Release
       if: ${{ contains(github.ref, 'refs/heads/release/') }}
       run:  |
-            echo "PWD: $PWD"
-            ls -alR
-            gh release create v${{ env.HYPERLIGHTWASM_VERSION }} -t "Release v${{ env.HYPERLIGHTWASM_VERSION }}" --generate-notes \
-                benchmarks_Windows_whp.tar.gz \
-                benchmarks_Linux_hyperv.tar.gz \
-                benchmarks_Linux_kvm.tar.gz
+        echo "PWD: $PWD"
+        ls -alR
+        gh release create v${{ env.HYPERLIGHTWASM_VERSION }} -t "Release v${{ env.HYPERLIGHTWASM_VERSION }}" --generate-notes \
+            benchmarks_*.tar.gz
       env:
         GH_TOKEN: ${{ github.token }}
       shell: bash

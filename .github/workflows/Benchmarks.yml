@@ -60,7 +60,7 @@ jobs:
       
     - name: Download benchmark from most recent release
       run: |
-        just bench-download ${{ runner.os }} ${{ matrix.hypervisor }}
+        just bench-download ${{ runner.os }} ${{ matrix.hypervisor }} ${{ matrix.cpu }}
       continue-on-error: true
       working-directory: ./src/hyperlight_wasm
       env:
@@ -74,6 +74,6 @@ jobs:
     - name: Upload Benchmarks
       uses: actions/upload-artifact@v4
       with: 
-        name: benchmarks_${{runner.os}}_${{matrix.hypervisor}}
+        name: benchmarks_${{runner.os}}_${{matrix.hypervisor}}_${{ matrix.cpu }}
         path: ./target/criterion/
         if-no-files-found: error

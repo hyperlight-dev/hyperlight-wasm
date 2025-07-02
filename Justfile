@@ -104,7 +104,7 @@ bench-ci baseline target=default-target features="":
     cd src/hyperlight_wasm && cargo bench --profile={{ if target == "debug" {"dev"} else { target } }} {{ if features =="" {''} else { "--features " + features } }} -- --verbose --save-baseline {{baseline}}
 bench target=default-target features="":
     cd src/hyperlight_wasm &&  cargo bench --profile={{ if target == "debug" {"dev"} else { target } }} {{ if features =="" {''} else { "--features " + features } }} -- --verbose
-bench-download os hypervisor tag="":
-    gh release download {{ tag }} -D ./src/hyperlight_wasm/target/ -p benchmarks_{{ os }}_{{ hypervisor }}.tar.gz
+bench-download os hypervisor cpu tag="":
+    gh release download {{ tag }} -D ./src/hyperlight_wasm/target/ -p benchmarks_{{ os }}_{{ hypervisor }}_{{ cpu }}.tar.gz
     mkdir {{ mkdir-arg }} ./src/hyperlight_wasm/target/criterion
-    tar -zxvf ./src/hyperlight_wasm/target/benchmarks_{{ os }}_{{ hypervisor }}.tar.gz -C ./src/hyperlight_wasm/target/criterion/ --strip-components=1
+    tar -zxvf ./src/hyperlight_wasm/target/benchmarks_{{ os }}_{{ hypervisor }}_{{ cpu }}.tar.gz -C ./src/hyperlight_wasm/target/criterion/ --strip-components=1
