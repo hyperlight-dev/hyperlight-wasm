@@ -95,6 +95,15 @@ impl SandboxBuilder {
         self
     }
 
+    /// Enable or disable crashdump generation for the sandbox
+    /// When enabled, core dumps will be generated when the guest crashes
+    /// This requires the `crashdump` feature to be enabled
+    #[cfg(feature = "crashdump")]
+    pub fn with_crashdump_enabled(mut self, enabled: bool) -> Self {
+        self.config.set_guest_core_dump(enabled);
+        self
+    }
+
     /// Get the current configuration
     pub fn get_config(&self) -> &SandboxConfiguration {
         &self.config
