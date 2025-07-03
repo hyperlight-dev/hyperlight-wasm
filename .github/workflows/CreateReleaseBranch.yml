@@ -25,7 +25,7 @@ jobs:
       run: |
         git checkout -b release/${GITHUB_REF_NAME}
         just make-vendor-tar
-        sed '/vendor.tar/d' ./src/hyperlight_wasm/.gitignore
+        sed -i '/vendor.tar/d' ./src/hyperlight_wasm/.gitignore
         git add ./src/hyperlight_wasm/vendor.tar
         git add ./src/hyperlight_wasm/.gitignore
         git commit -m "Vendor dependencies for release ${GITHUB_REF_NAME}" -s -S

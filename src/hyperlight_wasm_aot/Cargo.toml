@@ -1,7 +1,15 @@
 [package]
 name = "hyperlight-wasm-aot"
-version = "0.7.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme.workspace = true
+description = """
+Application to precompile WebAssembly binaries to for hyperlight-wasm.
+"""
 
 [dependencies]
 wasmtime = { version = "34.0.1", default-features = false, features = ["cranelift", "runtime", "component-model" ] }
