@@ -18,7 +18,7 @@ jobs:
     # see https://github.com/orgs/community/discussions/26286#discussioncomment-3251208 for why we need to check the ref
     if: ${{ contains(github.ref, 'refs/heads/release/') }} ||  ${{ github.ref=='refs/heads/main' }}
     needs: [ benchmarks ]
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     env:
         PLATFORM: x64
     steps:
@@ -59,10 +59,10 @@ jobs:
     - name: Set HYPERLIGHTWASM_VERSION
       run: |
         git fetch --tags || true
-        $env:MINVER_TAG_PREFIX="v"
-        $env:MINVER_AUTO_INCREMENT_LEVEL="Minor"
-        $env:MINVER_PRERELEASE_IDENTIFIER="preview"
-        echo "HYPERLIGHTWASM_VERSION=$(minver)"| Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
+        export MINVER_TAG_PREFIX="v"
+        export MINVER_AUTO_INCREMENT_LEVEL="Minor"
+        export MINVER_PRERELEASE_IDENTIFIER="preview"
+        echo "HYPERLIGHTWASM_VERSION=$(minver)" >> $GITHUB_ENV
         echo "HYPERLIGHTWASM_VERSION=$(minver)"
       shell: pwsh
     - name: Download Wasm Modules
