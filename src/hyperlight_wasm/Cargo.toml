@@ -1,11 +1,15 @@
 [package]
 name = "hyperlight-wasm"
-version = "0.7.0"
-edition = "2024"
-rust-version = "1.85"
-description = "Library that enables wasm modules and components to be run inside lightweight Virtual Machine backed Sandbox. It is built on top of Hyperlight."
-license = "Apache-2.0"
-repository = "https://github.com/hyperlight-dev/hyperlight-wasm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme.workspace = true
+description = """
+Library that enables wasm modules and components to be run inside lightweight Virtual Machine backed Sandbox. It is built on top of Hyperlight.
+"""
 include = [
     "/src",
     "/scripts",
