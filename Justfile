@@ -9,6 +9,7 @@ set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
 
 make-vendor-tar:
     tar cf ./src/hyperlight_wasm/vendor.tar \
+        --owner=0 --group=0 \
         --exclude-vcs-ignores \
         -C ./src wasm_runtime hyperlight_wasm_macro
 

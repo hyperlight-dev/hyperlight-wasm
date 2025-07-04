@@ -28,6 +28,9 @@ jobs:
         sed -i '/vendor.tar/d' ./src/hyperlight_wasm/.gitignore
         git add ./src/hyperlight_wasm/vendor.tar
         git add ./src/hyperlight_wasm/.gitignore
-        git commit -m "Vendor dependencies for release ${GITHUB_REF_NAME}" -s -S
+        git config user.name hyperlight-wasm-ci
+        git config user.email github@users.noreply.github.com
+        git commit -s \
+          -m "Vendor dependencies for release ${GITHUB_REF_NAME}"
         git push --set-upstream origin release/${GITHUB_REF_NAME}
       shell: bash
