@@ -18,7 +18,7 @@ env:
   LLVM_VERSION: 17
   RUST_TOOLCHAIN_DEFAULT: 1.85.0
   RUST_TOOLCHAIN_FILE: rust-toolchain.toml
-  WASI_SDK_VERSION_FULL: "20.0"
+  WASI_SDK_VERSION_FULL: "25.0"
   GCC_VERSION: "12" 
 
 # There is a single job in this workflow. It's configured to run on the latest available version of Ubuntu.

@@ -31,7 +31,7 @@ else
 
     docker pull ghcr.io/hyperlight-dev/wasm-clang-builder:latest
 
-    docker build --build-arg GCC_VERSION=12 --build-arg WASI_SDK_VERSION_FULL=20.0 --cache-from ghcr.io/hyperlight-dev/wasm-clang-builder:latest -t wasm-clang-builder:latest . 2> ${OUTPUT_DIR}/dockerbuild.log
+    docker build --build-arg GCC_VERSION=12 --build-arg WASI_SDK_VERSION_FULL=25.0 --cache-from ghcr.io/hyperlight-dev/wasm-clang-builder:latest -t wasm-clang-builder:latest . 2> ${OUTPUT_DIR}/dockerbuild.log
 
     for FILENAME in $(find . -name '*.c')
     do
