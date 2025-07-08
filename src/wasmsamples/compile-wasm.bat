@@ -18,7 +18,7 @@ where docker || (
 
 echo Building docker image that has Wasm sdk. Should be quick if no changes to docker image.
 echo Log in %2\dockerbuild.log
-%dockercmd% build --build-arg GCC_VERSION=12 --build-arg WASI_SDK_VERSION_FULL=20.0 --cache-from ghcr.io/hyperlight-dev/wasm-clang-builder:latest -t wasm-clang-builder:latest !dockerinput! 2> %2dockerbuild.log
+%dockercmd% build --build-arg GCC_VERSION=12 --build-arg WASI_SDK_VERSION_FULL=25.0 --cache-from ghcr.io/hyperlight-dev/wasm-clang-builder:latest -t wasm-clang-builder:latest !dockerinput! 2> %2dockerbuild.log
 
 echo Building Wasm files in %1 and output to %2
 for /R "%1" %%i in (*.c) do (

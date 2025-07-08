@@ -18,7 +18,7 @@ RUN apt-get install -y g++-multilib \
     && apt-get install -y libgcc-${GCC_VERSION}-dev \
     && apt-get install -y lib32gcc-${GCC_VERSION}-dev 
 
-ARG WASI_SDK_VERSION_FULL=20.0
+ARG WASI_SDK_VERSION_FULL=25.0
 ARG WASI_SDK_VERSION_MAJOR=${WASI_SDK_VERSION_FULL%%.*}
 
 # Install wasi-sdk

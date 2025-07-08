@@ -83,6 +83,13 @@ pub(crate) fn register_handlers<T: 'static>(linker: &mut Linker<T>) -> Result<()
     })?;
     linker.func_wrap(
         "wasi_snapshot_preview1",
+        "random_get",
+        |buff: i32, len: i32| -> i32 {
+            panic!("random_get called for {} with len {}", buff, len);
+        },
+    )?;
+    linker.func_wrap(
+        "wasi_snapshot_preview1",
         "fd_fdstat_get",
         |mut ctx: Caller<'_, T>, fd: i32, retptr: i32| {
             if fd != 1 {

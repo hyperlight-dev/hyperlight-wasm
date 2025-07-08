@@ -71,7 +71,7 @@ jobs:
             load: true
             push: ${{ env.DO_PUSH }}
             build-args: |
-              WASI_SDK_VERSION_FULL=20.0
+              WASI_SDK_VERSION_FULL=25.0
               GCC_VERSION=12
             tags: ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:latest
             cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:buildcache
