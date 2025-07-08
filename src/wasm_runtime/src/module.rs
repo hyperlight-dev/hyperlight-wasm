@@ -32,7 +32,7 @@ use hyperlight_guest_bin::host_comm::print_output_with_host_print;
 use spin::Mutex;
 use wasmtime::{Config, Engine, Linker, Module, Store, Val};
 
-use crate::{hostfuncs, marshal, wasip1};
+use crate::{hostfuncs, marshal, platform, wasip1};
 
 static CUR_ENGINE: Mutex<Option<Engine>> = Mutex::new(None);
 static CUR_LINKER: Mutex<Option<Linker<()>>> = Mutex::new(None);
@@ -141,6 +141,8 @@ fn load_wasm_module(function_call: &FunctionCall) -> Result<Vec<u8>> {
 #[no_mangle]
 #[allow(clippy::fn_to_numeric_cast)] // GuestFunctionDefinition expects a function pointer as i64
 pub extern "C" fn hyperlight_main() {
+    platform::register_page_fault_handler();
+
     register_function(GuestFunctionDefinition::new(
         "PrintOutput".to_string(),
         vec![ParameterType::String],

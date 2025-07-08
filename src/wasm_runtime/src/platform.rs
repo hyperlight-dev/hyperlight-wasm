@@ -16,7 +16,9 @@ limitations under the License.
 
 use alloc::alloc::{alloc, dealloc, Layout};
 use core::ffi::c_void;
-use core::sync::atomic::{AtomicPtr, Ordering};
+use core::sync::atomic::{AtomicPtr, AtomicU64, Ordering};
+
+use hyperlight_guest_bin::exceptions::handler;
 
 // Wasmtime Embedding Interface
 
@@ -64,10 +66,52 @@ pub extern "C" fn wasmtime_page_size() -> usize {
 #[allow(non_camel_case_types)] // we didn't choose the name!
 type wasmtime_trap_handler_t =
     extern "C" fn(ip: usize, fp: usize, has_faulting_addr: bool, faulting_addr: usize);
+static WASMTIME_REQUESTED_TRAP_HANDLER: AtomicU64 = AtomicU64::new(0);
+fn wasmtime_trap_handler(
+    exception_number: u64,
+    info: *mut handler::ExceptionInfo,
+    ctx: *mut handler::Context,
+    _page_fault_address: u64,
+) -> bool {
+    let requested_handler = WASMTIME_REQUESTED_TRAP_HANDLER.load(Ordering::Relaxed);
+    if requested_handler != 0 {
+        #[allow(clippy::collapsible_if)] // We will add more cases
+        if exception_number == 6 {
+            // #UD
+            // we assume that handle_trap always longjmp's away, so don't bother
+            // setting up a terribly proper stack frame
+            unsafe {
+                let orig_rip = (&raw mut (*info).rip).read_volatile();
+                (&raw mut (*info).rip).write_volatile(requested_handler);
+                // TODO: This only works on amd64 sysv
+                (&raw mut (*ctx).gprs[9]).write_volatile(orig_rip);
+                let orig_rbp = (&raw mut (*ctx).gprs[8]).read_volatile();
+                (&raw mut (*ctx).gprs[10]).write_volatile(orig_rbp);
+                (&raw mut (*ctx).gprs[11]).write_volatile(0);
+                (&raw mut (*ctx).gprs[12]).write_volatile(0);
+            }
+            return true;
+        }
+        // TODO: Add handlers for any other traps that wasmtime needs
+    }
+    false
+}
 
-// TODO: Correctly handle traps.
 #[no_mangle]
-pub extern "C" fn wasmtime_init_traps(_handler: wasmtime_trap_handler_t) -> i32 {
+pub extern "C" fn wasmtime_init_traps(handler: wasmtime_trap_handler_t) -> i32 {
+    WASMTIME_REQUESTED_TRAP_HANDLER.store(handler as usize as u64, Ordering::Relaxed);
+    // On amd64, vector 6 is #UD
+    // See AMD64 Architecture Programmer's Manual, Volume 2
+    //    §8.2 Vectors, p. 245
+    //      Table 8-1: Interrupt Vector Source and Cause
+    handler::handlers[6].store(wasmtime_trap_handler as usize as u64, Ordering::Release);
+    // TODO: Add handlers for any other traps that wasmtime needs,
+    //       probably including at least some floating-point
+    //       exceptions
+    // TODO: Ensure that invalid accesses to mprotect()'d regions also
+    //       need to trap, although those will need to go through the
+    //       page fault handler instead of using this handler that
+    //       takes over the exception.
     0
 }
 

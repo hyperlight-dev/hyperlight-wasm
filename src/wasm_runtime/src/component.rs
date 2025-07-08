@@ -33,6 +33,8 @@ use spin::Mutex;
 use wasmtime::component::{Component, Instance, Linker};
 use wasmtime::{Config, Engine, Store};
 
+use crate::platform;
+
 static CUR_ENGINE: Mutex<Option<Engine>> = Mutex::new(None);
 static CUR_LINKER: Mutex<Option<Linker<()>>> = Mutex::new(None);
 static CUR_STORE: Mutex<Option<Store<()>>> = Mutex::new(None);
@@ -74,6 +76,8 @@ fn load_wasm_module(function_call: &FunctionCall) -> Result<Vec<u8>> {
 
 #[no_mangle]
 pub extern "C" fn hyperlight_main() {
+    platform::register_page_fault_handler();
+
     let mut config = Config::new();
     config.memory_reservation(0);
     config.memory_guard_size(0);
