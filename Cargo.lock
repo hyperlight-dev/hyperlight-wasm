@@ -323,6 +323,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "cargo-util-schemas"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e63d2780ac94487eb9f1fea7b0d56300abc9eb488800854ca217f102f5caccca"
+dependencies = [
+ "semver",
+ "serde",
+ "serde-untagged",
+ "serde-value",
+ "thiserror 1.0.69",
+ "toml 0.8.23",
+ "unicode-xid",
+ "url",
+]
+
+[[package]]
 name = "cargo_metadata"
 version = "0.19.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -685,19 +701,6 @@ checksum = "6b50826342786a51a89e2da3a28f1c32b06e387201bc2d19791f622c673706b1"
 dependencies = [
  "cast",
  "itertools 0.10.5",
-]
-
-[[package]]
-name = "crossbeam"
-version = "0.8.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1137cd7e7fc0fb5d3c5a8678be38ec56e819125d8d7907411fe24ccb943faca8"
-dependencies = [
- "crossbeam-channel",
- "crossbeam-deque",
- "crossbeam-epoch",
- "crossbeam-queue",
- "crossbeam-utils",
 ]
 
 [[package]]
@@ -1249,8 +1252,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-common"
 version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6b9232222e023b84c7c10bdb67327f503567a1a5ff68db935683af0147d73ba"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=ea6fa8f#ea6fa8f16dae2325d94af39eb6ac3b441b24dcac"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -1262,8 +1264,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-component-macro"
 version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bc0fc7f0d77ab2c16277da4efb58fa99c56f607f9407fd5c0490909c327facd"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=ea6fa8f#ea6fa8f16dae2325d94af39eb6ac3b441b24dcac"
 dependencies = [
  "env_logger",
  "hyperlight-component-util",
@@ -1278,8 +1279,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-component-util"
 version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88137b20c4761f4b309d36b22574e2283745afad5959df7ecc5928557417d098"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=ea6fa8f#ea6fa8f16dae2325d94af39eb6ac3b441b24dcac"
 dependencies = [
  "itertools 0.14.0",
  "log",
@@ -1293,15 +1293,13 @@ dependencies = [
 [[package]]
 name = "hyperlight-host"
 version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1cb5d2db5c1325df0c1042680ccbff16958105a2842140736ac463d67df89fba"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=ea6fa8f#ea6fa8f16dae2325d94af39eb6ac3b441b24dcac"
 dependencies = [
  "anyhow",
  "bitflags 2.9.1",
  "cfg-if",
  "cfg_aliases",
  "chrono",
- "crossbeam",
  "crossbeam-channel",
  "elfcore",
  "flatbuffers",
@@ -1331,7 +1329,7 @@ dependencies = [
  "vmm-sys-util",
  "windows",
  "windows-result",
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
  "windows-version",
 ]
 
@@ -1358,7 +1356,7 @@ dependencies = [
  "once_cell",
  "page_size",
  "tar",
- "toml",
+ "toml 0.9.0",
  "tracing",
  "windows",
 ]
@@ -2622,6 +2620,15 @@ dependencies = [
 
 [[package]]
 name = "serde_spanned"
+version = "0.6.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf41e0cfaf7226dca15e8197172c295a782857fcb97fad1808a166870dee75a3"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "serde_spanned"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40734c41988f7306bb04f0ecf60ec0f3f1caa34290e4e8ea471dcd3346483b83"
@@ -2877,17 +2884,38 @@ dependencies = [
 
 [[package]]
 name = "toml"
+version = "0.8.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc1beb996b9d83529a9e75c17a1686767d148d70663143c7854d8b4a09ced362"
+dependencies = [
+ "serde",
+ "serde_spanned 0.6.9",
+ "toml_datetime 0.6.11",
+ "toml_edit",
+]
+
+[[package]]
+name = "toml"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f271e09bde39ab52250160a67e88577e0559ad77e9085de6e9051a2c4353f8f8"
 dependencies = [
  "indexmap",
  "serde",
- "serde_spanned",
- "toml_datetime",
+ "serde_spanned 1.0.0",
+ "toml_datetime 0.7.0",
  "toml_parser",
  "toml_writer",
  "winnow",
+]
+
+[[package]]
+name = "toml_datetime"
+version = "0.6.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22cddaf88f4fbc13c51aebbf5f8eceb5c7c5a9da2ac40a13519eb5b0a0e8f11c"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -2900,6 +2928,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "toml_edit"
+version = "0.22.27"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41fe8c660ae4257887cf66394862d21dbca4a6ddd26f04a3560410406a2f819a"
+dependencies = [
+ "indexmap",
+ "serde",
+ "serde_spanned 0.6.9",
+ "toml_datetime 0.6.11",
+ "toml_write",
+ "winnow",
+]
+
+[[package]]
 name = "toml_parser"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2907,6 +2949,12 @@ checksum = "b5c1c469eda89749d2230d8156a5969a69ffe0d6d01200581cdc6110674d293e"
 dependencies = [
  "winnow",
 ]
+
+[[package]]
+name = "toml_write"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d99f8c9a7727884afe522e9bd5edbfc91a3312b36a77b5fb8926e4c31a41801"
 
 [[package]]
 name = "toml_writer"
@@ -3747,6 +3795,9 @@ name = "winnow"
 version = "0.7.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74c7b26e3480b707944fc872477815d29a8e429d2f93a1ce000f5fa84a15cbcd"
+dependencies = [
+ "memchr",
+]
 
 [[package]]
 name = "wit-bindgen-rt"

@@ -39,8 +39,6 @@ dependencies = [
 [[package]]
 name = "hyperlight-component-util"
 version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88137b20c4761f4b309d36b22574e2283745afad5959df7ecc5928557417d098"
 dependencies = [
  "itertools",
  "log",

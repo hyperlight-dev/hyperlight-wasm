@@ -58,7 +58,7 @@ windows = { version = "0.61", features = ["Win32_System_Threading"] }
 page_size = "0.6.0"
 
 [dev-dependencies]
-hyperlight-component-macro = "0.7.0"
+hyperlight-component-macro = { version = "0.7.0", git = "https://github.com/hyperlight-dev/hyperlight", rev = "ea6fa8f" }
 examples_common = { path = "../examples_common" }
 criterion = { version = "0.6.0", features = ["html_reports"] }
 crossbeam-queue = "0.3"
