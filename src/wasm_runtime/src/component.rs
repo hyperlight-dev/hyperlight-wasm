@@ -47,6 +47,17 @@ fn init_wasm_runtime(_function_call: &FunctionCall) -> Result<Vec<u8>> {
     Ok(get_flatbuffer_result::<i32>(0))
 }
 
+fn load_component_common(engine: &Engine, component: Component) -> Result<()> {
+    let mut store = Store::new(engine, ());
+    let instance = (*CUR_LINKER.lock())
+        .as_ref()
+        .unwrap()
+        .instantiate(&mut store, &component)?;
+    *CUR_STORE.lock() = Some(store);
+    *CUR_INSTANCE.lock() = Some(instance);
+    Ok(())
+}
+
 fn load_wasm_module(function_call: &FunctionCall) -> Result<Vec<u8>> {
     if let (
         ParameterValue::VecBytes(ref wasm_bytes),
@@ -58,18 +69,30 @@ fn load_wasm_module(function_call: &FunctionCall) -> Result<Vec<u8>> {
         &*CUR_ENGINE.lock(),
     ) {
         let component = unsafe { Component::deserialize(engine, wasm_bytes)? };
-        let mut store = Store::new(engine, ());
-        let instance = (*CUR_LINKER.lock())
-            .as_ref()
-            .unwrap()
-            .instantiate(&mut store, &component)?;
-        *CUR_STORE.lock() = Some(store);
-        *CUR_INSTANCE.lock() = Some(instance);
+        load_component_common(engine, component)?;
         Ok(get_flatbuffer_result::<i32>(0))
     } else {
         Err(HyperlightGuestError::new(
             ErrorCode::GuestFunctionParameterTypeMismatch,
             "Invalid parameters passed to LoadWasmModule".to_string(),
+        ))
+    }
+}
+
+fn load_wasm_module_phys(function_call: &FunctionCall) -> Result<Vec<u8>> {
+    if let (ParameterValue::ULong(ref phys), ParameterValue::ULong(ref len), Some(ref engine)) = (
+        &function_call.parameters.as_ref().unwrap()[0],
+        &function_call.parameters.as_ref().unwrap()[1],
+        &*CUR_ENGINE.lock(),
+    ) {
+        let component =
+            unsafe { Component::deserialize_raw(engine, platform::map_buffer(*phys, *len))? };
+        load_component_common(engine, component)?;
+        Ok(get_flatbuffer_result::<()>(()))
+    } else {
+        Err(HyperlightGuestError::new(
+            ErrorCode::GuestFunctionParameterTypeMismatch,
+            "Invalid parameters passed to LoadWasmModulePhys".to_string(),
         ))
     }
 }
@@ -83,6 +106,7 @@ pub extern "C" fn hyperlight_main() {
     config.memory_guard_size(0);
     config.memory_reservation_for_growth(0);
     config.guard_before_linear_memory(false);
+    config.with_custom_code_memory(Some(alloc::sync::Arc::new(platform::WasmtimeCodeMemory {})));
     let engine = Engine::new(&config).unwrap();
     let linker = Linker::new(&engine);
     *CUR_ENGINE.lock() = Some(engine);
@@ -101,6 +125,12 @@ pub extern "C" fn hyperlight_main() {
         vec![ParameterType::VecBytes, ParameterType::Int],
         ReturnType::Int,
         load_wasm_module as usize,
+    ));
+    register_function(GuestFunctionDefinition::new(
+        "LoadWasmModulePhys".to_string(),
+        vec![ParameterType::ULong, ParameterType::ULong],
+        ReturnType::Void,
+        load_wasm_module_phys as usize,
     ));
 }
 

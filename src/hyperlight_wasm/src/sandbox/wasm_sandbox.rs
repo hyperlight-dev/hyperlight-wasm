@@ -17,6 +17,7 @@ limitations under the License.
 use std::path::Path;
 
 use hyperlight_host::func::call_ctx::MultiUseGuestCallContext;
+use hyperlight_host::mem::memory_region::{MemoryRegion, MemoryRegionFlags, MemoryRegionType};
 use hyperlight_host::sandbox::Callable;
 use hyperlight_host::sandbox_state::sandbox::{EvolvableSandbox, Sandbox};
 use hyperlight_host::sandbox_state::transition::MultiUseContextCallback;
@@ -42,6 +43,7 @@ pub struct WasmSandbox {
 
 impl Sandbox for WasmSandbox {}
 
+const MAPPED_BINARY_VA: u64 = 0x1_0000_0000u64;
 impl WasmSandbox {
     /// Create a new WasmSandBox from a `MultiUseSandbox`.
     /// This function should be used to create a new `WasmSandbox` from a ProtoWasmSandbox.
@@ -59,8 +61,68 @@ impl WasmSandbox {
     /// Before you can call guest functions in the sandbox, you must call
     /// this function and use the returned value to call guest functions.
     pub fn load_module(self, file: impl AsRef<Path>) -> Result<LoadedWasmSandbox> {
-        let wasm_bytes = std::fs::read(file)?;
-        self.load_module_inner(wasm_bytes)
+        let func = Box::new(move |call_ctx: &mut MultiUseGuestCallContext| {
+            if let Ok(len) = call_ctx.map_file_cow(file.as_ref(), MAPPED_BINARY_VA) {
+                call_ctx.call("LoadWasmModulePhys", (MAPPED_BINARY_VA, len))
+            } else {
+                let wasm_bytes = std::fs::read(file)?;
+                Self::load_module_from_buffer_transition_func(wasm_bytes)(call_ctx)
+            }
+        });
+        self.load_module_inner(func)
+    }
+
+    /// Load a Wasm module that is currently present in a buffer in
+    /// host memory, by mapping the host memory directly into the
+    /// sandbox.
+    ///
+    /// Depending on the host platform, there are likely alignment
+    /// requirements of at least one page for base and len
+    ///
+    /// # Safety
+    /// It is the caller's responsibility to ensure that the host side
+    /// of the region remains intact and is not written to until the
+    /// produced LoadedWasmSandbox is discarded or devolved.
+    pub unsafe fn load_module_by_mapping(
+        self,
+        base: *mut libc::c_void,
+        len: usize,
+    ) -> Result<LoadedWasmSandbox> {
+        let func = Box::new(move |call_ctx: &mut MultiUseGuestCallContext| {
+            let guest_base: usize = MAPPED_BINARY_VA as usize;
+            let rgn = MemoryRegion {
+                host_region: base as usize..base.wrapping_add(len) as usize,
+                guest_region: guest_base..guest_base + len,
+                flags: MemoryRegionFlags::READ | MemoryRegionFlags::EXECUTE,
+                region_type: MemoryRegionType::Heap,
+            };
+            if let Ok(()) = unsafe { call_ctx.map_region(&rgn) } {
+                call_ctx.call("LoadWasmModulePhys", (MAPPED_BINARY_VA, len as u64))
+            } else {
+                let wasm_bytes =
+                    unsafe { std::slice::from_raw_parts(base as *const u8, len).to_vec() };
+                Self::load_module_from_buffer_transition_func(wasm_bytes)(call_ctx)
+            }
+        });
+        self.load_module_inner(func)
+    }
+
+    // todo: take a slice rather than a vec (requires somewhat
+    // refactoring the flatbuffers stuff maybe)
+    fn load_module_from_buffer_transition_func(
+        buffer: Vec<u8>,
+    ) -> impl FnOnce(&mut MultiUseGuestCallContext) -> Result<()> {
+        move |call_ctx: &mut MultiUseGuestCallContext| {
+            let len = buffer.len() as i32;
+            let res: i32 = call_ctx.call("LoadWasmModule", (buffer, len))?;
+            if res != 0 {
+                return Err(new_error!(
+                    "LoadWasmModule Failed with error code {:?}",
+                    res
+                ));
+            }
+            Ok(())
+        }
     }
 
     /// Load a Wasm module from a buffer of bytes into the sandbox and return a `LoadedWasmSandbox`
@@ -69,24 +131,17 @@ impl WasmSandbox {
     /// Before you can call guest functions in the sandbox, you must call
     /// this function and use the returned value to call guest functions.
     pub fn load_module_from_buffer(self, buffer: &[u8]) -> Result<LoadedWasmSandbox> {
-        self.load_module_inner(buffer.to_vec())
+        // TODO: get rid of this clone
+        let func = Self::load_module_from_buffer_transition_func(buffer.to_vec());
+
+        self.load_module_inner(func)
     }
 
-    fn load_module_inner(mut self, wasm_bytes: Vec<u8>) -> Result<LoadedWasmSandbox> {
-        let func = Box::new(move |call_ctx: &mut MultiUseGuestCallContext| {
-            let len = wasm_bytes.len() as i32;
-            let res: i32 = call_ctx.call("LoadWasmModule", (wasm_bytes, len))?;
-            if res != 0 {
-                return Err(new_error!(
-                    "LoadWasmModule Failed with error code {:?}",
-                    res
-                ));
-            }
-            Ok(())
-        });
-
+    fn load_module_inner<F: FnOnce(&mut MultiUseGuestCallContext) -> Result<()>>(
+        mut self,
+        func: F,
+    ) -> Result<LoadedWasmSandbox> {
         let transition_func = MultiUseContextCallback::from(func);
-
         match self.inner.take() {
             Some(sbox) => {
                 let new_sbox: MultiUseSandbox = sbox.evolve(transition_func)?;

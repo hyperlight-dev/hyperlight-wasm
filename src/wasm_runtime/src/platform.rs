@@ -16,6 +16,7 @@ limitations under the License.
 
 use alloc::alloc::{alloc, dealloc, Layout};
 use core::ffi::c_void;
+use core::ptr::NonNull;
 use core::sync::atomic::{AtomicPtr, AtomicU64, Ordering};
 
 use hyperlight_guest_bin::exceptions::handler;
@@ -154,4 +155,35 @@ pub extern "C" fn wasmtime_tls_get() -> *mut u8 {
 #[no_mangle]
 pub extern "C" fn wasmtime_tls_set(ptr: *mut u8) {
     FAKE_TLS.store(ptr, Ordering::Release)
+}
+
+pub struct WasmtimeCodeMemory {}
+// TODO: Actually change the page tables for W^X
+impl wasmtime::CustomCodeMemory for WasmtimeCodeMemory {
+    fn required_alignment(&self) -> usize {
+        unsafe { hyperlight_guest_bin::OS_PAGE_SIZE as usize }
+    }
+    fn publish_executable(
+        &self,
+        _ptr: *const u8,
+        _len: usize,
+    ) -> core::result::Result<(), wasmtime::Error> {
+        Ok(())
+    }
+    fn unpublish_executable(
+        &self,
+        _ptr: *const u8,
+        _len: usize,
+    ) -> core::result::Result<(), wasmtime::Error> {
+        Ok(())
+    }
+}
+
+pub(crate) unsafe fn map_buffer(phys: u64, len: u64) -> NonNull<[u8]> {
+    // TODO: Use a VA allocator
+    let virt = phys as *mut u8;
+    unsafe {
+        paging::map_region(phys, virt, len);
+        NonNull::new_unchecked(core::ptr::slice_from_raw_parts_mut(virt, len as usize))
+    }
 }

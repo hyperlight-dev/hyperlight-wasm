@@ -93,6 +93,7 @@ fn init_wasm_runtime() -> Result<Vec<u8>> {
     config.memory_guard_size(0);
     config.memory_reservation_for_growth(0);
     config.guard_before_linear_memory(false);
+    config.with_custom_code_memory(Some(alloc::sync::Arc::new(platform::WasmtimeCodeMemory {})));
     let engine = Engine::new(&config)?;
     let mut linker = Linker::new(&engine);
     wasip1::register_handlers(&mut linker)?;
@@ -138,6 +139,23 @@ fn load_wasm_module(function_call: &FunctionCall) -> Result<Vec<u8>> {
     }
 }
 
+fn load_wasm_module_phys(function_call: &FunctionCall) -> Result<Vec<u8>> {
+    if let (ParameterValue::ULong(ref phys), ParameterValue::ULong(ref len), Some(ref engine)) = (
+        &function_call.parameters.as_ref().unwrap()[0],
+        &function_call.parameters.as_ref().unwrap()[1],
+        &*CUR_ENGINE.lock(),
+    ) {
+        let module = unsafe { Module::deserialize_raw(engine, platform::map_buffer(*phys, *len))? };
+        *CUR_MODULE.lock() = Some(module);
+        Ok(get_flatbuffer_result::<()>(()))
+    } else {
+        Err(HyperlightGuestError::new(
+            ErrorCode::GuestFunctionParameterTypeMismatch,
+            "Invalid parameters passed to LoadWasmModulePhys".to_string(),
+        ))
+    }
+}
+
 #[no_mangle]
 #[allow(clippy::fn_to_numeric_cast)] // GuestFunctionDefinition expects a function pointer as i64
 pub extern "C" fn hyperlight_main() {
@@ -162,5 +180,11 @@ pub extern "C" fn hyperlight_main() {
         vec![ParameterType::VecBytes, ParameterType::Int],
         ReturnType::Int,
         load_wasm_module as usize,
+    ));
+    register_function(GuestFunctionDefinition::new(
+        "LoadWasmModulePhys".to_string(),
+        vec![ParameterType::ULong, ParameterType::ULong],
+        ReturnType::Void,
+        load_wasm_module_phys as usize,
     ));
 }
