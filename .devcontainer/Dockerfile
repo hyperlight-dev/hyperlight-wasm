@@ -35,4 +35,5 @@ RUN rustup default ${RUST_TOOLCHAIN} \
     && cargo install --locked wasm-tools \
     && cargo install wkg \
     && cargo install wac-cli \
-    && cargo install cargo-component --locked
+    && cargo install cargo-component --locked \
+    && cargo install wit-bindgen-cli --locked

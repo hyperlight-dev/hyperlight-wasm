@@ -78,13 +78,8 @@ jobs:
             cache-to: ${{ env.CACHE_TO }}
         - name: Build Modules
           run: |
-              for FILENAME in $(find . -name '*.c')
-              do
-                  echo Building ${FILENAME}
-                  docker run --rm -i -v "${PWD}:/tmp/host" ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:latest /opt/wasi-sdk/bin/clang -flto -ffunction-sections -mexec-model=reactor -O3 -z stack-size=4096 -Wl,--initial-memory=65536 -Wl,--export=__data_end -Wl,--export=__heap_base,--export=malloc,--export=free,--export=__wasm_call_ctors -Wl,--strip-all,--no-entry -Wl,--allow-undefined -Wl,--gc-sections  -o /tmp/host/${FILENAME%.*}-wasi-libc.wasm /tmp/host/${FILENAME}
-                  cargo run -p hyperlight-wasm-aot compile ${FILENAME%.*}-wasi-libc.wasm ${FILENAME%.*}.aot
-                  cp ${FILENAME%.*}.aot ${FILENAME%.*}.wasm
-              done
+            just ensure-tools
+            just build-wasm-examples release
           shell: bash
           working-directory:  src/wasmsamples
         - name: Upload Wasm Modules
@@ -92,5 +87,5 @@ jobs:
           with:
             name: guest-modules
             path: | 
-              src/wasmsamples/*.wasm
-              src/wasmsamples/*.aot
+              x64/release/*.wasm
+              x64/release/*.aot

@@ -4,6 +4,7 @@ build-wasm-examples-command := if os() == "windows" { "./src/hyperlight_wasm/scr
 mkdir-arg := if os() == "windows" { "-Force" } else { "-p" }
 latest-release:= if os() == "windows" {"$(git tag -l --sort=v:refname | select -last 2 | select -first 1)"} else {`git tag -l --sort=v:refname | tail -n 2 | head -n 1`}
 wit-world := if os() == "windows" { "$env:WIT_WORLD=\"" + justfile_directory() + "\\src\\component_sample\\wit\\component-world.wasm" + "\";" } else { "WIT_WORLD=" + justfile_directory() + "/src/component_sample/wit/component-world.wasm" }
+wit-world-c := if os() == "windows" { "$env:WIT_WORLD=\"" + justfile_directory() + "\\src\\wasmsamples\\components\\runcomponent-world.wasm" + "\";" } else { "WIT_WORLD=" + justfile_directory() + "/src/wasmsamples/components/runcomponent-world.wasm" }
 
 set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
 
@@ -14,8 +15,9 @@ make-vendor-tar:
         -C ./src wasm_runtime hyperlight_wasm_macro
 
 ensure-tools:
-    cargo install --locked wasm-tools --version 1.235.0
+    cargo install wasm-tools --locked --version 1.235.0
     cargo install cargo-component --locked --version 0.21.1
+    cargo install wit-bindgen-cli --locked --version 0.43.0
 
 build-all target=default-target: (build target) (build-wasm-examples target) (build-rust-wasm-examples target) (build-wasm-runtime target) (build-rust-component-examples target)
 
@@ -26,10 +28,14 @@ mkdir-redist target=default-target:
     mkdir {{ mkdir-arg }} x64
     mkdir {{ mkdir-arg }} x64/{{ target }}
 
+compile-wit:
+    wasm-tools component wit ./src/wasmsamples/components/runcomponent.wit -w -o ./src/wasmsamples/components/runcomponent-world.wasm
+    wasm-tools component wit ./src/component_sample/wit/example.wit -w -o ./src/component_sample/wit/component-world.wasm
+
 build-wasm-runtime target=default-target:
     cd ./src/wasm_runtime && cargo build --verbose --profile={{ if target == "debug" {"dev"} else { target } }} && rm -R target
 
-build-wasm-examples target=default-target:
+build-wasm-examples target=default-target: (compile-wit)
     {{ build-wasm-examples-command }} {{target}}
 
 build-rust-wasm-examples target=default-target: (mkdir-redist target)
@@ -38,8 +44,7 @@ build-rust-wasm-examples target=default-target: (mkdir-redist target)
     cargo run -p hyperlight-wasm-aot compile ./src/rust_wasm_samples/target/wasm32-unknown-unknown/{{ target }}/rust_wasm_samples.wasm ./x64/{{ target }}/rust_wasm_samples.aot
     cp ./x64/{{ target }}/rust_wasm_samples.aot ./x64/{{ target }}/rust_wasm_samples.wasm
 
-build-rust-component-examples target=default-target:
-    wasm-tools component wit ./src/component_sample/wit/example.wit -w -o ./src/component_sample/wit/component-world.wasm
+build-rust-component-examples target=default-target: (compile-wit)
     # use cargo component so we don't get all the wasi imports https://github.com/bytecodealliance/cargo-component?tab=readme-ov-file#relationship-with-wasm32-wasip2
     # we also explicitly target wasm32-unknown-unknown since cargo component might try to pull in wasi imports https://github.com/bytecodealliance/cargo-component/issues/290
     rustup target add wasm32-unknown-unknown
@@ -101,10 +106,14 @@ examples-components target=default-target features="": (build-rust-component-exa
     {{ wit-world }} cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_example
 
 # warning, compares to and then OVERWRITES the given baseline
-bench-ci baseline target=default-target features="":
-    cd src/hyperlight_wasm && cargo bench --profile={{ if target == "debug" {"dev"} else { target } }} {{ if features =="" {''} else { "--features " + features } }} -- --verbose --save-baseline {{baseline}}
-bench target=default-target features="":
-    cd src/hyperlight_wasm &&  cargo bench --profile={{ if target == "debug" {"dev"} else { target } }} {{ if features =="" {''} else { "--features " + features } }} -- --verbose
+bench-ci baseline target="release" features="":
+    cd src/hyperlight_wasm && cargo bench --profile={{ if target == "debug" {"dev"} else { target } }} {{ if features =="" {''} else { "--features " + features } }} --bench benchmarks -- --verbose --save-baseline {{baseline}}
+    cd src/hyperlight_wasm; {{wit-world-c}} cargo bench --profile={{ if target == "debug" {"dev"} else { target } }} {{ if features =="" {''} else { "--features " + features } }} --bench benchmarks_components -- --verbose --save-baseline {{baseline}}-components
+bench target="release" features="": (bench-wasm target features) (bench-components target features)
+bench-wasm target="release" features="":
+    cd src/hyperlight_wasm &&  cargo bench --profile={{ if target == "debug" {"dev"} else { target } }} {{ if features =="" {''} else { "--features " + features } }} --bench benchmarks -- --verbose 
+bench-components target="release" features="":
+    cd src/hyperlight_wasm; {{wit-world-c}} cargo bench --profile={{ if target == "debug" {"dev"} else { target } }} {{ if features =="" {''} else { "--features " + features } }} --bench benchmarks_components -- --verbose
 bench-download os hypervisor cpu tag="":
     gh release download {{ tag }} -D ./src/hyperlight_wasm/target/ -p benchmarks_{{ os }}_{{ hypervisor }}_{{ cpu }}.tar.gz
     mkdir {{ mkdir-arg }} ./src/hyperlight_wasm/target/criterion
