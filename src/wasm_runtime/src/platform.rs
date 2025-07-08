@@ -14,41 +14,91 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use alloc::alloc::{alloc, dealloc, Layout};
 use core::ffi::c_void;
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicPtr, AtomicU64, Ordering};
 
 use hyperlight_guest_bin::exceptions::handler;
+use hyperlight_guest_bin::paging;
+
+// Extremely stupid virtual address allocator
+// 0x1_0000_0000 is where the module is
+// we start at
+// 0x100_0000_0000 and go up from there
+static FIRST_VADDR: AtomicU64 = AtomicU64::new(0x100_0000_0000u64);
+fn page_fault_handler(
+    _exception_number: u64,
+    info: *mut handler::ExceptionInfo,
+    _ctx: *mut handler::Context,
+    page_fault_address: u64,
+) -> bool {
+    let error_code = unsafe { (&raw const (*info).error_code).read_volatile() };
+    // TODO: check if this is a guard-region trap (which can't happen
+    // right now since we don't actually set the permissions properly
+    // in mprotect)
+
+    // TODO: replace this with some generic virtual memory area data
+    // structure in hyperlight core
+    if (error_code & 0x1) == 0x0 && page_fault_address >= 0x100_0000_0000u64 {
+        unsafe {
+            let phys_page = paging::alloc_phys_pages(1);
+            let virt_base = (page_fault_address & !0xFFF) as *mut u8;
+            paging::map_region(
+                phys_page,
+                virt_base,
+                hyperlight_guest_bin::OS_PAGE_SIZE as u64,
+            );
+            virt_base.write_bytes(0u8, hyperlight_guest_bin::OS_PAGE_SIZE as usize);
+        }
+        return true; // Try again!
+    }
+    false
+}
+pub(crate) fn register_page_fault_handler() {
+    // On amd64, vector 14 is #PF
+    // See AMD64 Architecture Programmer's Manual, Volume 2
+    //    §8.2 Vectors, p. 245
+    //      Table 8-1: Interrupt Vector Source and Cause
+    handler::handlers[14].store(page_fault_handler as usize as u64, Ordering::Release);
+}
 
 // Wasmtime Embedding Interface
 
-/* We don't have proper support for lazy committing an mmap region, or
- * for setting up guard pages, because the guest doesn't have an *
- * appropriate interrupt handler yet. Consequently, we configure
- * wasmtime not to use any guard region, and precommit memory. */
+/* We don't actually have any sensible virtual memory areas, so
+ * we just give out virtual addresses very coarsely with
+ * probably-more-than-enough space between them, and take over
+ * page-fault handling to hardcoded check if memory is in this region
+ * (see above) */
 #[no_mangle]
-pub extern "C" fn wasmtime_mmap_new(size: usize, _prot_flags: u32, ret: &mut *mut u8) -> i32 {
-    *ret = unsafe { alloc(Layout::from_size_align(size, 0x1000).unwrap()) };
+pub extern "C" fn wasmtime_mmap_new(_size: usize, _prot_flags: u32, ret: &mut *mut u8) -> i32 {
+    if _size > 0x100_0000_0000 {
+        panic!("wasmtime_mmap_{:x} {:x}", _size, _prot_flags);
+    }
+    *ret = FIRST_VADDR.fetch_add(0x100_0000_0000, Ordering::Relaxed) as *mut u8;
     0
 }
 
-/* Because of the precommitted memory strategy, we can't generally
- * support remap */
+/* Remap is only used for changing the region size (which is presently
+ * a no-op, since we just hand out very large regions and treat them all
+ * the same), or possibly for changing permissions, which will be a no-op
+ * as we don't properly implement permissions at the moment. */
 #[no_mangle]
 pub extern "C" fn wasmtime_mmap_remap(addr: *mut u8, size: usize, prot_flags: u32) -> i32 {
-    panic!(
-        "wasmtime_mmap_remap {:x} {:x} {:x}",
-        addr as usize, size, prot_flags
-    );
-}
-
-#[no_mangle]
-pub extern "C" fn wasmtime_munmap(ptr: *mut u8, size: usize) -> i32 {
-    unsafe { dealloc(ptr, Layout::from_size_align(size, 0x1000).unwrap()) };
+    if size > 0x100_0000_0000 {
+        panic!(
+            "wasmtime_mmap_remap {:x} {:x} {:x}",
+            addr as usize, size, prot_flags
+        );
+    }
     0
 }
 
+#[no_mangle]
+pub extern "C" fn wasmtime_munmap(_ptr: *mut u8, _size: usize) -> i32 {
+    0
+}
+
+/* TODO: implement permissions properly */
 #[no_mangle]
 pub extern "C" fn wasmtime_mprotect(_ptr: *mut u8, _size: usize, prot_flags: u32) -> i32 {
     /* currently all memory is allocated RWX; we assume that

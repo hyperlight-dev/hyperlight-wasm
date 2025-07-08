@@ -150,9 +150,5 @@ fn main() {
 fn get_config() -> Config {
     let mut config = Config::new();
     config.target("x86_64-unknown-none").unwrap();
-    config.memory_reservation(0);
-    config.memory_reservation_for_growth(0);
-    config.memory_guard_size(0);
-    config.guard_before_linear_memory(false);
     config
 }

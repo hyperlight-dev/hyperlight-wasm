@@ -89,10 +89,6 @@ pub fn guest_dispatch_function(function_call: &FunctionCall) -> Result<Vec<u8>> 
 
 fn init_wasm_runtime() -> Result<Vec<u8>> {
     let mut config = Config::new();
-    config.memory_reservation(0);
-    config.memory_guard_size(0);
-    config.memory_reservation_for_growth(0);
-    config.guard_before_linear_memory(false);
     config.with_custom_code_memory(Some(alloc::sync::Arc::new(platform::WasmtimeCodeMemory {})));
     let engine = Engine::new(&config)?;
     let mut linker = Linker::new(&engine);
