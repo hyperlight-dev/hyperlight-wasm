@@ -22,10 +22,10 @@ ARG WASI_SDK_VERSION_FULL=25.0
 ARG WASI_SDK_VERSION_MAJOR=${WASI_SDK_VERSION_FULL%%.*}
 
 # Install wasi-sdk
-RUN wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION_MAJOR}/wasi-sdk-${WASI_SDK_VERSION_FULL}-linux.tar.gz \
-    && tar xvf wasi-sdk-${WASI_SDK_VERSION_FULL}-linux.tar.gz \
-    && rm wasi-sdk-${WASI_SDK_VERSION_FULL}-linux.tar.gz \
-    && mv /wasi-sdk-${WASI_SDK_VERSION_FULL}  /opt/wasi-sdk
+RUN wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION_MAJOR}/wasi-sdk-${WASI_SDK_VERSION_FULL}-x86_64-linux.tar.gz \
+ && tar xvf wasi-sdk-${WASI_SDK_VERSION_FULL}-x86_64-linux.tar.gz \
+ && rm wasi-sdk-${WASI_SDK_VERSION_FULL}-x86_64-linux.tar.gz \
+ && mv /wasi-sdk-${WASI_SDK_VERSION_FULL}-x86_64-linux /opt/wasi-sdk
 
 USER $USER
 ARG RUST_TOOLCHAIN=1.85.0
