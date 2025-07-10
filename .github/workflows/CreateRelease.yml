@@ -57,18 +57,13 @@ jobs:
       if: ${{ contains(github.ref, 'refs/heads/release/') }}
       run: cargo package -p hyperlight-wasm
       shell: bash
-    - name: Install minver_rs
-      run: |
-          cargo install minver_rs
-      shell: bash
     - name: Set HYPERLIGHTWASM_VERSION
       run: |
-        git fetch --tags || true
-        export MINVER_TAG_PREFIX="v"
-        export MINVER_AUTO_INCREMENT_LEVEL="Minor"
-        export MINVER_PRERELEASE_IDENTIFIER="preview"
-        echo "HYPERLIGHTWASM_VERSION=$(minver)" >> $GITHUB_ENV
-        echo "HYPERLIGHTWASM_VERSION=$(minver)"
+        git fetch --tags
+        version=$(echo "${{ github.ref }}" | sed -E 's#refs/heads/release/v##')
+        echo "HYPERLIGHTWASM_VERSION=$version" >> $GITHUB_ENV
+        echo "HYPERLIGHTWASM_VERSION=$version"
+      if: ${{ contains(github.ref, 'refs/heads/release/') }}
       shell: bash
     - name: Download Wasm Modules
       uses: actions/download-artifact@v4
