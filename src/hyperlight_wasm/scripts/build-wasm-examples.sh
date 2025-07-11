@@ -18,10 +18,7 @@ if [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
         # Build the wasm file with wasi-libc for wasmtime
         /opt/wasi-sdk/bin/clang -flto -ffunction-sections -mexec-model=reactor -O3 -z stack-size=4096 -Wl,--initial-memory=65536 -Wl,--export=__data_end -Wl,--export=__heap_base,--export=malloc,--export=free,--export=__wasm_call_ctors -Wl,--strip-all,--no-entry -Wl,--allow-undefined -Wl,--gc-sections  -o ${OUTPUT_DIR}/${FILENAME%.*}-wasi-libc.wasm ${FILENAME}
 
-        # Build AOT for Wasmtime; note that Wasmtime does not support
-        # interpreting, so its wasm binary is secretly an AOT binary.
         cargo run -p hyperlight-wasm-aot compile ${OUTPUT_DIR}/${FILENAME%.*}-wasi-libc.wasm ${OUTPUT_DIR}/${FILENAME%.*}.aot
-        cp ${OUTPUT_DIR}/${FILENAME%.*}.aot ${OUTPUT_DIR}/${FILENAME%.*}.wasm
     done
 
     for WIT_FILE in ${PWD}/components/*.wit; do
@@ -43,7 +40,6 @@ if [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
 
         # Build AOT for Wasmtime
         cargo run -p hyperlight-wasm-aot compile --component ${OUTPUT_DIR}/${COMPONENT_NAME}-p2.wasm ${OUTPUT_DIR}/${COMPONENT_NAME}.aot
-        cp ${OUTPUT_DIR}/${COMPONENT_NAME}.aot ${OUTPUT_DIR}/${COMPONENT_NAME}.wasm
     done
 
 else 
@@ -62,10 +58,7 @@ else
         # Build the wasm file with wasi-libc for wasmtime
         docker run --rm -i -v "${PWD}:/tmp/host" -v "${OUTPUT_DIR}:/tmp/output/" wasm-clang-builder:latest /opt/wasi-sdk/bin/clang -flto -ffunction-sections -mexec-model=reactor -O3 -z stack-size=4096 -Wl,--initial-memory=65536 -Wl,--export=__data_end -Wl,--export=__heap_base,--export=malloc,--export=free,--export=__wasm_call_ctors -Wl,--strip-all,--no-entry -Wl,--allow-undefined -Wl,--gc-sections  -o /tmp/output/${FILENAME%.*}-wasi-libc.wasm /tmp/host/${FILENAME}
 
-        # Build AOT for Wasmtime; note that Wasmtime does not support
-        # interpreting, so its wasm binary is secretly an AOT binary.
         cargo run -p hyperlight-wasm-aot compile ${OUTPUT_DIR}/${FILENAME%.*}-wasi-libc.wasm ${OUTPUT_DIR}/${FILENAME%.*}.aot
-        cp ${OUTPUT_DIR}/${FILENAME%.*}.aot ${OUTPUT_DIR}/${FILENAME%.*}.wasm
     done
 
     echo Building components
@@ -89,7 +82,6 @@ else
 
         # Build AOT for Wasmtime
         cargo run -p hyperlight-wasm-aot compile --component ${OUTPUT_DIR}/${COMPONENT_NAME}-p2.wasm ${OUTPUT_DIR}/${COMPONENT_NAME}.aot
-        cp ${OUTPUT_DIR}/${COMPONENT_NAME}.aot ${OUTPUT_DIR}/${COMPONENT_NAME}.wasm
     done
 fi
 

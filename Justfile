@@ -42,7 +42,6 @@ build-rust-wasm-examples target=default-target: (mkdir-redist target)
     rustup target add wasm32-unknown-unknown
     cd ./src/rust_wasm_samples && cargo build --target wasm32-unknown-unknown --profile={{ if target == "debug" {"dev"} else { target } }}
     cargo run -p hyperlight-wasm-aot compile ./src/rust_wasm_samples/target/wasm32-unknown-unknown/{{ target }}/rust_wasm_samples.wasm ./x64/{{ target }}/rust_wasm_samples.aot
-    cp ./x64/{{ target }}/rust_wasm_samples.aot ./x64/{{ target }}/rust_wasm_samples.wasm
 
 build-rust-component-examples target=default-target: (compile-wit)
     # use cargo component so we don't get all the wasi imports https://github.com/bytecodealliance/cargo-component?tab=readme-ov-file#relationship-with-wasm32-wasip2
@@ -50,7 +49,6 @@ build-rust-component-examples target=default-target: (compile-wit)
     rustup target add wasm32-unknown-unknown
     cd ./src/component_sample && cargo component build --target wasm32-unknown-unknown --profile={{ if target == "debug" {"dev"} else { target } }}
     cargo run -p hyperlight-wasm-aot compile --component ./src/component_sample/target/wasm32-unknown-unknown/{{ target }}/component_sample.wasm ./x64/{{ target }}/component_sample.aot
-    cp ./x64/{{ target }}/component_sample.aot ./x64/{{ target }}/component_sample.wasm
 
 check target=default-target:
     cargo check --profile={{ if target == "debug" {"dev"} else { target } }}

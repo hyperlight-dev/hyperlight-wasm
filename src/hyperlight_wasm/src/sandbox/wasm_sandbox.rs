@@ -199,7 +199,7 @@ mod tests {
 
         let loaded = sandbox.load_runtime()?;
 
-        let run_wasm = get_test_file_path("RunWasm.wasm")?;
+        let run_wasm = get_test_file_path("RunWasm.aot")?;
 
         let mut loaded = loaded.load_module(run_wasm)?;
 
@@ -232,7 +232,7 @@ mod tests {
             println!("test_load_module: {name}");
             let wasm_sandbox = sbox_test.sbox;
 
-            let helloworld_wasm = get_test_file_path("HelloWorld.wasm").unwrap();
+            let helloworld_wasm = get_test_file_path("HelloWorld.aot").unwrap();
             let mut loaded_wasm_sandbox = wasm_sandbox.load_module(helloworld_wasm).unwrap();
             let result: i32 = loaded_wasm_sandbox
                 .call_guest_function("HelloWorld", "Message from Rust Test".to_string())
@@ -253,7 +253,7 @@ mod tests {
             let wasm_sandbox = sbox_test.sbox;
 
             let wasm_module_buffer: Vec<u8> =
-                std::fs::read(get_test_file_path("HelloWorld.wasm").unwrap()).unwrap();
+                std::fs::read(get_test_file_path("HelloWorld.aot").unwrap()).unwrap();
             let mut loaded_wasm_sandbox = wasm_sandbox
                 .load_module_from_buffer(&wasm_module_buffer)
                 .unwrap();

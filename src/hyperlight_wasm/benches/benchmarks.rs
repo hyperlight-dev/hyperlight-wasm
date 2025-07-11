@@ -28,8 +28,8 @@ fn get_time_since_boot_microsecond() -> Result<i64> {
 fn wasm_guest_call_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("wasm_guest_functions");
 
-    let bench_guest_function = |b: &mut Bencher<'_>, ext| {
-        let mut loaded_wasm_sandbox = get_loaded_wasm_sandbox(ext);
+    let bench_guest_function = |b: &mut Bencher<'_>| {
+        let mut loaded_wasm_sandbox = get_loaded_wasm_sandbox();
 
         b.iter(|| {
             loaded_wasm_sandbox
@@ -38,12 +38,8 @@ fn wasm_guest_call_benchmark(c: &mut Criterion) {
         });
     };
 
-    group.bench_function("wasm_guest_call", |b: &mut Bencher<'_>| {
-        bench_guest_function(b, "wasm");
-    });
-
     group.bench_function("wasm_guest_call_aot", |b: &mut Bencher<'_>| {
-        bench_guest_function(b, "aot");
+        bench_guest_function(b);
     });
 
     group.finish();
@@ -52,7 +48,7 @@ fn wasm_guest_call_benchmark(c: &mut Criterion) {
 fn wasm_sandbox_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("wasm_sandboxes");
     let create_wasm_sandbox = || {
-        get_loaded_wasm_sandbox("wasm");
+        get_loaded_wasm_sandbox();
     };
 
     group.bench_function("create_sandbox", |b| {
@@ -66,7 +62,7 @@ fn wasm_sandbox_benchmark(c: &mut Criterion) {
     group.finish();
 }
 
-fn get_loaded_wasm_sandbox(ext: &str) -> LoadedWasmSandbox {
+fn get_loaded_wasm_sandbox() -> LoadedWasmSandbox {
     let mut sandbox = SandboxBuilder::new().build().unwrap();
 
     sandbox
@@ -79,7 +75,7 @@ fn get_loaded_wasm_sandbox(ext: &str) -> LoadedWasmSandbox {
     let wasm_sandbox = sandbox.load_runtime().unwrap();
 
     wasm_sandbox
-        .load_module(format!("../../x64/release/RunWasm.{ext}",))
+        .load_module("../../x64/release/RunWasm.aot")
         .unwrap()
 }
 
