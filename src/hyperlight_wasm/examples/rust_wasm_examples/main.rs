@@ -46,7 +46,7 @@ fn main() -> Result<()> {
         proto_wasm_sandbox.register("TestHostFunc", host_func)?;
 
         let wasm_sandbox = proto_wasm_sandbox.load_runtime()?;
-        let mod_path = get_wasm_module_path("rust_wasm_samples.wasm")?;
+        let mod_path = get_wasm_module_path("rust_wasm_samples.aot")?;
 
         // Load the Wasm module into the sandbox
         let mut loaded_wasm_sandbox = wasm_sandbox.load_module(mod_path)?;

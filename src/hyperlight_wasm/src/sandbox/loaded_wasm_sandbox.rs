@@ -145,26 +145,23 @@ mod tests {
 
     #[test]
     fn test_call_guest_functions_with_default_config_multiple_times() {
-        for ext in [".aot", ".wasm"].iter() {
-            let mut sandbox = ProtoWasmSandbox::default();
+        let mut sandbox = ProtoWasmSandbox::default();
 
-            sandbox
-                .register(
-                    "GetTimeSinceBootMicrosecond",
-                    get_time_since_boot_microsecond,
-                )
-                .unwrap();
-
-            let wasm_sandbox = sandbox.load_runtime().unwrap();
-            let loaded_wasm_sandbox: LoadedWasmSandbox = {
-                let name = format!("RunWasm{}", ext);
-                let mod_path = get_wasm_module_path(&name).unwrap();
-                wasm_sandbox.load_module(mod_path)
-            }
+        sandbox
+            .register(
+                "GetTimeSinceBootMicrosecond",
+                get_time_since_boot_microsecond,
+            )
             .unwrap();
 
-            call_funcs(loaded_wasm_sandbox, 1000);
+        let wasm_sandbox = sandbox.load_runtime().unwrap();
+        let loaded_wasm_sandbox: LoadedWasmSandbox = {
+            let mod_path = get_wasm_module_path("RunWasm.aot").unwrap();
+            wasm_sandbox.load_module(mod_path)
         }
+        .unwrap();
+
+        call_funcs(loaded_wasm_sandbox, 1000);
     }
 
     #[test]
@@ -253,7 +250,7 @@ mod tests {
                     let wasm_sandbox = wq.pop().unwrap();
                     println!("Loading module on thread {}", i);
                     let loaded_wasm_sandbox: LoadedWasmSandbox = {
-                        let mod_path = get_wasm_module_path("RunWasm.wasm").unwrap();
+                        let mod_path = get_wasm_module_path("RunWasm.aot").unwrap();
                         wasm_sandbox.load_module(mod_path)
                     }
                     .unwrap();
@@ -270,31 +267,28 @@ mod tests {
 
     #[test]
     fn test_call_guest_functions_with_custom_config_multiple_times() {
-        for ext in [".aot", ".wasm"].iter() {
-            let mut sandbox = SandboxBuilder::new()
-                .with_guest_stack_size(32 * 1024)
-                .with_guest_heap_size(128 * 1024)
-                .build()
-                .unwrap();
-
-            sandbox
-                .register(
-                    "GetTimeSinceBootMicrosecond",
-                    get_time_since_boot_microsecond,
-                )
-                .unwrap();
-
-            let wasm_sandbox = sandbox.load_runtime().unwrap();
-
-            let loaded_wasm_sandbox: LoadedWasmSandbox = {
-                let name = format!("RunWasm{}", ext);
-                let mod_path = get_wasm_module_path(&name).unwrap();
-                wasm_sandbox.load_module(mod_path)
-            }
+        let mut sandbox = SandboxBuilder::new()
+            .with_guest_stack_size(32 * 1024)
+            .with_guest_heap_size(128 * 1024)
+            .build()
             .unwrap();
 
-            call_funcs(loaded_wasm_sandbox, 1000);
+        sandbox
+            .register(
+                "GetTimeSinceBootMicrosecond",
+                get_time_since_boot_microsecond,
+            )
+            .unwrap();
+
+        let wasm_sandbox = sandbox.load_runtime().unwrap();
+
+        let loaded_wasm_sandbox: LoadedWasmSandbox = {
+            let mod_path = get_wasm_module_path("RunWasm.aot").unwrap();
+            wasm_sandbox.load_module(mod_path)
         }
+        .unwrap();
+
+        call_funcs(loaded_wasm_sandbox, 1000);
     }
 
     #[test]
@@ -316,30 +310,27 @@ mod tests {
             Ok(0i32)
         };
 
-        for ext in [".aot", ".wasm"].iter() {
-            let mut proto_wasm_sandbox = SandboxBuilder::new().build().unwrap();
+        let mut proto_wasm_sandbox = SandboxBuilder::new().build().unwrap();
 
-            proto_wasm_sandbox
-                .register("HostFuncWithBufferAndLength", host_func)
-                .unwrap();
-
-            let wasm_sandbox = proto_wasm_sandbox.load_runtime().unwrap();
-
-            let mut loaded_wasm_sandbox: LoadedWasmSandbox = {
-                let name = format!("HostFunction{}", ext);
-                let mod_path = get_wasm_module_path(&name).unwrap();
-                wasm_sandbox.load_module(mod_path)
-            }
+        proto_wasm_sandbox
+            .register("HostFuncWithBufferAndLength", host_func)
             .unwrap();
 
-            // Call a guest function that calls a host function that takes a buffer and a length
+        let wasm_sandbox = proto_wasm_sandbox.load_runtime().unwrap();
 
-            let r: i32 = loaded_wasm_sandbox
-                .call_guest_function("PassBufferAndLengthToHost", ())
-                .unwrap();
-
-            assert_eq!(r, 0);
+        let mut loaded_wasm_sandbox: LoadedWasmSandbox = {
+            let mod_path = get_wasm_module_path("HostFunction.aot").unwrap();
+            wasm_sandbox.load_module(mod_path)
         }
+        .unwrap();
+
+        // Call a guest function that calls a host function that takes a buffer and a length
+
+        let r: i32 = loaded_wasm_sandbox
+            .call_guest_function("PassBufferAndLengthToHost", ())
+            .unwrap();
+
+        assert_eq!(r, 0);
     }
 
     fn call_funcs(
