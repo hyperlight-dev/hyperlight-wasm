@@ -55,7 +55,7 @@ fn main() {
 
     let sb = sb.load_runtime().unwrap();
 
-    let mod_path = get_wasm_module_path("component_sample.wasm").unwrap();
+    let mod_path = get_wasm_module_path("component_sample.aot").unwrap();
     let sb = sb.load_module(mod_path).unwrap();
 
     let mut wrapped = bindings::ExampleSandbox { sb, rt };

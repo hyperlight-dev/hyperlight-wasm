@@ -87,5 +87,4 @@ jobs:
           with:
             name: guest-modules
             path: | 
-              x64/release/*.wasm
               x64/release/*.aot

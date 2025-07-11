@@ -26,20 +26,10 @@ fn get_time_since_boot_microsecond() -> Result<i64> {
 }
 
 fn main() -> Result<()> {
-    let tests = vec![
-        (
-            "HelloWorld.wasm",
-            "HelloWorld",
-            "Message from Rust Example to Wasm Function".to_string(),
-        ),
+    let tests = [
         (
             "HelloWorld.aot",
             "HelloWorld",
-            "Message from Rust Example to Wasm Function".to_string(),
-        ),
-        (
-            "RunWasm.wasm",
-            "Echo",
             "Message from Rust Example to Wasm Function".to_string(),
         ),
         (
