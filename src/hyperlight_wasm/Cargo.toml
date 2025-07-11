@@ -88,3 +88,8 @@ mshv3 = ["hyperlight-host/mshv3"]
 [[bench]]
 name = "benchmarks"
 harness = false
+
+[[bench]]
+name = "benchmarks_components"
+harness = false
+

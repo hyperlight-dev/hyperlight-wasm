@@ -479,3 +479,4 @@ target/
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
 src/component_sample/**/*.wasm
+src/wasmsamples/components/bindings/

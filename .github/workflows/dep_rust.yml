@@ -82,6 +82,7 @@ jobs:
           # this must be build before the formatting and other jobs run
           # because the component model example depends on the wasm component built here
           just ensure-tools
+          just compile-wit
           just build-rust-component-examples ${{ matrix.config }}
       
       - name: Fmt
