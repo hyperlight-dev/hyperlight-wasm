@@ -25,10 +25,7 @@ for /R "%1" %%i in (*.c) do (
     echo %%~ni.c
     %dockercmd% run --rm -i -v !dockerinput!:/tmp/host1 -v  !dockeroutput!/:/tmp/host2 wasm-clang-builder /opt/wasi-sdk/bin/clang -flto -ffunction-sections -mexec-model=reactor -O3 -z stack-size=4096 -Wl,--initial-memory=65536 -Wl,--export=__data_end -Wl,--export=__heap_base,--export=malloc,--export=free,--export=__wasm_call_ctors -Wl,--strip-all,--no-entry -Wl,--allow-undefined -Wl,--gc-sections -o /tmp/host2/%%~ni.wasm /tmp/host1/%%~ni.c
     echo  %2\%%~ni.wasm
-    rem Build AOT for Wasmtime; note that Wasmtime does not support
-    rem interpreting, so its wasm binary is secretly an AOT binary.
     cargo run -p hyperlight-wasm-aot compile %2\%%~ni.wasm  %2\%%~ni.aot 
-    copy  %2\%%~ni.aot  %2\%%~ni.wasm
 )
 
 echo Building components
@@ -44,7 +41,6 @@ for %%j in (%~1\components\*.wit) do (
 
     rem Build AOT for Wasmtime
     cargo run -p hyperlight-wasm-aot compile --component %2\!COMPONENT_NAME!-p2.wasm %2\!COMPONENT_NAME!.aot
-    copy %2\!COMPONENT_NAME!.aot %2\!COMPONENT_NAME!.wasm
 )
 
 goto :EOF

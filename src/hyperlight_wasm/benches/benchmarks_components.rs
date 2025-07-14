@@ -46,8 +46,8 @@ impl bindings::example::runcomponent::RuncomponentImports for State {
 fn wasm_component_guest_call_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("wasm_component_guest_functions");
 
-    let bench_guest_function = |b: &mut Bencher<'_>, ext| {
-        let (sb, rt) = get_loaded_wasm_sandbox(ext);
+    let bench_guest_function = |b: &mut Bencher<'_>| {
+        let (sb, rt) = get_loaded_wasm_sandbox();
         let mut wrapped = bindings::RuncomponentSandbox { sb, rt };
         let instance = bindings::example::runcomponent::RuncomponentExports::guest(&mut wrapped);
 
@@ -56,12 +56,8 @@ fn wasm_component_guest_call_benchmark(c: &mut Criterion) {
         });
     };
 
-    group.bench_function("wasm_guest_call", |b: &mut Bencher<'_>| {
-        bench_guest_function(b, "wasm");
-    });
-
     group.bench_function("wasm_guest_call_aot", |b: &mut Bencher<'_>| {
-        bench_guest_function(b, "aot");
+        bench_guest_function(b);
     });
 
     group.finish();
@@ -70,7 +66,7 @@ fn wasm_component_guest_call_benchmark(c: &mut Criterion) {
 fn wasm_component_sandbox_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("wasm_component_sandboxes");
     let create_wasm_sandbox = || {
-        get_loaded_wasm_sandbox("wasm");
+        get_loaded_wasm_sandbox();
     };
 
     group.bench_function("create_sandbox", |b| {
@@ -84,9 +80,7 @@ fn wasm_component_sandbox_benchmark(c: &mut Criterion) {
     group.finish();
 }
 
-fn get_loaded_wasm_sandbox(
-    ext: &str,
-) -> (
+fn get_loaded_wasm_sandbox() -> (
     LoadedWasmSandbox,
     Arc<Mutex<bindings::RuncomponentResources<State>>>,
 ) {
@@ -97,7 +91,7 @@ fn get_loaded_wasm_sandbox(
     let sb = sandbox.load_runtime().unwrap();
 
     let sb = sb
-        .load_module(format!("../../x64/release/runcomponent.{ext}",))
+        .load_module("../../x64/release/runcomponent.aot")
         .unwrap();
     (sb, rt)
 }

@@ -50,7 +50,7 @@ mod tests {
 
             let wasm_sandbox = sandbox.load_runtime().unwrap();
             let loaded_wasm_sandbox: LoadedWasmSandbox = {
-                let mod_path = get_wasm_module_path("RunWasm.wasm").unwrap();
+                let mod_path = get_wasm_module_path("RunWasm.aot").unwrap();
                 wasm_sandbox.load_module(mod_path).unwrap()
             };
             loaded_wasm_sandbox.unload_module().unwrap();

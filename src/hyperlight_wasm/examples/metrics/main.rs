@@ -41,7 +41,7 @@ fn main() -> Result<()> {
         let wasm_sandbox = wasm_sandbox.load_runtime()?;
 
         let mut loaded_wasm_sandbox =
-            wasm_sandbox.load_module(get_wasm_module_path("rust_wasm_samples.wasm")?)?;
+            wasm_sandbox.load_module(get_wasm_module_path("rust_wasm_samples.aot")?)?;
 
         loaded_wasm_sandbox
             .call_guest_function::<i32>("add", (5i32, 10i32))

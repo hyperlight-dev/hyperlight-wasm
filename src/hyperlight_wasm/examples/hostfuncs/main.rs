@@ -39,7 +39,7 @@ fn main() {
     let wasm_sandbox = proto_wasm_sandbox.load_runtime().unwrap();
 
     let mut loaded_wasm_sandbox = {
-        let mod_path = get_wasm_module_path("rust_wasm_samples.wasm").unwrap();
+        let mod_path = get_wasm_module_path("rust_wasm_samples.aot").unwrap();
         wasm_sandbox.load_module(mod_path)
     }
     .unwrap();
