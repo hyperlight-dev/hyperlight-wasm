@@ -601,7 +601,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-common"
 version = "0.7.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=ea6fa8f#ea6fa8f16dae2325d94af39eb6ac3b441b24dcac"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=0808c97806a8d64bc4ed53ac7a8723bb5561704d#0808c97806a8d64bc4ed53ac7a8723bb5561704d"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -612,7 +612,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-component-util"
 version = "0.7.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=ea6fa8f#ea6fa8f16dae2325d94af39eb6ac3b441b24dcac"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=0808c97806a8d64bc4ed53ac7a8723bb5561704d#0808c97806a8d64bc4ed53ac7a8723bb5561704d"
 dependencies = [
  "itertools",
  "log",
@@ -626,7 +626,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest"
 version = "0.7.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=ea6fa8f#ea6fa8f16dae2325d94af39eb6ac3b441b24dcac"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=0808c97806a8d64bc4ed53ac7a8723bb5561704d#0808c97806a8d64bc4ed53ac7a8723bb5561704d"
 dependencies = [
  "anyhow",
  "hyperlight-common",
@@ -636,7 +636,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest-bin"
 version = "0.7.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=ea6fa8f#ea6fa8f16dae2325d94af39eb6ac3b441b24dcac"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=0808c97806a8d64bc4ed53ac7a8723bb5561704d#0808c97806a8d64bc4ed53ac7a8723bb5561704d"
 dependencies = [
  "buddy_system_allocator",
  "cc",
