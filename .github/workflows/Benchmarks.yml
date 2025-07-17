@@ -68,6 +68,9 @@ jobs:
 
     - name: Run Benchmarks
       run: |
+        # the component model benchmark depends on the wasm wit component
+        just ensure-tools
+        just compile-wit
         just bench-ci dev release ${{ matrix.hypervisor == 'mshv3' && 'mshv3' || ''}}
       working-directory: ./src/hyperlight_wasm
 
