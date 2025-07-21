@@ -28,7 +28,7 @@ RUN wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WA
  && mv /wasi-sdk-${WASI_SDK_VERSION_FULL}-x86_64-linux /opt/wasi-sdk
 
 USER $USER
-ARG RUST_TOOLCHAIN=1.85.0
+ARG RUST_TOOLCHAIN=1.86.0
 
 # Install rust and component tools
 RUN rustup default ${RUST_TOOLCHAIN} \
