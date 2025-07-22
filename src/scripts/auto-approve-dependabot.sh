@@ -18,8 +18,8 @@ REPO="$1"
 echo "Checking for open Dependabot PRs to approve and merge in $REPO..."
 
 # Get all open PRs from dependabot
-dependabot_prs=$(gh pr list -R "$REPO" --author "dependabot[bot]" --state open --json number,title,reviews)
-
+# We filter so that only PRs that are not from forks and are in branches starting with "dependabot/cargo" are included.
+dependabot_prs=$(gh pr list -R "$REPO" --author "dependabot[bot]" --state open --json number,title,reviews,headRepositoryOwner,headRefName | jq --arg repo_owner "$(echo "$REPO" | cut -d'/' -f1)" '[.[] | select(.headRepositoryOwner.login == $repo_owner and (.headRefName | startswith("dependabot/cargo")))]')
 # Exit early if no PRs found
 if [ -z "$dependabot_prs" ] || [ "$dependabot_prs" = "[]" ]; then
     echo "No open Dependabot PRs found in $REPO"
@@ -39,17 +39,17 @@ echo "$dependabot_prs" | jq -c '.[]' | while read -r pr; do
     
     # Check if PR only modifies allowed files
     pr_files=$(gh pr view "$pr_number" -R "$REPO" --json files)
-    invalid_files=$(echo "$pr_files" | jq -r '.files[].path' | grep -v -E '(Cargo\.toml|Cargo\.lock|\.github/workflows/.+)' || true)
+    invalid_files=$(echo "$pr_files" | jq -r '.files[].path' | grep -v -E '(Cargo\.toml|Cargo\.lock)' || true)
     
     if [ -n "$invalid_files" ]; then
         echo "  ❌ PR #$pr_number modifies files that are not allowed for auto-merge:"
         echo ${invalid_files/#/    - }
-        echo "  ℹ️ Only changes to Cargo.toml, Cargo.lock, or .github/workflows/ files are allowed"
+        echo "  ℹ️ Only changes to Cargo.toml and Cargo.lock are allowed"
         continue
     fi
-    
-    echo "  ✅ PR #$pr_number only modifies allowed files (Cargo.toml, Cargo.lock, or .github/workflows/)"
-    
+
+    echo "  ✅ PR #$pr_number only modifies allowed files (Cargo.toml and Cargo.lock)"
+
     # First, get detailed PR information including all checks
     pr_details=$(gh pr view "$pr_number" -R "$REPO" --json statusCheckRollup,state)
     
@@ -58,8 +58,19 @@ echo "$dependabot_prs" | jq -c '.[]' | while read -r pr; do
     has_pending_checks=false
     failed_checks=""
     
-    # First identify checks that are still in progress
+        # First identify checks that are still in progress
     pending_checks=$(echo "$pr_details" | jq -r '.statusCheckRollup[] | select(.status == "IN_PROGRESS" or .status == "QUEUED" or .status == "PENDING") | .name')
+    
+    # Check for permission-required checks
+    permission_required_checks=$(echo "$pr_details" | jq -r '.statusCheckRollup[] | select(.status == "WAITING" or .status == "ACTION_REQUIRED" or (.status == "QUEUED" and .conclusion == null and .detailsUrl != null and (.detailsUrl | contains("waiting-for-approval")))) | .name')
+    
+    # Dont approve if there are checks required that need permission to run 
+    if [ -n "$permission_required_checks" ]; then
+        echo "  🔐 PR #$pr_number has checks waiting for permission:"
+        echo "$permission_required_checks" | sed 's/^/    - /'
+        echo "  ❌ Skipping auto-approval due to permission-required checks"
+        continue
+    fi
     
     if [ -n "$pending_checks" ]; then
         echo "  ⏳ PR #$pr_number has pending checks:"
@@ -67,7 +78,7 @@ echo "$dependabot_prs" | jq -c '.[]' | while read -r pr; do
         echo "  ℹ️ We will still approve the PR so it can merge automatically once all checks pass"
         has_pending_checks=true
     fi
-    
+
     # Check for failed checks - only include checks that have a conclusion and are not still running
     # Explicitly exclude checks with status IN_PROGRESS, QUEUED, or PENDING
     failed_checks=$(echo "$pr_details" | jq -r '.statusCheckRollup[] | 
