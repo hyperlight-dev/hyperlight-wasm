@@ -36,13 +36,13 @@ jobs:
 
     - uses: hyperlight-dev/ci-setup-workflow@v1.5.0
       with:
-        rust-toolchain: "1.85.0"
+        rust-toolchain: "1.86.0"
 
     - name: Build Wasm Runtime Binary
       working-directory: ./src/hyperlight_wasm
       run: just build-wasm-runtime ${{ matrix.config }}
-    
-    - uses: dtolnay/rust-toolchain@1.85.0
+
+    - uses: dtolnay/rust-toolchain@1.86.0
       with:
         components: clippy, rustfmt
 
