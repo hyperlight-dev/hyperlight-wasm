@@ -76,7 +76,7 @@ goblin = "0.10.0"
 tar = "0.4.44"
 
 [features]
-default = ["function_call_metrics", "kvm", "mshv2"]
+default = ["function_call_metrics", "kvm", "mshv3"]
 function_call_metrics = ["hyperlight-host/function_call_metrics"]
 seccomp = ["hyperlight-host/seccomp"]
 print_debug = ["hyperlight-host/print_debug"]
