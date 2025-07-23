@@ -1,34 +1,96 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    // this can be used to debug tests 
-    "version": "0.2.0",
+    "inputs": [
+        {
+            "id": "program",
+            "type": "promptString",
+            "default": "x64/debug/wasm_runtime",
+            "description": "Path to the program to debug",
+        }
+    ],
     "configurations": [
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Cargo test",
+            "name": "Debug example 'guest-debugging'",
             "cargo": {
-              "args": [
-                "test",
-                "--profile=dev",
-                "--lib",
-                "--no-run"
-               
-              ],
-              "filter": {
-                "name": "hyperlight_wasm",
-                "kind": "lib"
-              }
+                "args": [
+                "build",
+                "--example=guest-debugging",
+                "--package=hyperlight-wasm",
+                "--features=gdb",
+                ],
+                "filter": {
+                "name": "guest-debugging",
+                "kind": "example"
+                }
             },
             "env": {
-              "RUST_DIR_FOR_DEBUGGING_TESTS": "${workspaceFolder}/src/hyperlight_wasm"
+                "RUST_DIR_FOR_DEBUGGING_TESTS": "${workspaceFolder}/src/hyperlight_wasm",
             },
-            "args": [
-                "--exact",
-                "sandbox::loaded_wasm_sandbox::tests::test_call_host_func_with_vecbytes"
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'rust_wasm_examples'",
+            "cargo": {
+                "args": [
+                "build",
+                "--example=rust_wasm_examples",
+                "--package=hyperlight-wasm",
+                ],
+                "filter": {
+                "name": "rust_wasm_examples",
+                "kind": "example"
+                }
+            },
+            "env": {
+                "RUST_DIR_FOR_DEBUGGING_TESTS": "${workspaceFolder}/src/hyperlight_wasm",
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Remote GDB attach",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${input:program}",
+            "args": [],
+            "stopAtEntry": true,
+            "hardwareBreakpoints": {
+                "require": false,
+                "limit": 4
+            },
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "miDebuggerServerAddress": "localhost:8080",
+            "setupCommands": [
+                {
+                "description": "Enable pretty-printing for gdb",
+                "text": "-enable-pretty-printing",
+                "ignoreFailures": true
+                },
+                {
+                "description": "Set Disassembly Flavor to Intel",
+                "text": "-gdb-set disassembly-flavor intel",
+                "ignoreFailures": true
+                },
             ]
-        }
+        },
+        {
+            "name": "Remote LLDB attach",
+            "type": "lldb",
+            "request": "launch",
+            "targetCreateCommands": [
+                "target create ${input:program}",
+            ],
+            "processCreateCommands": [
+                "gdb-remote localhost:8080"
+            ],
+        },
     ]
 }

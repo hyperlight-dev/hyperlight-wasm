@@ -1808,6 +1808,7 @@ dependencies = [
  "cargo_metadata",
  "cc",
  "cfg-if",
+ "cfg_aliases",
  "hyperlight-common",
  "hyperlight-guest",
  "hyperlight-guest-bin",
@@ -1886,6 +1887,7 @@ dependencies = [
  "wasmtime-internal-component-macro",
  "wasmtime-internal-component-util",
  "wasmtime-internal-cranelift",
+ "wasmtime-internal-jit-debug",
  "wasmtime-internal-math",
  "wasmtime-internal-slab",
  "wasmtime-internal-unwinder",
@@ -1973,6 +1975,16 @@ dependencies = [
  "wasmparser 0.236.0",
  "wasmtime-environ",
  "wasmtime-internal-math",
+ "wasmtime-internal-versioned-export-macros",
+]
+
+[[package]]
+name = "wasmtime-internal-jit-debug"
+version = "36.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e03f0b11f8fe4d456feac11e7e9dc6f02ddb34d4f6a1912775dbc63c5bdd5670"
+dependencies = [
+ "cc",
  "wasmtime-internal-versioned-export-macros",
 ]
 

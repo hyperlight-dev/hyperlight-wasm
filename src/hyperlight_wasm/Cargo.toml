@@ -30,6 +30,11 @@ path = "examples/helloworld/main.rs"
 test = true
 
 [[example]]
+name = "guest-debugging"
+path = "examples/guest-debugging/main.rs"
+test = true
+
+[[example]]
 name = "hostfuncs"
 path = "examples/hostfuncs/main.rs"
 test = true
@@ -52,6 +57,7 @@ tracing = "0.1.27"
 log = "0.4.28"
 cfg-if = { version = "1" }
 metrics = "0.24.2"
+env_logger = "0.11.8"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62", features = ["Win32_System_Threading"] }
@@ -68,6 +74,7 @@ metrics-util = "0.20.0"
 metrics-exporter-prometheus = "0.17"
 
 [build-dependencies]
+cfg_aliases = "0.2.1"
 chrono = "0.4"
 blake3 = "1.8"
 built = { version = "0.8.0", features = ["chrono", "git2"] }
@@ -81,6 +88,7 @@ function_call_metrics = ["hyperlight-host/function_call_metrics"]
 seccomp = ["hyperlight-host/seccomp"]
 print_debug = ["hyperlight-host/print_debug"]
 crashdump = ["hyperlight-host/crashdump"]
+gdb = ["hyperlight-host/gdb"]
 kvm = ["hyperlight-host/kvm"]
 mshv2 = ["hyperlight-host/mshv2"]
 mshv3 = ["hyperlight-host/mshv3"]

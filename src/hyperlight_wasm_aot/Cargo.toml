@@ -16,3 +16,6 @@ wasmtime = { version = "36.0.2", default-features = false, features = ["cranelif
 clap = "4.5"
 cargo_metadata = "0.23"
 cargo-util-schemas = "0.10.0"
+
+[features]
+gdb = ["wasmtime/debug-builtins"]

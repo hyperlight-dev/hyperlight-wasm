@@ -74,4 +74,8 @@ fn main() {
     if env::var_os("WIT_WORLD").is_some() {
         println!("cargo::rustc-cfg=component");
     }
+
+    cfg_aliases::cfg_aliases! {
+        gdb: { all(feature = "gdb", debug_assertions) },
+    }
 }

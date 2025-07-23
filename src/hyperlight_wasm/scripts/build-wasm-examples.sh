@@ -6,9 +6,23 @@ set -o pipefail
 
 pushd "$(dirname "${BASH_SOURCE[0]}")/../../wasmsamples"
 OUTPUT_DIR="../../x64/${1:-"debug"}"
+BUILD_TYPE="${1:-"debug"}"
+FEATURES="${2:-""}"
 mkdir -p ${OUTPUT_DIR}
 OUTPUT_DIR=$(realpath $OUTPUT_DIR)
 
+# Set stripping flags based on whether features are enabled
+if [ -n "$FEATURES" ]; then
+    AOT_FEATURES="--features $FEATURES"
+    STRIP_FLAGS=""
+    DEBUG_FLAGS="-g"
+    OPT_FLAGS="-O0"
+else
+    AOT_FEATURES=""
+    STRIP_FLAGS="-Wl,--strip-all"
+    DEBUG_FLAGS=""
+    OPT_FLAGS="-O3"
+fi
 
 if [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
     # running in a container so use the installed wasi-sdk as the devcontainer has this installed  
@@ -16,9 +30,9 @@ if [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
     do
         echo Building ${FILENAME}
         # Build the wasm file with wasi-libc for wasmtime
-        /opt/wasi-sdk/bin/clang -flto -ffunction-sections -mexec-model=reactor -O3 -z stack-size=4096 -Wl,--initial-memory=65536 -Wl,--export=__data_end -Wl,--export=__heap_base,--export=malloc,--export=free,--export=__wasm_call_ctors -Wl,--strip-all,--no-entry -Wl,--allow-undefined -Wl,--gc-sections  -o ${OUTPUT_DIR}/${FILENAME%.*}-wasi-libc.wasm ${FILENAME}
+        /opt/wasi-sdk/bin/clang ${DEBUG_FLAGS} -flto -ffunction-sections -mexec-model=reactor ${OPT_FLAGS} -z stack-size=4096 -Wl,--initial-memory=65536 -Wl,--export=__data_end -Wl,--export=__heap_base,--export=malloc,--export=free,--export=__wasm_call_ctors ${STRIP_FLAGS} -Wl,--no-entry -Wl,--allow-undefined -Wl,--gc-sections  -o ${OUTPUT_DIR}/${FILENAME%.*}-wasi-libc.wasm ${FILENAME}
 
-        cargo run -p hyperlight-wasm-aot compile ${OUTPUT_DIR}/${FILENAME%.*}-wasi-libc.wasm ${OUTPUT_DIR}/${FILENAME%.*}.aot
+        cargo run ${AOT_FEATURES} -p hyperlight-wasm-aot compile ${OUTPUT_DIR}/${FILENAME%.*}-wasi-libc.wasm ${OUTPUT_DIR}/${FILENAME%.*}.aot
     done
 
     for WIT_FILE in ${PWD}/components/*.wit; do
@@ -30,16 +44,16 @@ if [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
 
         # Build the wasm file with wasi-libc for wasmtime
         /opt/wasi-sdk/bin/wasm32-wasip2-clang \
-            -ffunction-sections -mexec-model=reactor -O3 -z stack-size=4096 \
+            -ffunction-sections -mexec-model=reactor ${OPT_FLAGS} -z stack-size=4096 \
             -Wl,--initial-memory=65536 -Wl,--export=__data_end -Wl,--export=__heap_base,--export=malloc,--export=free,--export=__wasm_call_ctors \
-            -Wl,--strip-all,--no-entry -Wl,--allow-undefined -Wl,--gc-sections \
+            ${STRIP_FLAGS} -Wl,--no-entry -Wl,--allow-undefined -Wl,--gc-sections \
             -o ${OUTPUT_DIR}/${COMPONENT_NAME}-p2.wasm \
             ${PWD}/components/${COMPONENT_NAME}.c \
             ${PWD}/components/bindings/${COMPONENT_NAME}.c \
             ${PWD}/components/bindings/${COMPONENT_NAME}_component_type.o
 
         # Build AOT for Wasmtime
-        cargo run -p hyperlight-wasm-aot compile --component ${OUTPUT_DIR}/${COMPONENT_NAME}-p2.wasm ${OUTPUT_DIR}/${COMPONENT_NAME}.aot
+        cargo run ${AOT_FEATURES} -p hyperlight-wasm-aot compile --component ${OUTPUT_DIR}/${COMPONENT_NAME}-p2.wasm ${OUTPUT_DIR}/${COMPONENT_NAME}.aot
     done
 
 else 
@@ -55,10 +69,20 @@ else
     for FILENAME in $(find . -name '*.c' -not -path './components/*')
     do
         echo Building ${FILENAME}
-        # Build the wasm file with wasi-libc for wasmtime
-        docker run --rm -i -v "${PWD}:/tmp/host" -v "${OUTPUT_DIR}:/tmp/output/" wasm-clang-builder:latest /opt/wasi-sdk/bin/clang -flto -ffunction-sections -mexec-model=reactor -O3 -z stack-size=4096 -Wl,--initial-memory=65536 -Wl,--export=__data_end -Wl,--export=__heap_base,--export=malloc,--export=free,--export=__wasm_call_ctors -Wl,--strip-all,--no-entry -Wl,--allow-undefined -Wl,--gc-sections  -o /tmp/output/${FILENAME%.*}-wasi-libc.wasm /tmp/host/${FILENAME}
+        OUTPUT_WASM="${OUTPUT_DIR}/${FILENAME%.*}-wasi-libc.wasm"
+        ABS_INPUT="$(realpath ${FILENAME})"
+        ABS_OUTPUT="$(realpath ${OUTPUT_WASM})"
+        INPUT_DIR="$(dirname ${ABS_INPUT})"
+        OUTPUT_DIR_REAL="$(dirname ${ABS_OUTPUT})"
+        INPUT_BASE="$(basename ${ABS_INPUT})"
+        OUTPUT_BASE="$(basename ${ABS_OUTPUT})"
+        # Map parent directories to the same path in the container
+        docker run --rm -i \
+            -v "${INPUT_DIR}:${INPUT_DIR}" \
+            -v "${OUTPUT_DIR_REAL}:${OUTPUT_DIR_REAL}" \
+            wasm-clang-builder:latest /bin/bash -c "/opt/wasi-sdk/bin/clang ${DEBUG_FLAGS} -flto -ffunction-sections -mexec-model=reactor ${OPT_FLAGS} -z stack-size=4096 -Wl,--initial-memory=65536 -Wl,--export=__data_end -Wl,--export=__heap_base,--export=malloc,--export=free,--export=__wasm_call_ctors ${STRIP_FLAGS} -Wl,--no-entry -Wl,--allow-undefined -Wl,--gc-sections  -o ${ABS_OUTPUT} ${ABS_INPUT}"
 
-        cargo run -p hyperlight-wasm-aot compile ${OUTPUT_DIR}/${FILENAME%.*}-wasi-libc.wasm ${OUTPUT_DIR}/${FILENAME%.*}.aot
+        cargo run ${AOT_FEATURES} -p hyperlight-wasm-aot compile ${OUTPUT_WASM} ${OUTPUT_DIR}/${FILENAME%.*}.aot
     done
 
     echo Building components
@@ -70,18 +94,35 @@ else
         # Generate bindings for the component
         wit-bindgen c ${WIT_FILE} --out-dir ${PWD}/components/bindings
 
-        # Build the wasm file with wasi-libc for wasmtime
-        docker run --rm -i -v "${PWD}:/tmp/host" -v "${OUTPUT_DIR}:/tmp/output/" wasm-clang-builder:latest /opt/wasi-sdk/bin/wasm32-wasip2-clang \
-            -ffunction-sections -mexec-model=reactor -O3 -z stack-size=4096 \
+        COMPONENT_C="${PWD}/components/${COMPONENT_NAME}.c"
+        BINDINGS_C="${PWD}/components/bindings/${COMPONENT_NAME}.c"
+        BINDINGS_TYPE_O="${PWD}/components/bindings/${COMPONENT_NAME}_component_type.o"
+        OUTPUT_WASM="${OUTPUT_DIR}/${COMPONENT_NAME}-p2.wasm"
+        ABS_COMPONENT_C="$(realpath ${COMPONENT_C})"
+        ABS_BINDINGS_C="$(realpath ${BINDINGS_C})"
+        ABS_BINDINGS_TYPE_O="$(realpath ${BINDINGS_TYPE_O})"
+        ABS_OUTPUT_WASM="$(realpath ${OUTPUT_WASM})"
+        COMPONENT_C_DIR="$(dirname ${ABS_COMPONENT_C})"
+        BINDINGS_C_DIR="$(dirname ${ABS_BINDINGS_C})"
+        BINDINGS_TYPE_O_DIR="$(dirname ${ABS_BINDINGS_TYPE_O})"
+        OUTPUT_WASM_DIR="$(dirname ${ABS_OUTPUT_WASM})"
+        # Map all parent directories to the same path in the container
+        docker run --rm -i \
+            -v "${COMPONENT_C_DIR}:${COMPONENT_C_DIR}" \
+            -v "${BINDINGS_C_DIR}:${BINDINGS_C_DIR}" \
+            -v "${BINDINGS_TYPE_O_DIR}:${BINDINGS_TYPE_O_DIR}" \
+            -v "${OUTPUT_WASM_DIR}:${OUTPUT_WASM_DIR}" \
+            wasm-clang-builder:latest /bin/bash -c "/opt/wasi-sdk/bin/wasm32-wasip2-clang \
+            -ffunction-sections -mexec-model=reactor ${OPT_FLAGS} -z stack-size=4096 \
             -Wl,--initial-memory=65536 -Wl,--export=__data_end -Wl,--export=__heap_base,--export=malloc,--export=free,--export=__wasm_call_ctors \
-            -Wl,--strip-all,--no-entry -Wl,--allow-undefined -Wl,--gc-sections \
-            -o /tmp/output/${COMPONENT_NAME}-p2.wasm \
-            /tmp/host/components/${COMPONENT_NAME}.c \
-            /tmp/host/components/bindings/${COMPONENT_NAME}.c \
-            /tmp/host/components/bindings/${COMPONENT_NAME}_component_type.o
+            ${STRIP_FLAGS} -Wl,--no-entry -Wl,--allow-undefined -Wl,--gc-sections \
+            -o ${ABS_OUTPUT_WASM} \
+            ${ABS_COMPONENT_C} \
+            ${ABS_BINDINGS_C} \
+            ${ABS_BINDINGS_TYPE_O}"
 
         # Build AOT for Wasmtime
-        cargo run -p hyperlight-wasm-aot compile --component ${OUTPUT_DIR}/${COMPONENT_NAME}-p2.wasm ${OUTPUT_DIR}/${COMPONENT_NAME}.aot
+        cargo run ${AOT_FEATURES} -p hyperlight-wasm-aot compile --component ${OUTPUT_WASM} ${OUTPUT_DIR}/${COMPONENT_NAME}.aot
     done
 fi
 

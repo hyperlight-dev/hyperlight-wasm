@@ -46,6 +46,28 @@ impl SandboxBuilder {
         }
     }
 
+    /// Enable debugging for the guest
+    /// This will allow the guest to be natively debugged using GDB or other debugging tools
+    ///
+    /// # Example:
+    /// ```rust
+    /// use hyperlight_host::sandbox::SandboxBuilder;
+    /// let sandbox = SandboxBuilder::new()
+    ///    .with_debugging_enabled(8080) // Enable debugging on port 8080
+    ///    .build()
+    ///    .expect("Failed to build sandbox");
+    /// ```
+    /// # Note:
+    /// This feature is only available when the `gdb` feature is enabled.
+    /// If the `gdb` feature is not enabled, this method will have no effect.
+    #[cfg(gdb)]
+    pub fn with_debugging_enabled(mut self, port: u16) -> Self {
+        let debug_info = hyperlight_host::sandbox::config::DebugInfo { port };
+        self.config.set_guest_debug_info(debug_info);
+
+        self
+    }
+
     /// Set the host print function
     pub fn with_host_print_fn(
         mut self,

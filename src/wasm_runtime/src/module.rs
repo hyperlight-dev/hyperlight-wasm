@@ -96,6 +96,8 @@ pub fn guest_dispatch_function(function_call: FunctionCall) -> Result<Vec<u8>> {
 fn init_wasm_runtime() -> Result<Vec<u8>> {
     let mut config = Config::new();
     config.with_custom_code_memory(Some(alloc::sync::Arc::new(platform::WasmtimeCodeMemory {})));
+    #[cfg(gdb)]
+    config.debug_info(true);
     let engine = Engine::new(&config)?;
     let mut linker = Linker::new(&engine);
     wasip1::register_handlers(&mut linker)?;
