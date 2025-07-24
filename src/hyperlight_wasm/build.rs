@@ -114,7 +114,7 @@ fn build_wasm_runtime() -> PathBuf {
     let mut env_vars = env::vars().collect::<Vec<_>>();
     env_vars.retain(|(key, _)| !key.starts_with("CARGO_"));
 
-    let cmd = cmd
+    let mut cmd = cmd
         .arg("build")
         .arg("--profile")
         .arg(cargo_profile)
@@ -124,6 +124,11 @@ fn build_wasm_runtime() -> PathBuf {
         .current_dir(&in_repo_dir)
         .env_clear()
         .envs(env_vars);
+
+    // Add --features gdb if the gdb feature is enabled for this build script
+    if std::env::var("CARGO_FEATURE_GDB").is_ok() {
+        cmd = cmd.arg("--features").arg("gdb");
+    }
 
     let status = cmd
         .status()

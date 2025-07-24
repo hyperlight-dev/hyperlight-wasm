@@ -19,7 +19,10 @@ use std::path::Path;
 use cargo_metadata::{MetadataCommand, Package};
 use cargo_util_schemas::manifest::PackageName;
 use clap::{Arg, Command};
+#[cfg(feature = "gdb")]
+use wasmtime::OptLevel;
 use wasmtime::{Config, Engine, Module, Precompiled};
+
 fn main() {
     let hyperlight_wasm_aot_version = env!("CARGO_PKG_VERSION");
     let matches = Command::new("hyperlight-wasm-aot")
@@ -149,8 +152,17 @@ fn main() {
     }
 }
 
+/// Returns a new `Config` for the Wasmtime engine with additional settings for AOT compilation.
 fn get_config() -> Config {
     let mut config = Config::new();
     config.target("x86_64-unknown-none").unwrap();
+
+    // Enable the default features for the Wasmtime engine.
+    #[cfg(feature = "gdb")]
+    {
+        config.debug_info(true);
+        config.cranelift_opt_level(OptLevel::None);
+    }
+
     config
 }
