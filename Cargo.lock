@@ -1009,6 +1009,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "gdbstub"
+version = "0.7.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "71d66e32caf5dd59f561be0143e413e01d651bd8498eb9aa0be8c482c81c8d31"
+dependencies = [
+ "bitflags 2.9.1",
+ "cfg-if",
+ "log",
+ "managed",
+ "num-traits",
+ "paste",
+]
+
+[[package]]
+name = "gdbstub_arch"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22dde0e1b68787036ccedd0b1ff6f953527a0e807e571fbe898975203027278f"
+dependencies = [
+ "gdbstub",
+ "num-traits",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1263,7 +1287,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-common"
 version = "0.7.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=ea6fa8f#ea6fa8f16dae2325d94af39eb6ac3b441b24dcac"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1#172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -1275,7 +1299,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-component-macro"
 version = "0.7.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=b61265e4aa9e2ecf8d648b994022caeea0205352#b61265e4aa9e2ecf8d648b994022caeea0205352"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1#172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1"
 dependencies = [
  "env_logger",
  "hyperlight-component-util",
@@ -1290,7 +1314,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-component-util"
 version = "0.7.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=b61265e4aa9e2ecf8d648b994022caeea0205352#b61265e4aa9e2ecf8d648b994022caeea0205352"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1#172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1"
 dependencies = [
  "itertools 0.14.0",
  "log",
@@ -1304,16 +1328,19 @@ dependencies = [
 [[package]]
 name = "hyperlight-host"
 version = "0.7.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=ea6fa8f#ea6fa8f16dae2325d94af39eb6ac3b441b24dcac"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1#172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1"
 dependencies = [
  "anyhow",
  "bitflags 2.9.1",
+ "blake3",
  "cfg-if",
  "cfg_aliases",
  "chrono",
  "crossbeam-channel",
  "elfcore",
  "flatbuffers",
+ "gdbstub",
+ "gdbstub_arch",
  "goblin",
  "hyperlight-common",
  "kvm-bindings",
@@ -1337,6 +1364,7 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-log",
+ "uuid",
  "vmm-sys-util",
  "windows",
  "windows-result",
@@ -1759,6 +1787,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "managed"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ca88d725a0a943b096803bd34e73a4437208b6077654cc4ecb2947a5f91618d"
+
+[[package]]
 name = "memchr"
 version = "2.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2026,6 +2060,12 @@ dependencies = [
  "libc",
  "winapi",
 ]
+
+[[package]]
+name = "paste"
+version = "1.0.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
 name = "percent-encoding"
@@ -3094,6 +3134,17 @@ name = "utf8parse"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
+
+[[package]]
+name = "uuid"
+version = "1.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3cf4199d1e5d15ddd86a694e4d0dffa9c323ce759fea589f00fef9d81cc1931d"
+dependencies = [
+ "getrandom 0.3.3",
+ "js-sys",
+ "wasm-bindgen",
+]
 
 [[package]]
 name = "valuable"
