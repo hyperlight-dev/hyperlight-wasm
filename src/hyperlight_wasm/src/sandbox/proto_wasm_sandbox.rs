@@ -14,15 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use hyperlight_host::func::call_ctx::MultiUseGuestCallContext;
 use hyperlight_host::func::{HostFunction, ParameterTuple, Registerable, SupportedReturnType};
-use hyperlight_host::sandbox::Callable;
 #[cfg(all(feature = "seccomp", target_os = "linux"))]
 use hyperlight_host::sandbox::ExtraAllowedSyscall;
 use hyperlight_host::sandbox::config::SandboxConfiguration;
-use hyperlight_host::sandbox_state::sandbox::{EvolvableSandbox, Sandbox};
-use hyperlight_host::sandbox_state::transition::{MultiUseContextCallback, Noop};
-use hyperlight_host::{GuestBinary, MultiUseSandbox, Result, UninitializedSandbox, new_error};
+use hyperlight_host::{GuestBinary, Result, UninitializedSandbox, new_error};
 
 use super::metrics::{METRIC_ACTIVE_PROTO_WASM_SANDBOXES, METRIC_TOTAL_PROTO_WASM_SANDBOXES};
 use super::sandbox_builder::SandboxBuilder;
@@ -38,8 +34,6 @@ use crate::build_info::BuildInfo;
 pub struct ProtoWasmSandbox {
     pub(super) inner: Option<UninitializedSandbox>,
 }
-
-impl Sandbox for ProtoWasmSandbox {}
 
 impl Registerable for ProtoWasmSandbox {
     fn register_host_function<Args: ParameterTuple, Output: SupportedReturnType>(
@@ -95,27 +89,20 @@ impl ProtoWasmSandbox {
     /// The returned `WasmSandbox` can be then be cached and used to load a different Wasm module.
     ///
     pub fn load_runtime(mut self) -> Result<WasmSandbox> {
-        let multi_use_sandbox: MultiUseSandbox = match self.inner.take() {
-            Some(s) => s.evolve(Noop::default())?,
+        let mut sandbox = match self.inner.take() {
+            Some(s) => s.evolve()?,
             None => return Err(new_error!("No inner sandbox found.")),
         };
 
-        let func = Box::new(move |call_ctx: &mut MultiUseGuestCallContext| {
-            let res: i32 = call_ctx.call("InitWasmRuntime", ())?;
-            if res != 0 {
-                return Err(new_error!(
-                    "InitWasmRuntime Failed  with error code {:?}",
-                    res
-                ));
-            }
-            Ok(())
-        });
+        let res: i32 = sandbox.call("InitWasmRuntime", ())?;
+        if res != 0 {
+            return Err(new_error!(
+                "InitWasmRuntime Failed  with error code {:?}",
+                res
+            ));
+        }
 
-        let transition_func = MultiUseContextCallback::from(func);
-
-        let new_sbox: MultiUseSandbox = multi_use_sandbox.evolve(transition_func)?;
-
-        Ok(WasmSandbox::new(new_sbox))
+        WasmSandbox::new(sandbox)
     }
 
     /// Register the given host function `host_func` with `self` under

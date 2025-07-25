@@ -16,11 +16,8 @@ limitations under the License.
 
 use std::path::Path;
 
-use hyperlight_host::func::call_ctx::MultiUseGuestCallContext;
 use hyperlight_host::mem::memory_region::{MemoryRegion, MemoryRegionFlags, MemoryRegionType};
-use hyperlight_host::sandbox::Callable;
-use hyperlight_host::sandbox_state::sandbox::{EvolvableSandbox, Sandbox};
-use hyperlight_host::sandbox_state::transition::MultiUseContextCallback;
+use hyperlight_host::sandbox::snapshot::Snapshot;
 use hyperlight_host::{MultiUseSandbox, Result, new_error};
 
 use super::loaded_wasm_sandbox::LoadedWasmSandbox;
@@ -39,9 +36,10 @@ pub struct WasmSandbox {
     // We implement drop on the WasmSandbox to decrement the count of Sandboxes when it is dropped
     // because of this we cannot implement drop without making inner an Option (alternatively we could make MultiUseSandbox Copy but that would introduce other issues)
     inner: Option<MultiUseSandbox>,
+    // Snapshot of state of an initial WasmSandbox (runtime loaded, but no guest module code loaded).
+    // Used for LoadedWasmSandbox to be able restore state back to WasmSandbox
+    snapshot: Option<Snapshot>,
 }
-
-impl Sandbox for WasmSandbox {}
 
 const MAPPED_BINARY_VA: u64 = 0x1_0000_0000u64;
 impl WasmSandbox {
@@ -49,10 +47,28 @@ impl WasmSandbox {
     /// This function should be used to create a new `WasmSandbox` from a ProtoWasmSandbox.
     /// The difference between this function and creating  a `WasmSandbox` directly is that
     /// this function will increment the metrics for the number of `WasmSandbox`es in the system.
-    pub(super) fn new(inner: MultiUseSandbox) -> Self {
+    pub(super) fn new(mut inner: MultiUseSandbox) -> Result<Self> {
+        let snapshot = inner.snapshot()?;
         metrics::gauge!(METRIC_ACTIVE_WASM_SANDBOXES).increment(1);
         metrics::counter!(METRIC_TOTAL_WASM_SANDBOXES).increment(1);
-        WasmSandbox { inner: Some(inner) }
+        Ok(WasmSandbox {
+            inner: Some(inner),
+            snapshot: Some(snapshot),
+        })
+    }
+
+    /// Same as new, but doesn't take a new snapshot. Useful if `new` has already been called,
+    /// for example when creating a `WasmSandbox` from a `LoadedWasmSandbox`, since
+    /// the snapshot has already been created in that case.
+    /// Expects a snapshot of the state where wasm runtime is loaded, but no guest module code is loaded.
+    pub(super) fn new_from_loaded(mut loaded: MultiUseSandbox, snapshot: Snapshot) -> Result<Self> {
+        loaded.restore(&snapshot)?;
+        metrics::gauge!(METRIC_ACTIVE_WASM_SANDBOXES).increment(1);
+        metrics::counter!(METRIC_TOTAL_WASM_SANDBOXES).increment(1);
+        Ok(WasmSandbox {
+            inner: Some(loaded),
+            snapshot: Some(snapshot),
+        })
     }
 
     /// Load a Wasm module at the given path into the sandbox and return a `LoadedWasmSandbox`
@@ -60,16 +76,20 @@ impl WasmSandbox {
     ///
     /// Before you can call guest functions in the sandbox, you must call
     /// this function and use the returned value to call guest functions.
-    pub fn load_module(self, file: impl AsRef<Path>) -> Result<LoadedWasmSandbox> {
-        let func = Box::new(move |call_ctx: &mut MultiUseGuestCallContext| {
-            if let Ok(len) = call_ctx.map_file_cow(file.as_ref(), MAPPED_BINARY_VA) {
-                call_ctx.call("LoadWasmModulePhys", (MAPPED_BINARY_VA, len))
-            } else {
-                let wasm_bytes = std::fs::read(file)?;
-                Self::load_module_from_buffer_transition_func(wasm_bytes)(call_ctx)
-            }
-        });
-        self.load_module_inner(func)
+    pub fn load_module(mut self, file: impl AsRef<Path>) -> Result<LoadedWasmSandbox> {
+        let inner = self
+            .inner
+            .as_mut()
+            .ok_or_else(|| new_error!("WasmSandbox is None"))?;
+
+        if let Ok(len) = inner.map_file_cow(file.as_ref(), MAPPED_BINARY_VA) {
+            inner.call::<()>("LoadWasmModulePhys", (MAPPED_BINARY_VA, len))?;
+        } else {
+            let wasm_bytes = std::fs::read(file)?;
+            load_wasm_module_from_bytes(inner, wasm_bytes)?;
+        }
+
+        self.finalize_module_load()
     }
 
     /// Load a Wasm module that is currently present in a buffer in
@@ -84,45 +104,30 @@ impl WasmSandbox {
     /// of the region remains intact and is not written to until the
     /// produced LoadedWasmSandbox is discarded or devolved.
     pub unsafe fn load_module_by_mapping(
-        self,
+        mut self,
         base: *mut libc::c_void,
         len: usize,
     ) -> Result<LoadedWasmSandbox> {
-        let func = Box::new(move |call_ctx: &mut MultiUseGuestCallContext| {
-            let guest_base: usize = MAPPED_BINARY_VA as usize;
-            let rgn = MemoryRegion {
-                host_region: base as usize..base.wrapping_add(len) as usize,
-                guest_region: guest_base..guest_base + len,
-                flags: MemoryRegionFlags::READ | MemoryRegionFlags::EXECUTE,
-                region_type: MemoryRegionType::Heap,
-            };
-            if let Ok(()) = unsafe { call_ctx.map_region(&rgn) } {
-                call_ctx.call("LoadWasmModulePhys", (MAPPED_BINARY_VA, len as u64))
-            } else {
-                let wasm_bytes =
-                    unsafe { std::slice::from_raw_parts(base as *const u8, len).to_vec() };
-                Self::load_module_from_buffer_transition_func(wasm_bytes)(call_ctx)
-            }
-        });
-        self.load_module_inner(func)
-    }
+        let inner = self
+            .inner
+            .as_mut()
+            .ok_or_else(|| new_error!("WasmSandbox is None"))?;
 
-    // todo: take a slice rather than a vec (requires somewhat
-    // refactoring the flatbuffers stuff maybe)
-    fn load_module_from_buffer_transition_func(
-        buffer: Vec<u8>,
-    ) -> impl FnOnce(&mut MultiUseGuestCallContext) -> Result<()> {
-        move |call_ctx: &mut MultiUseGuestCallContext| {
-            let len = buffer.len() as i32;
-            let res: i32 = call_ctx.call("LoadWasmModule", (buffer, len))?;
-            if res != 0 {
-                return Err(new_error!(
-                    "LoadWasmModule Failed with error code {:?}",
-                    res
-                ));
-            }
-            Ok(())
+        let guest_base: usize = MAPPED_BINARY_VA as usize;
+        let rgn = MemoryRegion {
+            host_region: base as usize..base.wrapping_add(len) as usize,
+            guest_region: guest_base..guest_base + len,
+            flags: MemoryRegionFlags::READ | MemoryRegionFlags::EXECUTE,
+            region_type: MemoryRegionType::Heap,
+        };
+        if let Ok(()) = unsafe { inner.map_region(&rgn) } {
+            inner.call::<()>("LoadWasmModulePhys", (MAPPED_BINARY_VA, len as u64))?;
+        } else {
+            let wasm_bytes = unsafe { std::slice::from_raw_parts(base as *const u8, len).to_vec() };
+            load_wasm_module_from_bytes(inner, wasm_bytes)?;
         }
+
+        self.finalize_module_load()
     }
 
     /// Load a Wasm module from a buffer of bytes into the sandbox and return a `LoadedWasmSandbox`
@@ -130,27 +135,42 @@ impl WasmSandbox {
     ///
     /// Before you can call guest functions in the sandbox, you must call
     /// this function and use the returned value to call guest functions.
-    pub fn load_module_from_buffer(self, buffer: &[u8]) -> Result<LoadedWasmSandbox> {
-        // TODO: get rid of this clone
-        let func = Self::load_module_from_buffer_transition_func(buffer.to_vec());
+    pub fn load_module_from_buffer(mut self, buffer: &[u8]) -> Result<LoadedWasmSandbox> {
+        let inner = self
+            .inner
+            .as_mut()
+            .ok_or_else(|| new_error!("WasmSandbox is None"))?;
 
-        self.load_module_inner(func)
+        // TODO: get rid of this clone
+        load_wasm_module_from_bytes(inner, buffer.to_vec())?;
+
+        self.finalize_module_load()
     }
 
-    fn load_module_inner<F: FnOnce(&mut MultiUseGuestCallContext) -> Result<()>>(
-        mut self,
-        func: F,
-    ) -> Result<LoadedWasmSandbox> {
-        let transition_func = MultiUseContextCallback::from(func);
-        match self.inner.take() {
-            Some(sbox) => {
-                let new_sbox: MultiUseSandbox = sbox.evolve(transition_func)?;
-                metrics::counter!(METRIC_SANDBOX_LOADS).increment(1);
-                LoadedWasmSandbox::new(new_sbox)
-            }
-            None => Err(new_error!("WasmSandbox is None, cannot load module")),
+    /// Helper function to finalize module loading and create LoadedWasmSandbox
+    fn finalize_module_load(mut self) -> Result<LoadedWasmSandbox> {
+        metrics::counter!(METRIC_SANDBOX_LOADS).increment(1);
+        match (self.inner.take(), self.snapshot.take()) {
+            (Some(sandbox), Some(snapshot)) => LoadedWasmSandbox::new(sandbox, snapshot),
+            _ => Err(new_error!(
+                "WasmSandbox/snapshot is None, cannot load module"
+            )),
         }
     }
+}
+
+fn load_wasm_module_from_bytes(inner: &mut MultiUseSandbox, wasm_bytes: Vec<u8>) -> Result<()> {
+    let res: i32 = inner.call(
+        "LoadWasmModule",
+        (wasm_bytes.clone(), wasm_bytes.len() as i32),
+    )?;
+    if res != 0 {
+        return Err(new_error!(
+            "LoadWasmModule Failed with error code {:?}",
+            res
+        ));
+    }
+    Ok(())
 }
 
 impl std::fmt::Debug for WasmSandbox {
