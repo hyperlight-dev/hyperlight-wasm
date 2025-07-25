@@ -17,7 +17,7 @@ limitations under the License.
 use alloc::string::ToString;
 use alloc::vec::Vec;
 use alloc::{format, vec};
-use core::ops::Deref;
+use core::ops::{Deref, DerefMut};
 
 use hyperlight_common::flatbuffer_wrappers::function_call::FunctionCall;
 use hyperlight_common::flatbuffer_wrappers::function_types::{
@@ -34,57 +34,71 @@ use wasmtime::{Config, Engine, Linker, Module, Store, Val};
 
 use crate::{hostfuncs, marshal, platform, wasip1};
 
+// Set by transition to WasmSandbox (by init_wasm_runtime)
 static CUR_ENGINE: Mutex<Option<Engine>> = Mutex::new(None);
 static CUR_LINKER: Mutex<Option<Linker<()>>> = Mutex::new(None);
+// Set by transition to LoadedWasmSandbox (by load_wasm_module/load_wasm_module_phys)
 static CUR_MODULE: Mutex<Option<Module>> = Mutex::new(None);
+static CUR_STORE: Mutex<Option<Store<()>>> = Mutex::new(None);
+static CUR_INSTANCE: Mutex<Option<wasmtime::Instance>> = Mutex::new(None);
 
 #[no_mangle]
 pub fn guest_dispatch_function(function_call: &FunctionCall) -> Result<Vec<u8>> {
-    let engine = CUR_ENGINE.lock();
-    let engine = engine.deref().as_ref().ok_or(HyperlightGuestError::new(
+    let mut store = CUR_STORE.lock();
+    let store = store.deref_mut().as_mut().ok_or(HyperlightGuestError::new(
         ErrorCode::GuestError,
-        "Wasm runtime is not initialized".to_string(),
+        "No wasm store available".to_string(),
     ))?;
-    let linker = CUR_LINKER.lock();
-    let linker = linker.deref().as_ref().ok_or(HyperlightGuestError::new(
+    let instance = CUR_INSTANCE.lock();
+    let instance = instance.deref().as_ref().ok_or(HyperlightGuestError::new(
         ErrorCode::GuestError,
-        "impossible: wasm runtime has no valid linker".to_string(),
+        "No wasm instance available".to_string(),
     ))?;
-    let module = CUR_MODULE.lock();
-    let module = module.deref().as_ref().ok_or(HyperlightGuestError::new(
-        ErrorCode::GuestError,
-        "No wasm module loaded".to_string(),
-    ))?;
-    let mut store = Store::new(engine, ());
-    let instance = linker.instantiate(&mut store, module)?;
+
     let func = instance
-        .get_func(&mut store, &function_call.function_name)
+        .get_func(&mut *store, &function_call.function_name)
         .ok_or(HyperlightGuestError::new(
             ErrorCode::GuestError,
             "Function not found".to_string(),
         ))?;
+
     let mut w_params = vec![];
+    let mut allocated_addrs = vec![];
     for f_param in (function_call.parameters)
         .as_ref()
         .unwrap_or(&vec![])
         .iter()
     {
-        w_params.push(marshal::hl_param_to_val(
-            &mut store,
+        w_params.push(marshal::hl_param_to_val_with_tracking(
+            &mut *store,
             |ctx, name| instance.get_export(ctx, name),
             f_param,
+            &mut allocated_addrs,
         )?);
     }
     let is_void = ReturnType::Void == function_call.expected_return_type;
     let n_results = if is_void { 0 } else { 1 };
     let mut results = vec![Val::I32(0); n_results];
-    func.call(&mut store, &w_params, &mut results)?;
-    marshal::val_to_hl_result(
-        &mut store,
+    func.call(&mut *store, &w_params, &mut results)?;
+    let result = marshal::val_to_hl_result(
+        &mut *store,
         |ctx, name| instance.get_export(ctx, name),
         function_call.expected_return_type,
         &results,
+    );
+
+    marshal::free_allocated_addrs(
+        &mut *store,
+        |ctx, name| instance.get_export(ctx, name),
+        &allocated_addrs,
     )
+    .map_err(|e| {
+        HyperlightGuestError::new(
+            ErrorCode::GuestError,
+            format!("Failed to free memory allocated for params: {:?}", e),
+        )
+    })?;
+    result
 }
 
 fn init_wasm_runtime() -> Result<Vec<u8>> {
@@ -124,8 +138,19 @@ fn load_wasm_module(function_call: &FunctionCall) -> Result<Vec<u8>> {
         &function_call.parameters.as_ref().unwrap()[1],
         &*CUR_ENGINE.lock(),
     ) {
+        let linker = CUR_LINKER.lock();
+        let linker = linker.deref().as_ref().ok_or(HyperlightGuestError::new(
+            ErrorCode::GuestError,
+            "impossible: wasm runtime has no valid linker".to_string(),
+        ))?;
+
         let module = unsafe { Module::deserialize(engine, wasm_bytes)? };
+        let mut store = Store::new(engine, ());
+        let instance = linker.instantiate(&mut store, &module)?;
+
         *CUR_MODULE.lock() = Some(module);
+        *CUR_STORE.lock() = Some(store);
+        *CUR_INSTANCE.lock() = Some(instance);
         Ok(get_flatbuffer_result::<i32>(0))
     } else {
         Err(HyperlightGuestError::new(
@@ -141,8 +166,19 @@ fn load_wasm_module_phys(function_call: &FunctionCall) -> Result<Vec<u8>> {
         &function_call.parameters.as_ref().unwrap()[1],
         &*CUR_ENGINE.lock(),
     ) {
+        let linker = CUR_LINKER.lock();
+        let linker = linker.deref().as_ref().ok_or(HyperlightGuestError::new(
+            ErrorCode::GuestError,
+            "impossible: wasm runtime has no valid linker".to_string(),
+        ))?;
+
         let module = unsafe { Module::deserialize_raw(engine, platform::map_buffer(*phys, *len))? };
+        let mut store = Store::new(engine, ());
+        let instance = linker.instantiate(&mut store, &module)?;
+
         *CUR_MODULE.lock() = Some(module);
+        *CUR_STORE.lock() = Some(store);
+        *CUR_INSTANCE.lock() = Some(instance);
         Ok(get_flatbuffer_result::<()>(()))
     } else {
         Err(HyperlightGuestError::new(
