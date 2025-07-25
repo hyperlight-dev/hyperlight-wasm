@@ -79,9 +79,9 @@ pub(crate) fn hostfunc_type(d: &HostFunctionDefinition, e: &Engine) -> Result<Fu
     Ok(FuncType::new(e, params, results))
 }
 
-pub(crate) fn call(
+pub(crate) fn call<T>(
     d: &HostFunctionDefinition,
-    mut c: Caller<'_, ()>,
+    mut c: Caller<'_, T>,
     ps: &[Val],
     rs: &mut [Val],
 ) -> Result<()> {

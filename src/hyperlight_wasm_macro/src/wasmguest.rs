@@ -212,15 +212,17 @@ fn emit_wasm_function_call(
     let rwt = match result {
         None => {
             quote! {
-                instance.get_typed_func::<(#(#pwts,)*), ()>(&mut *store, func_idx)?
-                    .call(&mut *store, (#(#pus,)*))?;
+                let func = instance.get_typed_func::<(#(#pwts,)*), ()>(&mut *store, func_idx)?;
+                func.call(&mut *store, (#(#pus,)*))?;
+                func.post_return(&mut *store)?;
             }
         }
         _ => {
             let r = rtypes::emit_func_result(s, result);
             quote! {
-                let #ret = instance.get_typed_func::<(#(#pwts,)*), ((#r,))>(&mut *store, func_idx)?
-                    .call(&mut *store, (#(#pus,)*))?.0;
+                let func = instance.get_typed_func::<(#(#pwts,)*), ((#r,))>(&mut *store, func_idx)?;
+                let #ret = func.call(&mut *store, (#(#pus,)*))?.0;
+                func.post_return(&mut *store)?;
             }
         }
     };
