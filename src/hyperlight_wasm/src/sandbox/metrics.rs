@@ -35,8 +35,16 @@ pub(crate) static METRIC_SANDBOX_UNLOADS: &str = "sandbox_unloads_total";
 #[cfg(test)]
 mod tests {
     use examples_common::get_wasm_module_path;
+    use hyperlight_host::HyperlightError;
 
-    use crate::{LoadedWasmSandbox, ProtoWasmSandbox};
+    use crate::{LoadedWasmSandbox, ProtoWasmSandbox, Result};
+
+    fn get_time_since_boot_microsecond() -> Result<i64> {
+        let res = std::time::SystemTime::now()
+            .duration_since(std::time::SystemTime::UNIX_EPOCH)?
+            .as_micros();
+        i64::try_from(res).map_err(HyperlightError::IntConversionFailure)
+    }
 
     #[test]
     #[ignore = "Needs to run separately to not get influenced by other tests"]
@@ -46,7 +54,13 @@ mod tests {
         recorder.install().unwrap();
 
         let snapshot = {
-            let sandbox = ProtoWasmSandbox::default();
+            let mut sandbox = ProtoWasmSandbox::default();
+            sandbox
+                .register(
+                    "GetTimeSinceBootMicrosecond",
+                    get_time_since_boot_microsecond,
+                )
+                .unwrap();
 
             let wasm_sandbox = sandbox.load_runtime().unwrap();
             let loaded_wasm_sandbox: LoadedWasmSandbox = {
@@ -57,6 +71,10 @@ mod tests {
             snapshotter.snapshot()
         };
         let snapshot = snapshot.into_vec();
-        assert_eq!(snapshot.len(), 8);
+        if cfg!(feature = "function_call_metrics") {
+            assert_eq!(snapshot.len(), 10);
+        } else {
+            assert_eq!(snapshot.len(), 8);
+        }
     }
 }
