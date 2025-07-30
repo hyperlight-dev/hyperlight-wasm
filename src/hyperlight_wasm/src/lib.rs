@@ -39,6 +39,8 @@ pub type Result<T> = hyperlight_host::Result<T>;
 pub use hyperlight_host::is_hypervisor_present;
 /// Create a generic HyperlightError
 pub use hyperlight_host::new_error;
+// A snapshot of the memory of a sandbox at a given point in time.
+pub use hyperlight_host::sandbox::snapshot::Snapshot;
 
 /// Get the build information for this version of hyperlight-wasm
 pub fn get_build_info() -> BuildInfo {

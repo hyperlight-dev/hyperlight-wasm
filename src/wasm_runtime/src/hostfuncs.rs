@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 use alloc::string::ToString;
+use alloc::vec;
 use alloc::vec::Vec;
 
 use hyperlight_common::flatbuffer_wrappers::function_types::{
@@ -23,9 +24,22 @@ use hyperlight_common::flatbuffer_wrappers::function_types::{
 use hyperlight_common::flatbuffer_wrappers::guest_error::ErrorCode;
 use hyperlight_guest::error::{HyperlightGuestError, Result};
 use hyperlight_guest_bin::host_comm::call_host_function;
+use spin::Mutex;
 use wasmtime::{Caller, Engine, FuncType, Val, ValType};
 
 use crate::marshal;
+
+// Track memory addresses allocated by host function return values
+static HOSTFUNC_ALLOCATED_ADDRS: Mutex<Vec<i32>> = Mutex::new(Vec::new());
+
+/// Retrieve and clear all addresses allocated by host function return values.
+/// Caller is responsible for making sure the addresses are freed
+pub(crate) fn take_hostfunc_allocated_addrs() -> Vec<i32> {
+    let mut addrs = HOSTFUNC_ALLOCATED_ADDRS.lock();
+    let mut result = Vec::new();
+    core::mem::swap(&mut *addrs, &mut result);
+    result
+}
 
 pub(crate) type HostFunctionDefinition =
     hyperlight_common::flatbuffer_wrappers::host_function_definition::HostFunctionDefinition;
@@ -79,9 +93,9 @@ pub(crate) fn hostfunc_type(d: &HostFunctionDefinition, e: &Engine) -> Result<Fu
     Ok(FuncType::new(e, params, results))
 }
 
-pub(crate) fn call(
+pub(crate) fn call<T>(
     d: &HostFunctionDefinition,
-    mut c: Caller<'_, ()>,
+    mut c: Caller<'_, T>,
     ps: &[Val],
     rs: &mut [Val],
 ) -> Result<()> {
@@ -110,7 +124,19 @@ pub(crate) fn call(
         return Ok(());
     }
 
-    rs[0] = marshal::hl_return_to_val(&mut c, |c, n| c.get_export(n), rv)?;
+    let mut allocated_addrs = vec![];
+    rs[0] = marshal::hl_return_to_val_with_tracking(
+        &mut c,
+        |c, n| c.get_export(n),
+        rv,
+        &mut allocated_addrs,
+    )?;
+
+    // Track any allocations for later cleanup
+    if !allocated_addrs.is_empty() {
+        let mut global_addrs = HOSTFUNC_ALLOCATED_ADDRS.lock();
+        global_addrs.extend(allocated_addrs);
+    }
 
     Ok(())
 }

@@ -46,6 +46,21 @@ fn malloc<C: AsContextMut>(
     Ok(addr)
 }
 
+fn free<C: AsContextMut>(
+    ctx: &mut C,
+    get_export: &impl Fn(&mut C, &str) -> Option<Extern>,
+    addr: i32,
+) -> Result<()> {
+    let free = get_export(&mut *ctx, "free")
+        .and_then(Extern::into_func)
+        .ok_or(HyperlightGuestError::new(
+            ErrorCode::GuestError,
+            "free function not exported".to_string(),
+        ))?;
+    free.typed::<i32, ()>(&mut *ctx)?.call(&mut *ctx, addr)?;
+    Ok(())
+}
+
 fn write<C: AsContextMut>(
     ctx: &mut C,
     get_export: &impl Fn(&mut C, &str) -> Option<Extern>,
@@ -126,10 +141,11 @@ fn read_cstr<C: AsContextMut>(
     })
 }
 
-pub fn hl_param_to_val<C: AsContextMut>(
+pub fn hl_param_to_val_with_tracking<C: AsContextMut>(
     mut ctx: C,
     get_export: impl Fn(&mut C, &str) -> Option<Extern>,
     param: &ParameterValue,
+    allocated_addrs: &mut Vec<i32>,
 ) -> Result<Val> {
     match param {
         ParameterValue::Int(i) => Ok(Val::I32(*i)),
@@ -144,15 +160,29 @@ pub fn hl_param_to_val<C: AsContextMut>(
             let nbytes = s.count_bytes() + 1; // include the NUL terminator
             let addr = malloc(&mut ctx, &get_export, nbytes)?;
             write(&mut ctx, &get_export, addr, s.as_bytes_with_nul())?;
+            allocated_addrs.push(addr);
             Ok(Val::I32(addr))
         }
         ParameterValue::VecBytes(b) => {
             let addr = malloc(&mut ctx, &get_export, b.len())?;
             write(&mut ctx, &get_export, addr, b)?;
+            allocated_addrs.push(addr);
             Ok(Val::I32(addr))
             // TODO: check that the next parameter is the correct length
         }
     }
+}
+
+/// Helper function to free all tracked allocated addresses
+pub fn free_allocated_addrs<C: AsContextMut>(
+    mut ctx: C,
+    get_export: impl Fn(&mut C, &str) -> Option<Extern>,
+    allocated_addrs: &[i32],
+) -> Result<()> {
+    for &addr in allocated_addrs {
+        free(&mut ctx, &get_export, addr)?;
+    }
+    Ok(())
 }
 
 pub fn val_to_hl_result<C: AsContextMut>(
@@ -248,10 +278,11 @@ pub fn val_to_hl_param<'a, C: AsContextMut>(
     }
 }
 
-pub fn hl_return_to_val<C: AsContextMut>(
+pub fn hl_return_to_val_with_tracking<C: AsContextMut>(
     ctx: &mut C,
     get_export: impl Fn(&mut C, &str) -> Option<Extern>,
     rv: ReturnValue,
+    allocated_addrs: &mut Vec<i32>,
 ) -> Result<Val> {
     match rv {
         ReturnValue::Int(i) => Ok(Val::I32(i)),
@@ -266,11 +297,13 @@ pub fn hl_return_to_val<C: AsContextMut>(
             let nbytes = s.count_bytes() + 1; // include the NUL terminator
             let addr = malloc(ctx, &get_export, nbytes)?;
             write(ctx, &get_export, addr, s.as_bytes_with_nul())?;
+            allocated_addrs.push(addr);
             Ok(Val::I32(addr))
         }
         ReturnValue::VecBytes(b) => {
             let addr = malloc(ctx, &get_export, b.len())?;
             write(ctx, &get_export, addr, b.as_ref())?;
+            allocated_addrs.push(addr);
             Ok(Val::I32(addr))
             // TODO: check that the next parameter is the correct length
         }
