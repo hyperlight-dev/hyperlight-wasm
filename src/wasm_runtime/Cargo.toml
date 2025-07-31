@@ -14,7 +14,7 @@ bench = false
 hyperlight-common = { version = "0.7.0", git = "https://github.com/hyperlight-dev/hyperlight", rev = "ea6fa8f", default-features = false }
 hyperlight-guest-bin = { version = "0.7.0", git = "https://github.com/hyperlight-dev/hyperlight", rev = "ea6fa8f", features = [ "printf" ] }
 hyperlight-guest = { version = "0.7.0", git = "https://github.com/hyperlight-dev/hyperlight", rev = "ea6fa8f" }
-wasmtime = { version = "34.0.2", default-features = false, features = [ "runtime", "custom-virtual-memory", "custom-native-signals", "component-model" ] }
+wasmtime = { version = "35.0.0", default-features = false, features = [ "runtime", "custom-virtual-memory", "custom-native-signals", "component-model" ] }
 hyperlight-wasm-macro = { path = "../hyperlight_wasm_macro" }
 spin = "0.9.8"
 
