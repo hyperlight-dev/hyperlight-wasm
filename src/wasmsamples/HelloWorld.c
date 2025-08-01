@@ -42,6 +42,7 @@ int HelloWorld(char* msg)
     printf("contents of buffer after snprintf: %s\n", buf);
 
     free(buf);
+    free(msg); // Free the msg since we own it
 
     return 0;
 }
