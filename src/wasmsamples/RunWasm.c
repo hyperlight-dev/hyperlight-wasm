@@ -36,7 +36,7 @@ int CalcFib(int n)
     }
 }
 
-// This function receives an array of bytes followed by a length and then returns a pointer to a buffer where the first 4 bytes is the length followed by the data.
+// This function receives an array of bytes followed by a length and then returns a buffer where the first 4 bytes is the length followed by the data.
 __attribute__((export_name("ReceiveByteArray")))
 void* ReceiveByteArray(void* data, int length) {
   
@@ -45,15 +45,17 @@ void* ReceiveByteArray(void* data, int length) {
     result += 4;
     memcpy(result, data, length);
     result -= 4;
-    return result;
+    free(data); // Free the guest parameter, which we own
+    return result; // Transfer ownership of return value to host
 }
 
 __attribute__((export_name("WasmPrintUsingHostPrint")))
 int WasmPrintUsingHostPrint(char* msg)
 {
-    // Host Print now returns a flatbuffer buffer
-    HostPrint(msg);
-    return strlen(msg);
+    HostPrint(msg); // Host borrows msg
+    int len = strlen(msg);
+    free(msg); // Free the param since we own
+    return len;
 }
 
 __attribute__((export_name("PrintHelloWorld")))
@@ -67,12 +69,13 @@ __attribute__((export_name("Print")))
 void Print(char* msg)
 {
     HostPrint(msg);
+    free(msg); // Free the msg since we own it
 }
 
 __attribute__((export_name("Echo")))
 char* Echo(char* msg)
 {
-    return msg;
+    return msg; // Transfer ownership to host
 }
 
 __attribute__((export_name("ToUpper"), optnone))
@@ -96,6 +99,7 @@ __attribute__((export_name("PrintUpper"), optnone))
 void PrintUpper(char* msg)
 {
     HostPrint(ToUpper(msg));
+    free(msg);
 }
 
 __attribute__((export_name("KeepCPUBusy")))
