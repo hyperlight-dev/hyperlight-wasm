@@ -604,7 +604,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-common"
 version = "0.7.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1#172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=652affb5811a524db8a9a5a232820fb2e7cda7f2#652affb5811a524db8a9a5a232820fb2e7cda7f2"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -615,7 +615,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-component-util"
 version = "0.7.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1#172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=main#104f62a5fb63dac48457e5dec87b4bb780be5a0e"
 dependencies = [
  "itertools",
  "log",
@@ -623,24 +623,24 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
- "wasmparser",
+ "wasmparser 0.236.0",
 ]
 
 [[package]]
 name = "hyperlight-guest"
 version = "0.7.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1#172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=652affb5811a524db8a9a5a232820fb2e7cda7f2#652affb5811a524db8a9a5a232820fb2e7cda7f2"
 dependencies = [
  "anyhow",
  "hyperlight-common",
- "hyperlight-guest-tracing-macro",
+ "hyperlight-guest-tracing",
  "serde_json",
 ]
 
 [[package]]
 name = "hyperlight-guest-bin"
 version = "0.7.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1#172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=652affb5811a524db8a9a5a232820fb2e7cda7f2#652affb5811a524db8a9a5a232820fb2e7cda7f2"
 dependencies = [
  "buddy_system_allocator",
  "cc",
@@ -648,7 +648,7 @@ dependencies = [
  "glob",
  "hyperlight-common",
  "hyperlight-guest",
- "hyperlight-guest-tracing-macro",
+ "hyperlight-guest-tracing",
  "log",
  "spin 0.10.0",
 ]
@@ -656,18 +656,18 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest-tracing"
 version = "0.7.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1#172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=652affb5811a524db8a9a5a232820fb2e7cda7f2#652affb5811a524db8a9a5a232820fb2e7cda7f2"
 dependencies = [
  "hyperlight-common",
+ "hyperlight-guest-tracing-macro",
  "spin 0.10.0",
 ]
 
 [[package]]
 name = "hyperlight-guest-tracing-macro"
 version = "0.7.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1#172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=652affb5811a524db8a9a5a232820fb2e7cda7f2#652affb5811a524db8a9a5a232820fb2e7cda7f2"
 dependencies = [
- "hyperlight-guest-tracing",
  "proc-macro2",
  "quote",
  "syn",
@@ -1768,7 +1768,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b3bc393c395cb621367ff02d854179882b9a351b4e0c93d1397e6090b53a5c2a"
 dependencies = [
  "leb128fmt",
- "wasmparser",
+ "wasmparser 0.235.0",
 ]
 
 [[package]]
@@ -1781,6 +1781,7 @@ dependencies = [
  "hyperlight-common",
  "hyperlight-guest",
  "hyperlight-guest-bin",
+ "hyperlight-guest-tracing",
  "hyperlight-wasm-macro",
  "reqwest",
  "spin 0.9.8",
@@ -1801,6 +1802,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "wasmparser"
+version = "0.236.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16d1eee846a705f6f3cb9d7b9f79b54583810f1fb57a1e3aea76d1742db2e3d2"
+dependencies = [
+ "bitflags",
+ "hashbrown",
+ "indexmap",
+ "semver",
+ "serde",
+]
+
+[[package]]
 name = "wasmprinter"
 version = "0.235.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1808,7 +1822,7 @@ checksum = "75aa8e9076de6b9544e6dab4badada518cca0bf4966d35b131bbd057aed8fa0a"
 dependencies = [
  "anyhow",
  "termcolor",
- "wasmparser",
+ "wasmparser 0.235.0",
 ]
 
 [[package]]
@@ -1837,7 +1851,7 @@ dependencies = [
  "serde_derive",
  "smallvec",
  "target-lexicon",
- "wasmparser",
+ "wasmparser 0.235.0",
  "wasmtime-environ",
  "wasmtime-internal-asm-macros",
  "wasmtime-internal-component-macro",
@@ -1871,7 +1885,7 @@ dependencies = [
  "smallvec",
  "target-lexicon",
  "wasm-encoder",
- "wasmparser",
+ "wasmparser 0.235.0",
  "wasmprinter",
  "wasmtime-internal-component-util",
 ]
@@ -1927,7 +1941,7 @@ dependencies = [
  "smallvec",
  "target-lexicon",
  "thiserror",
- "wasmparser",
+ "wasmparser 0.235.0",
  "wasmtime-environ",
  "wasmtime-internal-math",
  "wasmtime-internal-versioned-export-macros",
@@ -1982,7 +1996,7 @@ dependencies = [
  "gimli",
  "object",
  "target-lexicon",
- "wasmparser",
+ "wasmparser 0.235.0",
  "wasmtime-environ",
  "wasmtime-internal-cranelift",
  "winch-codegen",
@@ -2052,7 +2066,7 @@ dependencies = [
  "smallvec",
  "target-lexicon",
  "thiserror",
- "wasmparser",
+ "wasmparser 0.235.0",
  "wasmtime-environ",
  "wasmtime-internal-cranelift",
  "wasmtime-internal-math",
@@ -2244,7 +2258,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "unicode-xid",
- "wasmparser",
+ "wasmparser 0.235.0",
 ]
 
 [[package]]

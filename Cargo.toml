@@ -13,4 +13,4 @@ repository = "https://github.com/hyperlight-dev/hyperlight-wasm"
 readme = "README.md"
 
 [workspace.dependencies]
-hyperlight-host = { version = "0.7.0", git = "https://github.com/hyperlight-dev/hyperlight", rev = "172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1", default-features = false, features = ["executable_heap", "init-paging"] }
+hyperlight-host = { version = "0.7.0", git = "https://github.com/hyperlight-dev/hyperlight", rev = "652affb5811a524db8a9a5a232820fb2e7cda7f2", default-features = false, features = ["executable_heap", "init-paging"] }

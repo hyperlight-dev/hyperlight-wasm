@@ -11,11 +11,12 @@ doctest = false
 bench = false
 
 [dependencies]
-hyperlight-common = { version = "0.7.0", git = "https://github.com/hyperlight-dev/hyperlight", rev = "172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1", default-features = false }
-hyperlight-guest-bin = { version = "0.7.0", git = "https://github.com/hyperlight-dev/hyperlight", rev = "172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1", features = [ "printf" ] }
-hyperlight-guest = { version = "0.7.0", git = "https://github.com/hyperlight-dev/hyperlight", rev = "172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1" }
+hyperlight-common = { version = "0.7.0", git = "https://github.com/hyperlight-dev/hyperlight", rev = "652affb5811a524db8a9a5a232820fb2e7cda7f2", default-features = false }
+hyperlight-guest-bin = { version = "0.7.0", git = "https://github.com/hyperlight-dev/hyperlight", rev = "652affb5811a524db8a9a5a232820fb2e7cda7f2", features = [ "printf" ] }
+hyperlight-guest = { version = "0.7.0", git = "https://github.com/hyperlight-dev/hyperlight", rev = "652affb5811a524db8a9a5a232820fb2e7cda7f2" }
 wasmtime = { version = "35.0.0", default-features = false, features = [ "runtime", "custom-virtual-memory", "custom-native-signals", "component-model" ] }
 hyperlight-wasm-macro = { path = "../hyperlight_wasm_macro" }
+hyperlight-guest-tracing = { version = "0.7.0", git = "https://github.com/hyperlight-dev/hyperlight", rev = "652affb5811a524db8a9a5a232820fb2e7cda7f2" }
 spin = "0.9.8"
 
 [build-dependencies]
@@ -25,3 +26,8 @@ cargo_metadata = "0.19"
 reqwest =  {version = "0.12", default-features = false, features = ["blocking","rustls-tls"] }
 
 [workspace] # indicate that this crate is not part of any workspace
+
+[features]
+trace_guest = ["hyperlight-common/trace_guest", "hyperlight-guest/trace_guest", "hyperlight-guest-bin/trace_guest", "hyperlight-guest-tracing/trace"]
+mem_profile = ["hyperlight-guest-bin/mem_profile", "hyperlight-common/mem_profile"]
+unwind_guest = ["hyperlight-common/unwind_guest"]

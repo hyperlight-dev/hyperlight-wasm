@@ -58,7 +58,7 @@ windows = { version = "0.61", features = ["Win32_System_Threading"] }
 page_size = "0.6.0"
 
 [dev-dependencies]
-hyperlight-component-macro = { version = "0.7.0", git = "https://github.com/hyperlight-dev/hyperlight", rev = "172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1" }
+hyperlight-component-macro = { version = "0.7.0", git = "https://github.com/hyperlight-dev/hyperlight", rev = "652affb5811a524db8a9a5a232820fb2e7cda7f2" }
 examples_common = { path = "../examples_common" }
 criterion = { version = "0.7.0", features = ["html_reports"] }
 crossbeam-queue = "0.3"
@@ -76,11 +76,14 @@ goblin = "0.10.0"
 tar = "0.4.44"
 
 [features]
-default = ["function_call_metrics", "kvm", "mshv2"]
+default = ["function_call_metrics", "kvm", "mshv3"]
 gdb = ["hyperlight-host/gdb"]
 function_call_metrics = ["hyperlight-host/function_call_metrics"]
 seccomp = ["hyperlight-host/seccomp"]
 print_debug = ["hyperlight-host/print_debug"]
+trace_guest = ["hyperlight-host/trace_guest"]
+mem_profile = ["hyperlight-host/mem_profile"]
+unwind_guest = ["hyperlight-host/unwind_guest"]
 crashdump = ["hyperlight-host/crashdump"]
 kvm = ["hyperlight-host/kvm"]
 mshv2 = ["hyperlight-host/mshv2"]
