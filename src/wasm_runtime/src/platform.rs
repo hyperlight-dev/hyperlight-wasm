@@ -26,6 +26,8 @@ use hyperlight_guest_bin::paging;
 // we start at
 // 0x100_0000_0000 and go up from there
 static FIRST_VADDR: AtomicU64 = AtomicU64::new(0x100_0000_0000u64);
+
+#[hyperlight_guest_tracing::trace_function]
 fn page_fault_handler(
     _exception_number: u64,
     info: *mut handler::ExceptionInfo,
@@ -54,6 +56,8 @@ fn page_fault_handler(
     }
     false
 }
+
+#[hyperlight_guest_tracing::trace_function]
 pub(crate) fn register_page_fault_handler() {
     // On amd64, vector 14 is #PF
     // See AMD64 Architecture Programmer's Manual, Volume 2
@@ -70,6 +74,7 @@ pub(crate) fn register_page_fault_handler() {
  * page-fault handling to hardcoded check if memory is in this region
  * (see above) */
 #[no_mangle]
+#[hyperlight_guest_tracing::trace_function]
 pub extern "C" fn wasmtime_mmap_new(_size: usize, _prot_flags: u32, ret: &mut *mut u8) -> i32 {
     if _size > 0x100_0000_0000 {
         panic!("wasmtime_mmap_{:x} {:x}", _size, _prot_flags);
@@ -83,6 +88,7 @@ pub extern "C" fn wasmtime_mmap_new(_size: usize, _prot_flags: u32, ret: &mut *m
  * the same), or possibly for changing permissions, which will be a no-op
  * as we don't properly implement permissions at the moment. */
 #[no_mangle]
+#[hyperlight_guest_tracing::trace_function]
 pub extern "C" fn wasmtime_mmap_remap(addr: *mut u8, size: usize, prot_flags: u32) -> i32 {
     if size > 0x100_0000_0000 {
         panic!(
@@ -94,12 +100,14 @@ pub extern "C" fn wasmtime_mmap_remap(addr: *mut u8, size: usize, prot_flags: u3
 }
 
 #[no_mangle]
+#[hyperlight_guest_tracing::trace_function]
 pub extern "C" fn wasmtime_munmap(_ptr: *mut u8, _size: usize) -> i32 {
     0
 }
 
 /* TODO: implement permissions properly */
 #[no_mangle]
+#[hyperlight_guest_tracing::trace_function]
 pub extern "C" fn wasmtime_mprotect(_ptr: *mut u8, _size: usize, prot_flags: u32) -> i32 {
     /* currently all memory is allocated RWX; we assume that
      * restricting to R or RX can be ignored */
@@ -110,6 +118,7 @@ pub extern "C" fn wasmtime_mprotect(_ptr: *mut u8, _size: usize, prot_flags: u32
 }
 
 #[no_mangle]
+#[hyperlight_guest_tracing::trace_function]
 pub extern "C" fn wasmtime_page_size() -> usize {
     unsafe { hyperlight_guest_bin::OS_PAGE_SIZE as usize }
 }
@@ -118,6 +127,8 @@ pub extern "C" fn wasmtime_page_size() -> usize {
 type wasmtime_trap_handler_t =
     extern "C" fn(ip: usize, fp: usize, has_faulting_addr: bool, faulting_addr: usize);
 static WASMTIME_REQUESTED_TRAP_HANDLER: AtomicU64 = AtomicU64::new(0);
+
+#[hyperlight_guest_tracing::trace_function]
 fn wasmtime_trap_handler(
     exception_number: u64,
     info: *mut handler::ExceptionInfo,
@@ -149,6 +160,7 @@ fn wasmtime_trap_handler(
 }
 
 #[no_mangle]
+#[hyperlight_guest_tracing::trace_function]
 pub extern "C" fn wasmtime_init_traps(handler: wasmtime_trap_handler_t) -> i32 {
     WASMTIME_REQUESTED_TRAP_HANDLER.store(handler as usize as u64, Ordering::Relaxed);
     // On amd64, vector 6 is #UD
@@ -168,6 +180,7 @@ pub extern "C" fn wasmtime_init_traps(handler: wasmtime_trap_handler_t) -> i32 {
 
 // The wasmtime_memory_image APIs are not yet supported.
 #[no_mangle]
+#[hyperlight_guest_tracing::trace_function]
 pub extern "C" fn wasmtime_memory_image_new(
     _ptr: *const u8,
     _len: usize,
@@ -178,6 +191,7 @@ pub extern "C" fn wasmtime_memory_image_new(
 }
 
 #[no_mangle]
+#[hyperlight_guest_tracing::trace_function]
 pub extern "C" fn wasmtime_memory_image_map_at(
     _image: *mut c_void,
     _addr: *mut u8,
@@ -189,6 +203,7 @@ pub extern "C" fn wasmtime_memory_image_map_at(
 }
 
 #[no_mangle]
+#[hyperlight_guest_tracing::trace_function]
 pub extern "C" fn wasmtime_memory_image_free(_image: *mut c_void) {
     /* This should never be called because wasmtime_memory_image_new
      * returns NULL */
@@ -198,11 +213,15 @@ pub extern "C" fn wasmtime_memory_image_free(_image: *mut c_void) {
 /* Because we only have a single thread in the guest at the moment, we
  * don't need real thread-local storage. */
 static FAKE_TLS: AtomicPtr<u8> = AtomicPtr::new(core::ptr::null_mut());
+
 #[no_mangle]
+#[hyperlight_guest_tracing::trace_function]
 pub extern "C" fn wasmtime_tls_get() -> *mut u8 {
     FAKE_TLS.load(Ordering::Acquire)
 }
+
 #[no_mangle]
+#[hyperlight_guest_tracing::trace_function]
 pub extern "C" fn wasmtime_tls_set(ptr: *mut u8) {
     FAKE_TLS.store(ptr, Ordering::Release)
 }
@@ -229,6 +248,7 @@ impl wasmtime::CustomCodeMemory for WasmtimeCodeMemory {
     }
 }
 
+#[hyperlight_guest_tracing::trace_function]
 pub(crate) unsafe fn map_buffer(phys: u64, len: u64) -> NonNull<[u8]> {
     // TODO: Use a VA allocator
     let virt = phys as *mut u8;
