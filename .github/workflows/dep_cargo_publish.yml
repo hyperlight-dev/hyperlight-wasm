@@ -22,7 +22,7 @@ jobs:
       - name: Hyperlight setup 
         uses: hyperlight-dev/ci-setup-workflow@v1.5.0
         with:
-          rust-toolchain: "1.85.0"
+          rust-toolchain: "1.86.0"
 
         # github actions that run against PRs check out a ref to the PR merge branch
         # we need to switch / create a branch for cargo ws to run late
