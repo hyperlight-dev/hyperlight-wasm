@@ -114,7 +114,7 @@ fn build_wasm_runtime() -> PathBuf {
     let mut env_vars = env::vars().collect::<Vec<_>>();
     env_vars.retain(|(key, _)| !key.starts_with("CARGO_"));
 
-    let cmd = cmd
+    let mut cmd = cmd
         .arg("build")
         .arg("--profile")
         .arg(cargo_profile)
@@ -124,6 +124,17 @@ fn build_wasm_runtime() -> PathBuf {
         .current_dir(&in_repo_dir)
         .env_clear()
         .envs(env_vars);
+
+    // If trace_guest feature is enabled, pass it as an argument to the build command
+    if env::var("CARGO_FEATURE_TRACE_GUEST").is_ok() {
+        cmd = cmd.arg("--features").arg("trace_guest");
+    }
+    if env::var("CARGO_FEATURE_MEM_PROFILE").is_ok() {
+        cmd = cmd.arg("--features").arg("mem_profile");
+    }
+    if env::var("CARGO_FEATURE_UNWIND_GUEST").is_ok() {
+        cmd = cmd.arg("--features").arg("unwind_guest");
+    }
 
     let status = cmd
         .status()

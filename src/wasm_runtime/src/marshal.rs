@@ -29,6 +29,7 @@ use hyperlight_common::flatbuffer_wrappers::util::get_flatbuffer_result;
 use hyperlight_guest::error::{HyperlightGuestError, Result};
 use wasmtime::{AsContextMut, Extern, Val};
 
+#[hyperlight_guest_tracing::trace_function]
 fn malloc<C: AsContextMut>(
     ctx: &mut C,
     get_export: &impl Fn(&mut C, &str) -> Option<Extern>,
@@ -46,6 +47,7 @@ fn malloc<C: AsContextMut>(
     Ok(addr)
 }
 
+#[hyperlight_guest_tracing::trace_function]
 fn write<C: AsContextMut>(
     ctx: &mut C,
     get_export: &impl Fn(&mut C, &str) -> Option<Extern>,
@@ -67,6 +69,7 @@ fn write<C: AsContextMut>(
     Ok(())
 }
 
+#[hyperlight_guest_tracing::trace_function]
 fn read<C: AsContextMut>(
     ctx: &mut C,
     get_export: &impl Fn(&mut C, &str) -> Option<Extern>,
@@ -88,6 +91,7 @@ fn read<C: AsContextMut>(
     Ok(())
 }
 
+#[hyperlight_guest_tracing::trace_function]
 fn read_cstr<C: AsContextMut>(
     ctx: &mut C,
     get_export: &impl Fn(&mut C, &str) -> Option<Extern>,
@@ -126,6 +130,7 @@ fn read_cstr<C: AsContextMut>(
     })
 }
 
+#[hyperlight_guest_tracing::trace_function]
 pub fn hl_param_to_val<C: AsContextMut>(
     mut ctx: C,
     get_export: impl Fn(&mut C, &str) -> Option<Extern>,
@@ -155,6 +160,7 @@ pub fn hl_param_to_val<C: AsContextMut>(
     }
 }
 
+#[hyperlight_guest_tracing::trace_function]
 pub fn val_to_hl_result<C: AsContextMut>(
     mut ctx: C,
     get_export: impl Fn(&mut C, &str) -> Option<Extern>,
@@ -198,6 +204,7 @@ pub fn val_to_hl_result<C: AsContextMut>(
     }
 }
 
+#[hyperlight_guest_tracing::trace_function]
 pub fn val_to_hl_param<'a, C: AsContextMut>(
     ctx: &mut C,
     get_export: impl Fn(&mut C, &str) -> Option<Extern>,
@@ -248,6 +255,7 @@ pub fn val_to_hl_param<'a, C: AsContextMut>(
     }
 }
 
+#[hyperlight_guest_tracing::trace_function]
 pub fn hl_return_to_val<C: AsContextMut>(
     ctx: &mut C,
     get_export: impl Fn(&mut C, &str) -> Option<Extern>,

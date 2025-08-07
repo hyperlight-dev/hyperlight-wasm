@@ -39,6 +39,7 @@ static CUR_LINKER: Mutex<Option<Linker<()>>> = Mutex::new(None);
 static CUR_MODULE: Mutex<Option<Module>> = Mutex::new(None);
 
 #[no_mangle]
+#[hyperlight_guest_tracing::trace_function]
 pub fn guest_dispatch_function(function_call: &FunctionCall) -> Result<Vec<u8>> {
     let engine = CUR_ENGINE.lock();
     let engine = engine.deref().as_ref().ok_or(HyperlightGuestError::new(
@@ -87,6 +88,7 @@ pub fn guest_dispatch_function(function_call: &FunctionCall) -> Result<Vec<u8>> 
     )
 }
 
+#[hyperlight_guest_tracing::trace_function]
 fn init_wasm_runtime() -> Result<Vec<u8>> {
     let mut config = Config::new();
     config.with_custom_code_memory(Some(alloc::sync::Arc::new(platform::WasmtimeCodeMemory {})));
@@ -114,6 +116,7 @@ fn init_wasm_runtime() -> Result<Vec<u8>> {
     Ok(get_flatbuffer_result::<i32>(0))
 }
 
+#[hyperlight_guest_tracing::trace_function]
 fn load_wasm_module(function_call: &FunctionCall) -> Result<Vec<u8>> {
     if let (
         ParameterValue::VecBytes(ref wasm_bytes),
@@ -135,6 +138,7 @@ fn load_wasm_module(function_call: &FunctionCall) -> Result<Vec<u8>> {
     }
 }
 
+#[hyperlight_guest_tracing::trace_function]
 fn load_wasm_module_phys(function_call: &FunctionCall) -> Result<Vec<u8>> {
     if let (ParameterValue::ULong(ref phys), ParameterValue::ULong(ref len), Some(ref engine)) = (
         &function_call.parameters.as_ref().unwrap()[0],
@@ -154,6 +158,7 @@ fn load_wasm_module_phys(function_call: &FunctionCall) -> Result<Vec<u8>> {
 
 #[no_mangle]
 #[allow(clippy::fn_to_numeric_cast)] // GuestFunctionDefinition expects a function pointer as i64
+#[hyperlight_guest_tracing::trace_function]
 pub extern "C" fn hyperlight_main() {
     platform::register_page_fault_handler();
 
