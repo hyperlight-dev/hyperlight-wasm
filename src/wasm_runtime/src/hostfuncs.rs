@@ -36,6 +36,7 @@ pub(crate) fn get_host_function_details() -> HostFunctionDetails {
     hyperlight_guest_bin::host_comm::get_host_function_details()
 }
 
+#[hyperlight_guest_tracing::trace_function]
 pub(crate) fn hostfunc_type(d: &HostFunctionDefinition, e: &Engine) -> Result<FuncType> {
     let mut params = Vec::new();
     let mut last_was_vec = false;
@@ -79,6 +80,7 @@ pub(crate) fn hostfunc_type(d: &HostFunctionDefinition, e: &Engine) -> Result<Fu
     Ok(FuncType::new(e, params, results))
 }
 
+#[hyperlight_guest_tracing::trace_function]
 pub(crate) fn call(
     d: &HostFunctionDefinition,
     mut c: Caller<'_, ()>,
@@ -115,6 +117,7 @@ pub(crate) fn call(
     Ok(())
 }
 
+#[hyperlight_guest_tracing::trace_function]
 fn return_type_from_val(val: &ReturnValue) -> ReturnType {
     match val {
         ReturnValue::Int(_) => ReturnType::Int,
