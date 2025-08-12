@@ -39,7 +39,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-component-util"
 version = "0.7.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=b61265e4aa9e2ecf8d648b994022caeea0205352#b61265e4aa9e2ecf8d648b994022caeea0205352"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1#172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1"
 dependencies = [
  "itertools",
  "log",

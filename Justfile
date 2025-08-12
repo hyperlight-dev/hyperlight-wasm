@@ -19,9 +19,9 @@ ensure-tools:
     cargo install cargo-component --locked --version 0.21.1
     cargo install wit-bindgen-cli --locked --version 0.43.0
 
-build-all target=default-target: (build target) (build-wasm-examples target) (build-rust-wasm-examples target) (build-wasm-runtime target) (build-rust-component-examples target)
+build-all target=default-target: (build target) (build-wasm-examples target) (build-rust-wasm-examples target) (build-rust-component-examples target) (build-wasm-runtime target)
 
-build target=default-target features="": (build-wasm-runtime target) (fmt-check)
+build target=default-target features="": (fmt-check)
     cargo build {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }} --verbose --profile={{ if target == "debug" {"dev"} else { target } }}
 
 mkdir-redist target=default-target:
@@ -89,16 +89,16 @@ test target=default-target features="": (test-seccomp target features)
     cargo test test_metrics {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored 
 
 test-seccomp target=default-target features="": 
-    cargo test {{ if features =="" {'--no-default-features -F "kvm,mshv2,seccomp"'} else {"--no-default-features -F seccomp," + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} -- --test-threads=1
-    cargo test {{ if features =="" {'--no-default-features -F "kvm,mshv2,seccomp"'} else {"--no-default-features -F seccomp," + features } }} test_metrics --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored --test-threads=1 
-    cargo test {{ if features =="" {'--no-default-features -F "kvm,mshv2,seccomp"'} else {"--no-default-features -F seccomp," + features } }} test_gather_metrics --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored --test-threads=1 
+    cargo test {{ if features =="" {'--no-default-features -F "kvm,mshv3,seccomp"'} else {"--no-default-features -F seccomp," + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} -- --test-threads=1
+    cargo test {{ if features =="" {'--no-default-features -F "kvm,mshv3,seccomp"'} else {"--no-default-features -F seccomp," + features } }} test_metrics --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored --test-threads=1 
+    cargo test {{ if features =="" {'--no-default-features -F "kvm,mshv3,seccomp"'} else {"--no-default-features -F seccomp," + features } }} test_gather_metrics --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored --test-threads=1 
 
 examples-ci target=default-target features="": (build-rust-wasm-examples target)
     cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example helloworld
     cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example hostfuncs
     cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example rust_wasm_examples
     cargo run {{ if features =="" {''} else {"--no-default-features -F function_call_metrics," + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example metrics
-    cargo run {{ if features =="" {"--no-default-features --features kvm,mshv2"} else {"--no-default-features -F function_call_metrics," + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example metrics 
+    cargo run {{ if features =="" {"--no-default-features --features kvm,mshv3"} else {"--no-default-features -F function_call_metrics," + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example metrics 
 
 examples-components target=default-target features="": (build-rust-component-examples target) 
     {{ wit-world }} cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_example

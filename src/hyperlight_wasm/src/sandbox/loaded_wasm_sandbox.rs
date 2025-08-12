@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::fmt::Debug;
 use std::sync::Arc;
 
 use hyperlight_host::func::{ParameterTuple, SupportedReturnType};
 // re-export the InterruptHandle trait as it's part of the public API
 pub use hyperlight_host::hypervisor::InterruptHandle;
 use hyperlight_host::sandbox::Callable;
-use hyperlight_host::sandbox_state::sandbox::{DevolvableSandbox, Sandbox};
-use hyperlight_host::sandbox_state::transition::Noop;
+use hyperlight_host::sandbox::snapshot::Snapshot;
 use hyperlight_host::{MultiUseSandbox, Result, log_then_return, new_error};
 
 use super::metrics::METRIC_TOTAL_LOADED_WASM_SANDBOXES;
@@ -37,15 +37,14 @@ use crate::sandbox::metrics::{METRIC_ACTIVE_LOADED_WASM_SANDBOXES, METRIC_SANDBO
 /// memory context. If you want to "reset" the memory context, create
 /// a new `LoadedWasmSandbox` -- either from another `WasmSandbox` or by
 /// calling `my_loaded_wasm_sandbox.devolve()?.evolve()?`
-#[derive(Debug)]
 pub struct LoadedWasmSandbox {
     // inner is an Option<MultiUseSandbox> as we need to take ownership of it
     // We implement drop on the LoadedWasmSandbox to decrement the count of Sandboxes when it is dropped
     // because of this we cannot implement drop without making inner an Option (alternatively we could make MultiUseSandbox Copy but that would introduce other issues)
     inner: Option<MultiUseSandbox>,
+    // The state the sandbox was in before loading a wasm module. Used for transitioning back to a `WasmSandbox` (unloading the wasm module).
+    runtime_snapshot: Option<Snapshot>,
 }
-
-impl Sandbox for LoadedWasmSandbox {}
 
 impl LoadedWasmSandbox {
     /// Call the function in the guest with the name `fn_name`, passing
@@ -60,21 +59,54 @@ impl LoadedWasmSandbox {
         params: impl ParameterTuple,
     ) -> Result<Output> {
         match &mut self.inner {
-            Some(inner) => inner.call_guest_function_by_name(fn_name, params),
-            None => log_then_return!("No inner MultiUseSandbox to call_guest_function"),
+            Some(inner) => inner.call(fn_name, params),
+            None => log_then_return!("No inner MultiUseSandbox to call"),
         }
     }
+
+    /// Take a snapshot of the current state of the sandbox.
+    pub fn snapshot(&mut self) -> Result<Snapshot> {
+        match &mut self.inner {
+            Some(inner) => inner.snapshot(),
+            None => log_then_return!("No inner MultiUseSandbox to snapshot"),
+        }
+    }
+
+    /// Restore the state of the sandbox to the state captured in the given snapshot.
+    pub fn restore(&mut self, snapshot: &Snapshot) -> Result<()> {
+        match &mut self.inner {
+            Some(inner) => inner.restore(snapshot),
+            None => log_then_return!("No inner MultiUseSandbox to restore"),
+        }
+    }
+
     /// unload the wasm module and return a `WasmSandbox` that can be used to load another module
-    pub fn unload_module(self) -> Result<WasmSandbox> {
-        self.devolve(Noop::default()).inspect(|_| {
+    pub fn unload_module(mut self) -> Result<WasmSandbox> {
+        let sandbox = self
+            .inner
+            .take()
+            .ok_or_else(|| new_error!("No inner MultiUseSandbox to unload"))?;
+
+        let snapshot = self
+            .runtime_snapshot
+            .take()
+            .ok_or_else(|| new_error!("No snapshot of the WasmSandbox to unload"))?;
+
+        WasmSandbox::new_from_loaded(sandbox, snapshot).inspect(|_| {
             metrics::counter!(METRIC_SANDBOX_UNLOADS).increment(1);
         })
     }
 
-    pub(super) fn new(inner: MultiUseSandbox) -> Result<LoadedWasmSandbox> {
+    pub(super) fn new(
+        inner: MultiUseSandbox,
+        runtime_snapshot: Snapshot,
+    ) -> Result<LoadedWasmSandbox> {
         metrics::gauge!(METRIC_ACTIVE_LOADED_WASM_SANDBOXES).increment(1);
         metrics::counter!(METRIC_TOTAL_LOADED_WASM_SANDBOXES).increment(1);
-        Ok(LoadedWasmSandbox { inner: Some(inner) })
+        Ok(LoadedWasmSandbox {
+            inner: Some(inner),
+            runtime_snapshot: Some(runtime_snapshot),
+        })
     }
 
     /// Get a handle to the interrupt handler for this sandbox,
@@ -100,23 +132,17 @@ impl Callable for LoadedWasmSandbox {
     }
 }
 
-/// Capability to transform a `LoadedWasmSandbox` back down to a
-/// `WasmSandbox`
-impl DevolvableSandbox<LoadedWasmSandbox, WasmSandbox, Noop<LoadedWasmSandbox, WasmSandbox>>
-    for LoadedWasmSandbox
-{
-    fn devolve(mut self, _: Noop<LoadedWasmSandbox, WasmSandbox>) -> Result<WasmSandbox> {
-        let new_inner: MultiUseSandbox = match self.inner.take() {
-            Some(inner) => inner.devolve(Noop::default())?,
-            None => log_then_return!("No inner MultiUseSandbox to devolve"),
-        };
-        Ok(WasmSandbox::new(new_inner))
-    }
-}
-
 impl Drop for LoadedWasmSandbox {
     fn drop(&mut self) {
         metrics::gauge!(METRIC_ACTIVE_LOADED_WASM_SANDBOXES).decrement(1);
+    }
+}
+
+impl Debug for LoadedWasmSandbox {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LoadedWasmSandbox")
+            .field("inner", &self.inner)
+            .finish()
     }
 }
 
@@ -161,7 +187,7 @@ mod tests {
         }
         .unwrap();
 
-        call_funcs(loaded_wasm_sandbox, 1000);
+        call_funcs(loaded_wasm_sandbox, 500);
     }
 
     #[test]

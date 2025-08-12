@@ -4,7 +4,7 @@ exclude = [ "src/wasm_runtime",  "src/rust_wasm_samples", "src/hyperlight_wasm_m
 resolver = "2"
 
 [workspace.package]
-version = "0.7.0"
+version = "0.8.0"
 edition = "2024"
 rust-version = "1.86"
 license = "Apache-2.0"
@@ -13,4 +13,4 @@ repository = "https://github.com/hyperlight-dev/hyperlight-wasm"
 readme = "README.md"
 
 [workspace.dependencies]
-hyperlight-host = { version = "0.7.0", git = "https://github.com/hyperlight-dev/hyperlight", rev = "ea6fa8f", default-features = false, features = ["executable_heap", "init-paging"] }
+hyperlight-host = { version = "0.8.0", default-features = false, features = ["executable_heap", "init-paging"] }
