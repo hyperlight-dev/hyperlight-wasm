@@ -35,7 +35,7 @@ jobs:
         fetch-depth: 0
     # Ensures just is installed using setup wokflow to ensure just version consistency
     - name: Hyperlight setup
-      uses: hyperlight-dev/ci-setup-workflow@v1.5.0
+      uses: hyperlight-dev/ci-setup-workflow@v1.6.0
       with:
           rust-toolchain: "1.86.0"
     - name: Verify vendor.tar
