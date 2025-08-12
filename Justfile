@@ -19,9 +19,9 @@ ensure-tools:
     cargo install cargo-component --locked --version 0.21.1
     cargo install wit-bindgen-cli --locked --version 0.43.0
 
-build-all target=default-target: (build target) (build-wasm-examples target) (build-rust-wasm-examples target) (build-wasm-runtime target) (build-rust-component-examples target)
+build-all target=default-target: (build target) (build-wasm-examples target) (build-rust-wasm-examples target) (build-rust-component-examples target) (build-wasm-runtime target)
 
-build target=default-target features="": (build-wasm-runtime target) (fmt-check)
+build target=default-target features="": (fmt-check)
     cargo build {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }} --verbose --profile={{ if target == "debug" {"dev"} else { target } }}
 
 mkdir-redist target=default-target:
