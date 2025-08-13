@@ -20,7 +20,7 @@ jobs:
           fetch-tags: true
 
       - name: Hyperlight setup 
-        uses: hyperlight-dev/ci-setup-workflow@v1.5.0
+        uses: hyperlight-dev/ci-setup-workflow@v1.6.0
         with:
           rust-toolchain: "1.86.0"
 
