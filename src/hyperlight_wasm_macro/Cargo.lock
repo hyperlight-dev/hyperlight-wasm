@@ -38,8 +38,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-component-util"
-version = "0.7.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1#172fcfa69b0f9064c7a0e48e512f8a86ae1fdbe1"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b34b2db33623c8d0e97e9be913064843621a1260cce140a15dc3b0da9378d45"
 dependencies = [
  "itertools",
  "log",
@@ -52,7 +53,7 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-wasm-macro"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "hyperlight-component-util",
  "itertools",
@@ -90,9 +91,9 @@ checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 
 [[package]]
 name = "prettyplease"
-version = "0.2.35"
+version = "0.2.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "061c1221631e079b26479d25bbf2275bfe5917ae8419cd7e34f13bfc2aa7539a"
+checksum = "ff24dfcda44452b9816fff4cd4227e1bb73ff5a2f1bc1105aa92fb8565ce44d2"
 dependencies = [
  "proc-macro2",
  "syn",
@@ -161,9 +162,9 @@ checksum = "5a5f39404a5da50712a4c1eecf25e90dd62b613502b7e925fd4e4d19b5c96512"
 
 [[package]]
 name = "wasmparser"
-version = "0.235.0"
+version = "0.236.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "161296c618fa2d63f6ed5fffd1112937e803cb9ec71b32b01a76321555660917"
+checksum = "16d1eee846a705f6f3cb9d7b9f79b54583810f1fb57a1e3aea76d1742db2e3d2"
 dependencies = [
  "bitflags",
  "hashbrown",
