@@ -13,7 +13,7 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # We are not using the common workflow here because it installs a lot of tools we don't need
       - uses: dtolnay/rust-toolchain@master
