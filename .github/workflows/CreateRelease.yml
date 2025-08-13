@@ -30,7 +30,7 @@ jobs:
       if: ${{ contains(github.ref, 'refs/heads/release/') }}
       run: echo "CONFIG=release" >> $GITHUB_ENV
 
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 0
     # Ensures just is installed using setup wokflow to ensure just version consistency
