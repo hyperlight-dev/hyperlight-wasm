@@ -106,7 +106,7 @@ fn build_wasm_runtime() -> PathBuf {
     println!("cargo::rerun-if-env-changed=WIT_WORLD");
     // the PROFILE env var unfortunately only gives us 1 bit of "dev or release"
     let cargo_profile = if profile == "debug" { "dev" } else { "release" };
-    let mut cmd = std::process::Command::new(cargo_bin);
+    let mut cargo_cmd = std::process::Command::new(&cargo_bin);
 
     // Clear the variables that control Cargo's behaviour (as listed
     // at https://doc.rust-lang.org/cargo/reference/environment-variables.html):
@@ -114,7 +114,28 @@ fn build_wasm_runtime() -> PathBuf {
     let mut env_vars = env::vars().collect::<Vec<_>>();
     env_vars.retain(|(key, _)| !key.starts_with("CARGO_"));
 
-    let cmd = cmd
+    // we need to build hyperlight-guest-bin dependency of wasm_runtime, before wasm_runtime
+    let cmd = cargo_cmd
+        .arg("build")
+        .arg("--profile")
+        .arg(cargo_profile)
+        .arg("--package")
+        .arg("hyperlight-guest-bin")
+        .arg("-v")
+        .arg("--target-dir")
+        .arg(&target_dir)
+        .current_dir(&in_repo_dir)
+        .env_clear()
+        .envs(env_vars.clone());
+    let status = cmd
+        .status()
+        .unwrap_or_else(|e| panic!("could not run cargo build hyperlight-guest-bin: {}", e));
+    if !status.success() {
+        panic!("could not compile wasm_runtime");
+    }
+
+    let mut cargo_cmd = std::process::Command::new(&cargo_bin);
+    let cmd = cargo_cmd
         .arg("build")
         .arg("--profile")
         .arg(cargo_profile)
@@ -127,7 +148,7 @@ fn build_wasm_runtime() -> PathBuf {
 
     let status = cmd
         .status()
-        .unwrap_or_else(|e| panic!("could not run cargo build: {}", e));
+        .unwrap_or_else(|e| panic!("could not run cargo build wasm_runtime: {}", e));
     if !status.success() {
         panic!("could not compile wasm_runtime");
     }
