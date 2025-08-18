@@ -22,13 +22,23 @@ limitations under the License.
 // this file is included in lib.rs.
 // The wasm_runtime binary is expected to be in the x64/{config} directory.
 
+use std::ffi::OsString;
 use std::fs::OpenOptions;
 use std::io::Write;
+use std::iter::once;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
 
 use anyhow::Result;
 use built::write_built_file;
+
+fn path_with(path: impl Into<PathBuf>) -> OsString {
+    let path = path.into();
+    let paths = env::var_os("PATH").unwrap_or_default();
+    let paths = env::split_paths(&paths);
+    let paths = once(path).chain(paths);
+    env::join_paths(paths).unwrap()
+}
 
 fn get_wasm_runtime_path() -> PathBuf {
     let manifest_dir = env::var_os("CARGO_MANIFEST_DIR").unwrap();
@@ -95,6 +105,7 @@ fn build_wasm_runtime() -> PathBuf {
     let out_dir = env::var_os("OUT_DIR").unwrap();
 
     let target_dir = Path::new("").join(&out_dir).join("target");
+    let toolchain_dir = Path::new("").join(&out_dir).join("toolchain");
 
     let in_repo_dir = get_wasm_runtime_path();
 
@@ -106,7 +117,6 @@ fn build_wasm_runtime() -> PathBuf {
     println!("cargo::rerun-if-env-changed=WIT_WORLD");
     // the PROFILE env var unfortunately only gives us 1 bit of "dev or release"
     let cargo_profile = if profile == "debug" { "dev" } else { "release" };
-    let mut cargo_cmd = std::process::Command::new(&cargo_bin);
 
     // Clear the variables that control Cargo's behaviour (as listed
     // at https://doc.rust-lang.org/cargo/reference/environment-variables.html):
@@ -114,26 +124,6 @@ fn build_wasm_runtime() -> PathBuf {
     let mut env_vars = env::vars().collect::<Vec<_>>();
     env_vars.retain(|(key, _)| !key.starts_with("CARGO_"));
 
-    // we need to build hyperlight-guest-bin dependency of wasm_runtime, before wasm_runtime
-    let cmd = cargo_cmd
-        .arg("build")
-        .arg("--profile")
-        .arg(cargo_profile)
-        .arg("--package")
-        .arg("hyperlight-guest-bin")
-        .arg("-v")
-        .arg("--target-dir")
-        .arg(&target_dir)
-        .current_dir(&in_repo_dir)
-        .env_clear()
-        .envs(env_vars.clone());
-    let status = cmd
-        .status()
-        .unwrap_or_else(|e| panic!("could not run cargo build hyperlight-guest-bin: {}", e));
-    if !status.success() {
-        panic!("could not compile wasm_runtime");
-    }
-
     let mut cargo_cmd = std::process::Command::new(&cargo_bin);
     let cmd = cargo_cmd
         .arg("build")
@@ -144,8 +134,9 @@ fn build_wasm_runtime() -> PathBuf {
         .arg(&target_dir)
         .current_dir(&in_repo_dir)
         .env_clear()
-        .envs(env_vars);
-
+        .envs(env_vars)
+        .env("PATH", path_with(&toolchain_dir))
+        .env("HYPERLIGHT_GUEST_TOOLCHAIN_ROOT", &toolchain_dir);
     let status = cmd
         .status()
         .unwrap_or_else(|e| panic!("could not run cargo build wasm_runtime: {}", e));

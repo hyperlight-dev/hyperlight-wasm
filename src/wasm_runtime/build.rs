@@ -14,23 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::path::Path;
-use std::{env, fs, path};
+use std::path::{Path, PathBuf};
+use std::{env, fs};
 
 use cargo_metadata::{MetadataCommand, Package};
 
 fn main() {
+    let toolchain_dir = env::var_os("HYPERLIGHT_GUEST_TOOLCHAIN_ROOT").unwrap();
+    let toolchain_dir = PathBuf::from(toolchain_dir);
+    let clang_path = toolchain_dir.join("clang");
+
+    assert!(
+        clang_path.exists(),
+        "could not find clang at {clang_path:?}"
+    );
+
     println!("cargo:rerun-if-changed=.");
     let mut cfg = cc::Build::new();
-    if let Some(path) = env::var_os("PATH") {
-        let paths: Vec<_> = env::split_paths(&path).collect();
-        let toolchain_path =
-            path::PathBuf::from(env::var_os("HYPERLIGHT_GUEST_TOOLCHAIN_ROOT").unwrap());
-        let joined = env::join_paths(std::iter::once(toolchain_path).chain(paths)).unwrap();
-        env::set_var("PATH", &joined);
-    }
-
-    // Get the wasmtime_platform.h file from the appropriate wasm release
 
     // get the version of the wasmtime crate
 
@@ -63,7 +63,7 @@ fn main() {
 
     cfg.include("src/include");
     cfg.file("src/platform.c");
-    cfg.compiler("clang");
+    cfg.compiler(clang_path);
     if cfg!(windows) {
         env::set_var("AR_x86_64_unknown_none", "llvm-ar");
     }
