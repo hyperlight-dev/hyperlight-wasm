@@ -100,7 +100,8 @@ examples-ci target=default-target features="": (build-rust-wasm-examples target)
     cargo run {{ if features =="" {"--no-default-features --features kvm,mshv3"} else {"--no-default-features -F function_call_metrics," + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example metrics 
 
 examples-components target=default-target features="": (build-rust-component-examples target) 
-    {{ wit-world }} cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_example
+    {{ wit-world }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_example
+    {{ wit-world-c }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example c-component
 
 # warning, compares to and then OVERWRITES the given baseline
 bench-ci baseline target="release" features="":
