@@ -16,3 +16,36 @@ updates:
     target-branch: "main"
     labels:
       - "kind/dependencies"
+  # Add entries for excluded workspace members
+  - package-ecosystem: "cargo"
+    directory: "/src/wasm_runtime"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+    target-branch: "main"
+    labels:
+      - "kind/dependencies"
+  - package-ecosystem: "cargo"
+    directory: "/src/rust_wasm_samples"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+    target-branch: "main"
+    labels:
+      - "kind/dependencies"
+  - package-ecosystem: "cargo"
+    directory: "/src/hyperlight_wasm_macro"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+    target-branch: "main"
+    labels:
+      - "kind/dependencies"
+  - package-ecosystem: "cargo"
+    directory: "/src/component_sample"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+    target-branch: "main"
+    labels:
+      - "kind/dependencies"
