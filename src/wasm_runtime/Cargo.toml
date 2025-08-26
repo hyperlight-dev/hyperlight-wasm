@@ -14,7 +14,7 @@ bench = false
 hyperlight-common = { version = "0.8.0", default-features = false }
 hyperlight-guest-bin = { version = "0.8.0", features = [ "printf" ] }
 hyperlight-guest = { version = "0.8.0" }
-wasmtime = { version = "35.0.0", default-features = false, features = [ "runtime", "custom-virtual-memory", "custom-native-signals", "component-model" ] }
+wasmtime = { version = "36.0.1", default-features = false, features = [ "runtime", "custom-virtual-memory", "custom-native-signals", "component-model" ] }
 hyperlight-wasm-macro = { path = "../hyperlight_wasm_macro" }
 spin = "0.9.8"
 
