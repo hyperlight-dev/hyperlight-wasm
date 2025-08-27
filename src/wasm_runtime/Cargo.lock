@@ -25,9 +25,9 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
 name = "anyhow"
-version = "1.0.98"
+version = "1.0.99"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
+checksum = "b0674a1ddeecb70197781e945de4b3b8ffb61fa939a5597bcf48503737663100"
 
 [[package]]
 name = "arbitrary"
@@ -637,9 +637,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-common"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52423b32cefb31363194a332da0ed440c550407a8c2f2acf1c837e77b09cc06c"
+checksum = "6acd5b66984215357ca8b48a941b8dd330b857112a25206577f75ce33746a189"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -649,9 +649,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-component-util"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b34b2db33623c8d0e97e9be913064843621a1260cce140a15dc3b0da9378d45"
+checksum = "ab31eb8c6e7c7eb0fddcd32a8171ebfd5afa8e562e5fabd398cba61846be13c2"
 dependencies = [
  "itertools",
  "log",
@@ -659,16 +659,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
- "wasmparser",
+ "wasmparser 0.238.0",
 ]
 
 [[package]]
 name = "hyperlight-guest"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afa8cf088e745392262a57e344a1b08dabf79d72bfd90508e5f6e60290228141"
+checksum = "c6e151950e26c8181afe7f35583c195def8ddcf66d0237409b23a878b394f9c2"
 dependencies = [
  "anyhow",
+ "flatbuffers",
  "hyperlight-common",
  "hyperlight-guest-tracing",
  "serde_json",
@@ -676,9 +677,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest-bin"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6fd6cd25eaa0cbc22c67adae0c25d402409480eca9a184708b7de20e88c09e0a"
+checksum = "e08160da11ca53b04450aa4b5e9c032518779d2f2097c43b4c709336961dee4c"
 dependencies = [
  "buddy_system_allocator",
  "cc",
@@ -693,9 +694,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest-tracing"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79aea31011bf30126cbb1af667d53b344e8f39a0a0bd6d5e4d8f692ecd5151ab"
+checksum = "f48be61a35fd4f9e755dce72429d5e9d4ff8cd5240c3a61cd5fb440d61545aea"
 dependencies = [
  "hyperlight-common",
  "hyperlight-guest-tracing-macro",
@@ -704,9 +705,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest-tracing-macro"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c57ab09dcec3021c972eefa4046c5ae4b06cfc777c673bbc6af773a066a28f4f"
+checksum = "44ae44f2df062b8697ddd92f38b7d9806599d52fc259fe815cb6ad6c586667a5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1912,7 +1913,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3108979166ab0d3c7262d2e16a2190ffe784b2a5beb963edef154b5e8e07680b"
 dependencies = [
  "leb128fmt",
- "wasmparser",
+ "wasmparser 0.236.0",
 ]
 
 [[package]]
@@ -1945,6 +1946,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "wasmparser"
+version = "0.238.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c0ad4ca2ecb86b79ea410cd970985665de1d05774b7107b214bc5852b1bcbad7"
+dependencies = [
+ "bitflags",
+ "hashbrown",
+ "indexmap",
+ "semver",
+ "serde",
+]
+
+[[package]]
 name = "wasmprinter"
 version = "0.236.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1952,7 +1966,7 @@ checksum = "a64dc32256b566259d30be300eb142f366343b98f42077216c7dd5e0cf4dc086"
 dependencies = [
  "anyhow",
  "termcolor",
- "wasmparser",
+ "wasmparser 0.236.0",
 ]
 
 [[package]]
@@ -1981,7 +1995,7 @@ dependencies = [
  "serde_derive",
  "smallvec",
  "target-lexicon",
- "wasmparser",
+ "wasmparser 0.236.0",
  "wasmtime-environ",
  "wasmtime-internal-asm-macros",
  "wasmtime-internal-component-macro",
@@ -2015,7 +2029,7 @@ dependencies = [
  "smallvec",
  "target-lexicon",
  "wasm-encoder",
- "wasmparser",
+ "wasmparser 0.236.0",
  "wasmprinter",
  "wasmtime-internal-component-util",
 ]
@@ -2071,7 +2085,7 @@ dependencies = [
  "smallvec",
  "target-lexicon",
  "thiserror",
- "wasmparser",
+ "wasmparser 0.236.0",
  "wasmtime-environ",
  "wasmtime-internal-math",
  "wasmtime-internal-versioned-export-macros",
@@ -2126,7 +2140,7 @@ dependencies = [
  "gimli 0.32.2",
  "object 0.37.3",
  "target-lexicon",
- "wasmparser",
+ "wasmparser 0.236.0",
  "wasmtime-environ",
  "wasmtime-internal-cranelift",
  "winch-codegen",
@@ -2197,7 +2211,7 @@ dependencies = [
  "smallvec",
  "target-lexicon",
  "thiserror",
- "wasmparser",
+ "wasmparser 0.236.0",
  "wasmtime-environ",
  "wasmtime-internal-cranelift",
  "wasmtime-internal-math",
@@ -2398,7 +2412,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "unicode-xid",
- "wasmparser",
+ "wasmparser 0.236.0",
 ]
 
 [[package]]
