@@ -16,6 +16,9 @@ updates:
     target-branch: "main"
     labels:
       - "kind/dependencies"
+    ignore:
+      - dependency-name: "wasmtime"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
   # Add entries for excluded workspace members
   - package-ecosystem: "cargo"
     directory: "/src/wasm_runtime"
@@ -25,6 +28,9 @@ updates:
     target-branch: "main"
     labels:
       - "kind/dependencies"
+    ignore:
+      - dependency-name: "wasmtime"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
   - package-ecosystem: "cargo"
     directory: "/src/rust_wasm_samples"
     schedule:
