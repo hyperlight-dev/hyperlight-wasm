@@ -348,6 +348,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "cargo-util-schemas"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0af3961378b28006148f83291d9e485044f9110542e54aae90d195e0cf178c40"
+dependencies = [
+ "semver",
+ "serde",
+ "serde-untagged",
+ "serde-value",
+ "thiserror 2.0.16",
+ "toml 0.8.23",
+ "unicode-xid",
+ "url",
+]
+
+[[package]]
 name = "cargo_metadata"
 version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -355,7 +371,7 @@ checksum = "0c3f56c207c76c07652489840ff98687dcf213de178ac0974660d6fefeaf5ec6"
 dependencies = [
  "camino",
  "cargo-platform",
- "cargo-util-schemas",
+ "cargo-util-schemas 0.8.2",
  "semver",
  "serde",
  "serde_json",
@@ -1398,7 +1414,7 @@ dependencies = [
 name = "hyperlight-wasm-aot"
 version = "0.9.0"
 dependencies = [
- "cargo-util-schemas",
+ "cargo-util-schemas 0.9.0",
  "cargo_metadata",
  "clap",
  "wasmtime",
