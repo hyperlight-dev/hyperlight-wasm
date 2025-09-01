@@ -716,7 +716,7 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-wasm-macro"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "hyperlight-component-util",
  "itertools",
@@ -1918,7 +1918,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-runtime"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "cargo_metadata",
  "cc",
