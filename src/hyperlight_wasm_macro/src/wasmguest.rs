@@ -24,8 +24,8 @@ limitations under the License.
 //    the `Resources` struct with.)
 
 use hyperlight_component_util::emit::{
-    FnName, State, WitName, kebab_to_fn, kebab_to_namespace, kebab_to_type, kebab_to_var,
-    split_wit_name,
+    FnName, ResolvedBoundVar, State, WitName, kebab_to_fn, kebab_to_namespace, kebab_to_type,
+    kebab_to_var, split_wit_name,
 };
 use hyperlight_component_util::etypes::{
     self, Component, Defined, ExternDecl, ExternDesc, Handleable, Instance, Tyvar,
@@ -94,10 +94,12 @@ fn emit_import_extern_decl<'b>(
         }
         ExternDesc::Type(t) => match t {
             Defined::Handleable(Handleable::Var(Tyvar::Bound(b))) => {
-                let (b, _) = s.resolve_tv(*b);
+                let ResolvedBoundVar::Resource { rtidx } = s.resolve_bound_var(*b) else {
+                    return quote! {};
+                };
                 let li = format_ident!("li{}", depth);
                 let edkn = ed.kebab_name;
-                let rtid = format_ident!("HostResource{}", b);
+                let rtid = format_ident!("HostResource{rtidx}");
                 quote! {
                     #li.resource(#edkn, ::wasmtime::component::ResourceType::host::<#rtid>(), |_, _| { Ok(()) });
                 }
