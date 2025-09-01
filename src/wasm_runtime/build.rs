@@ -36,7 +36,7 @@ fn main() {
 
     let metadata = MetadataCommand::new().exec().unwrap();
     let wasmtime_package: Option<&Package> =
-        metadata.packages.iter().find(|p| p.name == "wasmtime");
+        metadata.packages.iter().find(|p| *p.name == "wasmtime");
     let version_number = match wasmtime_package {
         Some(pkg) => pkg.version.clone(),
         None => panic!("wasmtime dependency not found"),
