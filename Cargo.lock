@@ -1368,7 +1368,7 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-wasm"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "blake3",
@@ -1396,7 +1396,7 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-wasm-aot"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "cargo-util-schemas",
  "cargo_metadata",
