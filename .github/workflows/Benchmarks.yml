@@ -40,7 +40,9 @@ jobs:
 
     - name: Build Wasm Runtime Binary
       working-directory: ./src/hyperlight_wasm
-      run: just build-wasm-runtime ${{ matrix.config }}
+      run: |
+        just ensure-tools
+        just build-wasm-runtime ${{ matrix.config }}
 
     - uses: dtolnay/rust-toolchain@1.89
       with:
