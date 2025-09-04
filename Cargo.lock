@@ -1334,13 +1334,13 @@ dependencies = [
 [[package]]
 name = "hyperlight-common"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "409ac43d32b148aa71473d5bca0b5ff4cf72ddf4e9cb4550e9a189d807e6c0d4"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=5bfe0bfdf2f168b48bf6242d8eed84d54fab1186#5bfe0bfdf2f168b48bf6242d8eed84d54fab1186"
 dependencies = [
  "anyhow",
  "flatbuffers",
  "log",
  "spin",
+ "thiserror 2.0.17",
  "tracing",
 ]
 
@@ -1378,8 +1378,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest-tracing"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "670c97963e19dd9e2855ed8ef1db47074d72036beb2ac5e621bd5796be2856b0"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=5bfe0bfdf2f168b48bf6242d8eed84d54fab1186#5bfe0bfdf2f168b48bf6242d8eed84d54fab1186"
 dependencies = [
  "hyperlight-common",
  "spin",
@@ -1390,8 +1389,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-host"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49984fc8631a27d214550204350e4cc2ca304a37da759ea37407d0d1e4863eb6"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=5bfe0bfdf2f168b48bf6242d8eed84d54fab1186#5bfe0bfdf2f168b48bf6242d8eed84d54fab1186"
 dependencies = [
  "anyhow",
  "bitflags 2.10.0",

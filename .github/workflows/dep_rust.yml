@@ -69,7 +69,9 @@ jobs:
 
       - name: Build Wasm Runtime Binary
         working-directory: ./src/hyperlight_wasm
-        run: just build-wasm-runtime ${{ matrix.config }}
+        run: |
+          just ensure-tools
+          just build-wasm-runtime ${{ matrix.config }}
 
       - name: Download Wasm Modules
         uses: actions/download-artifact@v5
@@ -81,7 +83,6 @@ jobs:
         run:  |
           # this must be build before the formatting and other jobs run
           # because the component model example depends on the wasm component built here
-          just ensure-tools
           just compile-wit
           just build-rust-component-examples ${{ matrix.config }}
       

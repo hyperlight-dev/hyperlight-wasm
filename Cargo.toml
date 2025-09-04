@@ -14,3 +14,6 @@ readme = "README.md"
 
 [workspace.dependencies]
 hyperlight-host = { version = "0.11.0", default-features = false, features = ["executable_heap", "init-paging"] }
+
+[patch.crates-io]
+hyperlight-host = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "5bfe0bfdf2f168b48bf6242d8eed84d54fab1186" }
