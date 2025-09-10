@@ -31,7 +31,7 @@ jobs:
         - name: Remove default clang
           run: sudo rm /usr/bin/clang
         - name: Hyperlight setup workflow
-          uses: hyperlight-dev/ci-setup-workflow@v1.6.0
+          uses: hyperlight-dev/ci-setup-workflow@v1.8.0
           with:
             rust-toolchain: "1.86.0"
         - name: Set up Docker Buildx
