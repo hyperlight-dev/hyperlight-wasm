@@ -19,7 +19,7 @@ ensure-tools:
     cargo install cargo-component --locked --version 0.21.1
     cargo install wit-bindgen-cli --locked --version 0.43.0
 
-build-all target=default-target: (build target) (build-wasm-examples target) (build-rust-wasm-examples target) (build-rust-component-examples target) (build-wasm-runtime target)
+build-all target=default-target features="": (build target features) (build-wasm-examples target features) (build-rust-wasm-examples target features) (build-rust-component-examples target) (build-wasm-runtime target features)
 
 build target=default-target features="": (fmt-check)
     cargo build {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }} --verbose --profile={{ if target == "debug" {"dev"} else { target } }}
@@ -32,23 +32,23 @@ compile-wit:
     wasm-tools component wit ./src/wasmsamples/components/runcomponent.wit -w -o ./src/wasmsamples/components/runcomponent-world.wasm
     wasm-tools component wit ./src/component_sample/wit/example.wit -w -o ./src/component_sample/wit/component-world.wasm
 
-build-wasm-runtime target=default-target:
-    cd ./src/wasm_runtime && cargo build --verbose --profile={{ if target == "debug" {"dev"} else { target } }} && rm -R target
+build-wasm-runtime target=default-target features="":
+    cd ./src/wasm_runtime && cargo build --verbose {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--features " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} && rm -R target
 
-build-wasm-examples target=default-target: (compile-wit)
-    {{ build-wasm-examples-command }} {{target}}
+build-wasm-examples target=default-target features="": (compile-wit)
+    {{ build-wasm-examples-command }} {{target}} {{features}}
 
-build-rust-wasm-examples target=default-target: (mkdir-redist target)
+build-rust-wasm-examples target=default-target features="": (mkdir-redist target)
     rustup target add wasm32-unknown-unknown
     cd ./src/rust_wasm_samples && cargo build --target wasm32-unknown-unknown --profile={{ if target == "debug" {"dev"} else { target } }}
-    cargo run -p hyperlight-wasm-aot compile ./src/rust_wasm_samples/target/wasm32-unknown-unknown/{{ target }}/rust_wasm_samples.wasm ./x64/{{ target }}/rust_wasm_samples.aot
+    cargo run {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--features " + features } }} -p hyperlight-wasm-aot compile ./src/rust_wasm_samples/target/wasm32-unknown-unknown/{{ target }}/rust_wasm_samples.wasm ./x64/{{ target }}/rust_wasm_samples.aot
 
-build-rust-component-examples target=default-target: (compile-wit)
+build-rust-component-examples target=default-target features="": (compile-wit)
     # use cargo component so we don't get all the wasi imports https://github.com/bytecodealliance/cargo-component?tab=readme-ov-file#relationship-with-wasm32-wasip2
     # we also explicitly target wasm32-unknown-unknown since cargo component might try to pull in wasi imports https://github.com/bytecodealliance/cargo-component/issues/290
     rustup target add wasm32-unknown-unknown
     cd ./src/component_sample && cargo component build --target wasm32-unknown-unknown --profile={{ if target == "debug" {"dev"} else { target } }}
-    cargo run -p hyperlight-wasm-aot compile --component ./src/component_sample/target/wasm32-unknown-unknown/{{ target }}/component_sample.wasm ./x64/{{ target }}/component_sample.aot
+    cargo run {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--features " + features } }} -p hyperlight-wasm-aot compile --component ./src/component_sample/target/wasm32-unknown-unknown/{{ target }}/component_sample.wasm ./x64/{{ target }}/component_sample.aot
 
 check target=default-target:
     cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
