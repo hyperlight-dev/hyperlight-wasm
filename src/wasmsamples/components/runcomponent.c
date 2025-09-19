@@ -1,6 +1,7 @@
 #include "bindings/runcomponent.h"
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 void exports_example_runcomponent_guest_echo(runcomponent_string_t *msg, runcomponent_string_t *ret)
 {
@@ -8,4 +9,11 @@ void exports_example_runcomponent_guest_echo(runcomponent_string_t *msg, runcomp
   ret->ptr = (uint8_t *) malloc(ret->len);
   memcpy(ret->ptr, msg->ptr, ret->len);
   runcomponent_string_free(msg);
+}
+
+int32_t exports_example_runcomponent_guest_round_to_nearest_int(float a, float b)
+{
+    float c = a*b;
+    float r = lrintf(c);
+    return r;
 }
