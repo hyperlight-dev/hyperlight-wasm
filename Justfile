@@ -72,6 +72,9 @@ fmt:
     cd src/wasm_runtime && cargo +nightly fmt -v --all
     cd src/hyperlight_wasm_macro && cargo +nightly fmt -v --all
 
+export CC_x86_64_unknown_none:= if os() == "windows" { justfile_directory() / "src/wasm_runtime/guest-toolchain/clang" } else { "" }
+export AR_x86_64_unknown_none:= if os() == "windows" { "llvm-ar" } else { "" }
+
 clippy target=default-target: (check target)
     cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/rust_wasm_samples &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings

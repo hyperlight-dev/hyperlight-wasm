@@ -134,6 +134,8 @@ fn build_wasm_runtime() -> PathBuf {
         .arg(&target_dir)
         .current_dir(&in_repo_dir)
         .env_clear()
+        // On windows when `gdb` features is enabled this is not set correctly
+        .env("CFLAGS_x86_64_unknown_none", "-fPIC")
         .envs(env_vars)
         .env("PATH", path_with(&toolchain_dir))
         .env("HYPERLIGHT_GUEST_TOOLCHAIN_ROOT", &toolchain_dir);
