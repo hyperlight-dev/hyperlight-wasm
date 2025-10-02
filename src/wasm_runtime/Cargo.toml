@@ -19,9 +19,13 @@ hyperlight-wasm-macro = { path = "../hyperlight_wasm_macro" }
 spin = "0.10.0"
 
 [build-dependencies]
+cfg_aliases = "0.2.1"
 cc = "1.2"
 cfg-if = { version = "1" }
 cargo_metadata = "0.23"
 reqwest =  {version = "0.12", default-features = false, features = ["blocking","rustls-tls"] }
 
 [workspace] # indicate that this crate is not part of any workspace
+
+[features]
+gdb = ["wasmtime/debug-builtins"]
