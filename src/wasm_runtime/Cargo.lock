@@ -25,9 +25,9 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
 name = "anyhow"
-version = "1.0.99"
+version = "1.0.100"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0674a1ddeecb70197781e945de4b3b8ffb61fa939a5597bcf48503737663100"
+checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
 
 [[package]]
 name = "arbitrary"
@@ -370,9 +370,9 @@ checksum = "0399f9d26e5191ce32c498bebd31e7a3ceabc2745f0ac54af3f335126c3f24b3"
 
 [[package]]
 name = "flatbuffers"
-version = "25.2.10"
+version = "25.9.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1045398c1bfd89168b5fd3f1fc11f6e70b34f6f66300c87d44d3de849463abf1"
+checksum = "09b6620799e7340ebd9968d2e0708eb82cf1971e9a16821e2091b6d6e475eed5"
 dependencies = [
  "bitflags",
  "rustc_version",
@@ -617,9 +617,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-common"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6acd5b66984215357ca8b48a941b8dd330b857112a25206577f75ce33746a189"
+checksum = "a5230eeb4d3484f042522843abbc2989b8fe6a48418b7933b492d4394e1b95a8"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -629,9 +629,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-component-util"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab31eb8c6e7c7eb0fddcd32a8171ebfd5afa8e562e5fabd398cba61846be13c2"
+checksum = "2946230a2d04169fe60ae13746e5973f8d810df9c76112bfcc4eeaecd5f2f8c9"
 dependencies = [
  "itertools",
  "log",
@@ -639,14 +639,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
- "wasmparser 0.238.0",
+ "wasmparser 0.239.0",
 ]
 
 [[package]]
 name = "hyperlight-guest"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6e151950e26c8181afe7f35583c195def8ddcf66d0237409b23a878b394f9c2"
+checksum = "1e274942ac4a0f8326652e431e493eef2e63cc0b505ae1feefa8db105b107b11"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -657,9 +657,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest-bin"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e08160da11ca53b04450aa4b5e9c032518779d2f2097c43b4c709336961dee4c"
+checksum = "80bc1d424b7a9ad6b74dfb90c985f25b0af6b93bc934dfb2268bca89adab9643"
 dependencies = [
  "buddy_system_allocator",
  "cc",
@@ -674,9 +674,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest-tracing"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f48be61a35fd4f9e755dce72429d5e9d4ff8cd5240c3a61cd5fb440d61545aea"
+checksum = "dcf14ec1c55e993887f2d1dbecc26a89e352a1cbd4f3bb4d2fd9e3cbe0e670c5"
 dependencies = [
  "hyperlight-common",
  "hyperlight-guest-tracing-macro",
@@ -685,9 +685,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest-tracing-macro"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44ae44f2df062b8697ddd92f38b7d9806599d52fc259fe815cb6ad6c586667a5"
+checksum = "1ae072935591a653dfbb3d97b2a777751a9c20bece6929f72137b380c054ecae"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -696,7 +696,7 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-wasm-macro"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "hyperlight-component-util",
  "itertools",
@@ -924,9 +924,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.27"
+version = "0.4.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
+checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
 
 [[package]]
 name = "lru-slab"
@@ -1803,7 +1803,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-runtime"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "cargo_metadata",
  "cc",
@@ -1832,9 +1832,9 @@ dependencies = [
 
 [[package]]
 name = "wasmparser"
-version = "0.238.0"
+version = "0.239.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0ad4ca2ecb86b79ea410cd970985665de1d05774b7107b214bc5852b1bcbad7"
+checksum = "8c9d90bb93e764f6beabf1d02028c70a2156a6583e63ac4218dd07ef733368b0"
 dependencies = [
  "bitflags",
  "hashbrown",
