@@ -25,9 +25,9 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
 name = "anyhow"
-version = "1.0.99"
+version = "1.0.100"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0674a1ddeecb70197781e945de4b3b8ffb61fa939a5597bcf48503737663100"
+checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
 
 [[package]]
 name = "arbitrary"
@@ -370,9 +370,9 @@ checksum = "1ced73b1dacfc750a6db6c0a0c3a3853c8b41997e2e2c563dc90804ae6867959"
 
 [[package]]
 name = "flatbuffers"
-version = "25.2.10"
+version = "25.9.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1045398c1bfd89168b5fd3f1fc11f6e70b34f6f66300c87d44d3de849463abf1"
+checksum = "09b6620799e7340ebd9968d2e0708eb82cf1971e9a16821e2091b6d6e475eed5"
 dependencies = [
  "bitflags",
  "rustc_version",
@@ -628,6 +628,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "hyperlight-common"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5230eeb4d3484f042522843abbc2989b8fe6a48418b7933b492d4394e1b95a8"
+dependencies = [
+ "anyhow",
+ "flatbuffers",
+ "log",
+ "spin 0.10.0",
+]
+
+[[package]]
 name = "hyperlight-component-util"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -650,7 +662,7 @@ checksum = "c6e151950e26c8181afe7f35583c195def8ddcf66d0237409b23a878b394f9c2"
 dependencies = [
  "anyhow",
  "flatbuffers",
- "hyperlight-common",
+ "hyperlight-common 0.9.0",
  "hyperlight-guest-tracing",
  "serde_json",
 ]
@@ -665,7 +677,7 @@ dependencies = [
  "cc",
  "cfg-if",
  "glob",
- "hyperlight-common",
+ "hyperlight-common 0.9.0",
  "hyperlight-guest",
  "hyperlight-guest-tracing",
  "log",
@@ -678,7 +690,7 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f48be61a35fd4f9e755dce72429d5e9d4ff8cd5240c3a61cd5fb440d61545aea"
 dependencies = [
- "hyperlight-common",
+ "hyperlight-common 0.9.0",
  "hyperlight-guest-tracing-macro",
  "spin 0.10.0",
 ]
@@ -924,9 +936,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.27"
+version = "0.4.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
+checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
 
 [[package]]
 name = "lru-slab"
@@ -1808,7 +1820,7 @@ dependencies = [
  "cargo_metadata",
  "cc",
  "cfg-if",
- "hyperlight-common",
+ "hyperlight-common 0.10.0",
  "hyperlight-guest",
  "hyperlight-guest-bin",
  "hyperlight-wasm-macro",
