@@ -72,7 +72,7 @@ chrono = "0.4"
 blake3 = "1.8"
 built = { version = "0.8.0", features = ["chrono", "git2"] }
 anyhow = { version = "1.0" }
-goblin = "0.10.1"
+goblin = "0.10.2"
 tar = "0.4.44"
 
 [features]
