@@ -16,9 +16,9 @@ jobs:
       - uses: actions/checkout@v5
 
       # We are not using the common workflow here because it installs a lot of tools we don't need
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: "1.86.0"
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: "1.89"
 
       - uses: extractions/setup-just@v3
         with:

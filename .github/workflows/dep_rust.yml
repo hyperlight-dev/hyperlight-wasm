@@ -52,7 +52,7 @@ jobs:
       - name: Hyperlight setup
         uses: hyperlight-dev/ci-setup-workflow@v1.8.0
         with:
-          rust-toolchain: "1.86.0"
+          rust-toolchain: "1.89"
 
       - name: Add Nightly Rust
         run: |
