@@ -125,7 +125,7 @@ fn build_wasm_runtime() -> PathBuf {
     env_vars.retain(|(key, _)| !key.starts_with("CARGO_"));
 
     let mut cargo_cmd = std::process::Command::new(&cargo_bin);
-    let cmd = cargo_cmd
+    let mut cmd = cargo_cmd
         .arg("build")
         .arg("--profile")
         .arg(cargo_profile)
@@ -134,9 +134,17 @@ fn build_wasm_runtime() -> PathBuf {
         .arg(&target_dir)
         .current_dir(&in_repo_dir)
         .env_clear()
+        // On windows when `gdb` features is enabled this is not set correctly
+        .env("CFLAGS_x86_64_unknown_none", "-fPIC")
         .envs(env_vars)
         .env("PATH", path_with(&toolchain_dir))
         .env("HYPERLIGHT_GUEST_TOOLCHAIN_ROOT", &toolchain_dir);
+
+    // Add --features gdb if the gdb feature is enabled for this build script
+    if std::env::var("CARGO_FEATURE_GDB").is_ok() {
+        cmd = cmd.arg("--features").arg("gdb");
+    }
+
     let status = cmd
         .status()
         .unwrap_or_else(|e| panic!("could not run cargo build wasm_runtime: {}", e));
@@ -238,6 +246,10 @@ fn main() -> Result<()> {
     writeln!(file, "{}", hash_str).unwrap();
 
     println!("cargo:rerun-if-changed=build.rs");
+
+    cfg_aliases::cfg_aliases! {
+        gdb: { all(feature = "gdb", debug_assertions) },
+    }
 
     Ok(())
 }
