@@ -618,8 +618,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-common"
 version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5230eeb4d3484f042522843abbc2989b8fe6a48418b7933b492d4394e1b95a8"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=7a266216c658331d9ff6f7315ba8c3f6a4926ad6#7a266216c658331d9ff6f7315ba8c3f6a4926ad6"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -645,8 +644,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest"
 version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e274942ac4a0f8326652e431e493eef2e63cc0b505ae1feefa8db105b107b11"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=7a266216c658331d9ff6f7315ba8c3f6a4926ad6#7a266216c658331d9ff6f7315ba8c3f6a4926ad6"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -658,12 +656,12 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest-bin"
 version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80bc1d424b7a9ad6b74dfb90c985f25b0af6b93bc934dfb2268bca89adab9643"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=7a266216c658331d9ff6f7315ba8c3f6a4926ad6#7a266216c658331d9ff6f7315ba8c3f6a4926ad6"
 dependencies = [
  "buddy_system_allocator",
  "cc",
  "cfg-if",
+ "flatbuffers",
  "glob",
  "hyperlight-common",
  "hyperlight-guest",
@@ -675,8 +673,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest-tracing"
 version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcf14ec1c55e993887f2d1dbecc26a89e352a1cbd4f3bb4d2fd9e3cbe0e670c5"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=7a266216c658331d9ff6f7315ba8c3f6a4926ad6#7a266216c658331d9ff6f7315ba8c3f6a4926ad6"
 dependencies = [
  "hyperlight-common",
  "hyperlight-guest-tracing-macro",
@@ -686,8 +683,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest-tracing-macro"
 version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ae072935591a653dfbb3d97b2a777751a9c20bece6929f72137b380c054ecae"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=7a266216c658331d9ff6f7315ba8c3f6a4926ad6#7a266216c658331d9ff6f7315ba8c3f6a4926ad6"
 dependencies = [
  "proc-macro2",
  "quote",
