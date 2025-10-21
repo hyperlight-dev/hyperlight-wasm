@@ -156,12 +156,21 @@ fn build_wasm_runtime() -> PathBuf {
         .join(profile)
         .join("wasm_runtime");
 
-    resource.canonicalize().unwrap_or_else(|_| {
+    if let Ok(path) = resource.canonicalize() {
+        if std::env::var("CARGO_FEATURE_GDB").is_ok() {
+            println!(
+                "cargo:warning=Wasm runtime guest binary at: {}",
+                path.display()
+            );
+        }
+
+        path
+    } else {
         panic!(
             "could not find wasm_runtime after building it (expected {:?})",
             resource
         )
-    })
+    }
 }
 
 fn main() -> Result<()> {
