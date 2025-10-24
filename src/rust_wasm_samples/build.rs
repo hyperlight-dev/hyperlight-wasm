@@ -17,6 +17,5 @@ limitations under the License.
 fn main() {
     println!("cargo:rustc-link-arg=-zstack-size=4096");
     println!("cargo:rustc-link-arg=--initial-memory=65536");
-    println!("cargo:rustc-link-arg=--strip-all");
     println!("cargo:rustc-target-feature=+bulk-memory");
 }

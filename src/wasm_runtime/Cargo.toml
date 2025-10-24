@@ -11,17 +11,21 @@ doctest = false
 bench = false
 
 [dependencies]
-hyperlight-common = { version = "0.10.0", default-features = false }
-hyperlight-guest-bin = { version = "0.10.0", features = [ "printf" ] }
-hyperlight-guest = { version = "0.10.0" }
+hyperlight-common = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "7a266216c658331d9ff6f7315ba8c3f6a4926ad6", version = "0.10.0", default-features = false }
+hyperlight-guest-bin = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "7a266216c658331d9ff6f7315ba8c3f6a4926ad6", version = "0.10.0", features = [ "printf" ] }
+hyperlight-guest = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "7a266216c658331d9ff6f7315ba8c3f6a4926ad6", version = "0.10.0" }
 wasmtime = { version = "36.0.2", default-features = false, features = [ "runtime", "custom-virtual-memory", "custom-native-signals", "component-model" ] }
 hyperlight-wasm-macro = { path = "../hyperlight_wasm_macro" }
 spin = "0.10.0"
 
 [build-dependencies]
+cfg_aliases = "0.2.1"
 cc = "1.2"
 cfg-if = { version = "1" }
 cargo_metadata = "0.23"
 reqwest =  {version = "0.12", default-features = false, features = ["blocking","rustls-tls"] }
 
 [workspace] # indicate that this crate is not part of any workspace
+
+[features]
+gdb = ["wasmtime/debug-builtins"]
