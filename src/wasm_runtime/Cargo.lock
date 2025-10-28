@@ -617,8 +617,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-common"
-version = "0.10.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=7a266216c658331d9ff6f7315ba8c3f6a4926ad6#7a266216c658331d9ff6f7315ba8c3f6a4926ad6"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "409ac43d32b148aa71473d5bca0b5ff4cf72ddf4e9cb4550e9a189d807e6c0d4"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -643,20 +644,23 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest"
-version = "0.10.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=7a266216c658331d9ff6f7315ba8c3f6a4926ad6#7a266216c658331d9ff6f7315ba8c3f6a4926ad6"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f27be04c1916c8483d6ec3486bd753b0e0757c30eb94aad53ba1e52da2f7ca00"
 dependencies = [
  "anyhow",
  "flatbuffers",
  "hyperlight-common",
  "hyperlight-guest-tracing",
  "serde_json",
+ "tracing",
 ]
 
 [[package]]
 name = "hyperlight-guest-bin"
-version = "0.10.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=7a266216c658331d9ff6f7315ba8c3f6a4926ad6#7a266216c658331d9ff6f7315ba8c3f6a4926ad6"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10a8193539c50452e90e0c5ee906d251a1b2b6121a6040fc532b2468d9ef2184"
 dependencies = [
  "buddy_system_allocator",
  "cc",
@@ -668,26 +672,19 @@ dependencies = [
  "hyperlight-guest-tracing",
  "log",
  "spin 0.10.0",
+ "tracing",
 ]
 
 [[package]]
 name = "hyperlight-guest-tracing"
-version = "0.10.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=7a266216c658331d9ff6f7315ba8c3f6a4926ad6#7a266216c658331d9ff6f7315ba8c3f6a4926ad6"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "670c97963e19dd9e2855ed8ef1db47074d72036beb2ac5e621bd5796be2856b0"
 dependencies = [
  "hyperlight-common",
- "hyperlight-guest-tracing-macro",
  "spin 0.10.0",
-]
-
-[[package]]
-name = "hyperlight-guest-tracing-macro"
-version = "0.10.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=7a266216c658331d9ff6f7315ba8c3f6a4926ad6#7a266216c658331d9ff6f7315ba8c3f6a4926ad6"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
+ "tracing",
+ "tracing-core",
 ]
 
 [[package]]
@@ -1639,7 +1636,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "784e0ac535deb450455cbfa28a6f0df145ea1bb7ae51b821cf5e7927fdcfbdd0"
 dependencies = [
  "pin-project-lite",
+ "tracing-attributes",
  "tracing-core",
+]
+
+[[package]]
+name = "tracing-attributes"
+version = "0.1.30"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81383ab64e72a7a8b8e13130c49e3dab29def6d0c7d76a03087b3cf71c5c6903"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
