@@ -19,9 +19,7 @@ use std::path::Path;
 use cargo_metadata::{MetadataCommand, Package};
 use cargo_util_schemas::manifest::PackageName;
 use clap::{Arg, Command};
-#[cfg(feature = "gdb")]
-use wasmtime::OptLevel;
-use wasmtime::{Config, Engine, Module, Precompiled};
+use wasmtime::{Config, Engine, Module, OptLevel, Precompiled};
 
 fn main() {
     let hyperlight_wasm_aot_version = env!("CARGO_PKG_VERSION");
@@ -49,6 +47,13 @@ fn main() {
                         .required(false)
                         .long("component")
                         .action(clap::ArgAction::SetTrue),
+                )
+                .arg(
+                    Arg::new("debug")
+                        .help("Precompile with debug and disable optimizations")
+                        .required(false)
+                        .long("debug")
+                        .action(clap::ArgAction::SetTrue),
                 ),
         )
         .subcommand(
@@ -59,6 +64,13 @@ fn main() {
                         .help("The aot compiled file to check")
                         .required(true)
                         .index(1),
+                )
+                .arg(
+                    Arg::new("debug")
+                        .help("Specifies if the module has been compiled with debug support")
+                        .required(false)
+                        .long("debug")
+                        .action(clap::ArgAction::SetTrue),
                 ),
         )
         .get_matches();
@@ -75,8 +87,16 @@ fn main() {
                     path.to_str().unwrap().to_string().clone()
                 }
             };
-            println!("Aot Compiling {} to {}", infile, outfile);
-            let config = get_config();
+            let debug = args.get_flag("debug");
+            if debug {
+                println!(
+                    "Aot Compiling {} to {} with debug info and optimizations off",
+                    infile, outfile
+                );
+            } else {
+                println!("Aot Compiling {} to {}", infile, outfile);
+            }
+            let config = get_config(debug);
             let engine = Engine::new(&config).unwrap();
             let bytes = std::fs::read(infile).unwrap();
             let serialized = if args.get_flag("component") {
@@ -99,11 +119,19 @@ fn main() {
             let args = matches
                 .subcommand_matches("check-wasmtime-version")
                 .unwrap();
+            let debug = args.get_flag("debug");
             let file = args.get_one::<String>("file").unwrap();
-            println!("Checking Wasmtime version used to compile file: {}", file);
+            if debug {
+                println!(
+                    "Checking Wasmtime version used to compile debug info enabled file: {}",
+                    file
+                );
+            } else {
+                println!("Checking Wasmtime version used to compile file: {}", file);
+            }
             // load the file into wasmtime, check that it is aot compiled and extract the version of wasmtime used to compile it from its metadata
             let bytes = std::fs::read(file).unwrap();
-            let config = get_config();
+            let config = get_config(debug);
             let engine = Engine::new(&config).unwrap();
             match Engine::detect_precompiled(&bytes) {
                 Some(pre_compiled) => {
@@ -153,13 +181,12 @@ fn main() {
 }
 
 /// Returns a new `Config` for the Wasmtime engine with additional settings for AOT compilation.
-fn get_config() -> Config {
+fn get_config(debug: bool) -> Config {
     let mut config = Config::new();
     config.target("x86_64-unknown-none").unwrap();
 
     // Enable the default features for the Wasmtime engine.
-    #[cfg(feature = "gdb")]
-    {
+    if debug {
         config.debug_info(true);
         config.cranelift_opt_level(OptLevel::None);
     }

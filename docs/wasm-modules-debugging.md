@@ -8,10 +8,10 @@ To facilitate debugging, it is recommended to compile your Wasm modules with deb
 For example, when using `wasi-sdk/clang`, you can include the `-g` flag to generate debug information and `-O0` to disable optimizations.
 You can find examples of native Wasm modules in the repository under the `rust_wasm_samples`, `wasm_samples` and `component_sample` directories.
 
-Next, ensure that the pre-compiled Wasm modules are built with debug information as well. To do this, you can use the `hyperlight-wasm-aot` tool with the `--features gdb` flag:
+Next, ensure that the pre-compiled Wasm modules are built with debug information as well. To do this, you can use the `hyperlight-wasm-aot` tool with the `--debug` command argument:
 
 ```bash
-cargo run --features gdb -p hyperlight-wasm-aot compile input.wasm output.aot
+cargo run -p hyperlight-wasm-aot compile --debug input.wasm output.aot
 ```
 
 
