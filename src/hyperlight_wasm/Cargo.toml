@@ -90,6 +90,7 @@ crashdump = ["hyperlight-host/crashdump"]
 gdb = ["hyperlight-host/gdb"]
 kvm = ["hyperlight-host/kvm"]
 mshv3 = ["hyperlight-host/mshv3"]
+trace_guest = ["hyperlight-host/trace_guest"]
 
 [[bench]]
 name = "benchmarks"

@@ -28,4 +28,6 @@ reqwest =  {version = "0.12", default-features = false, features = ["blocking","
 [workspace] # indicate that this crate is not part of any workspace
 
 [features]
+default = []
 gdb = ["wasmtime/debug-builtins"]
+trace_guest = ["hyperlight-common/trace_guest", "hyperlight-guest/trace_guest", "hyperlight-guest-bin/trace_guest"]
