@@ -89,7 +89,6 @@ print_debug = ["hyperlight-host/print_debug"]
 crashdump = ["hyperlight-host/crashdump"]
 gdb = ["hyperlight-host/gdb"]
 kvm = ["hyperlight-host/kvm"]
-mshv2 = ["hyperlight-host/mshv2"]
 mshv3 = ["hyperlight-host/mshv3"]
 
 [[bench]]

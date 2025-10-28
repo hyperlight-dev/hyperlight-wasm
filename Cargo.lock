@@ -1326,10 +1326,8 @@ dependencies = [
  "libc",
  "log",
  "metrics",
- "mshv-bindings 0.2.1",
- "mshv-bindings 0.6.4",
- "mshv-ioctls 0.2.1",
- "mshv-ioctls 0.6.4",
+ "mshv-bindings",
+ "mshv-ioctls",
  "page_size",
  "rand",
  "rust-embed",
@@ -1834,18 +1832,6 @@ dependencies = [
 
 [[package]]
 name = "mshv-bindings"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f416b4432174e5a3f956a7887f4c1a4acea9511d81def67fcb8473293630ab9e"
-dependencies = [
- "libc",
- "num_enum",
- "vmm-sys-util",
- "zerocopy 0.7.35",
-]
-
-[[package]]
-name = "mshv-bindings"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c68716836323af95932a84cee9cd6020ab8ab328b8f825d0a715f4df1ead901"
@@ -1858,24 +1844,12 @@ dependencies = [
 
 [[package]]
 name = "mshv-ioctls"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d57586da719aacc905042eea71ff2efb52d16c7228a94af155c9ea45fe09c1c7"
-dependencies = [
- "libc",
- "mshv-bindings 0.2.1",
- "thiserror 1.0.69",
- "vmm-sys-util",
-]
-
-[[package]]
-name = "mshv-ioctls"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "748f59f22dccd910080a6315fc692bd04bd8c94ae2fc346957ec34b7d985eaa0"
 dependencies = [
  "libc",
- "mshv-bindings 0.6.4",
+ "mshv-bindings",
  "thiserror 2.0.17",
  "vmm-sys-util",
 ]
