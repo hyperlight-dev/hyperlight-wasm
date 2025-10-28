@@ -15,8 +15,6 @@ limitations under the License.
 */
 
 use hyperlight_host::func::{HostFunction, ParameterTuple, Registerable, SupportedReturnType};
-#[cfg(all(feature = "seccomp", target_os = "linux"))]
-use hyperlight_host::sandbox::ExtraAllowedSyscall;
 use hyperlight_host::sandbox::config::SandboxConfiguration;
 use hyperlight_host::{GuestBinary, Result, UninitializedSandbox, new_error};
 
@@ -45,18 +43,6 @@ impl Registerable for ProtoWasmSandbox {
             .as_mut()
             .ok_or(new_error!("inner sandbox was none"))
             .and_then(|sb| sb.register(name, hf))
-    }
-    #[cfg(all(feature = "seccomp", target_os = "linux"))]
-    fn register_host_function_with_syscalls<Args: ParameterTuple, Output: SupportedReturnType>(
-        &mut self,
-        name: &str,
-        hf: impl Into<HostFunction<Output, Args>>,
-        eas: Vec<ExtraAllowedSyscall>,
-    ) -> Result<()> {
-        self.inner
-            .as_mut()
-            .ok_or(new_error!("inner sandbox was none"))
-            .and_then(|sb| sb.register_host_function_with_syscalls(name, hf, eas))
     }
 }
 
@@ -119,25 +105,6 @@ impl ProtoWasmSandbox {
             .register(name, host_func)
     }
 
-    /// Register the given host function `host_func` with `self` along with a vec of syscalls the
-    /// function requires and return `Ok` if the registration succeeded, and a descriptive `Err` if
-    /// it didn't.
-    #[cfg(all(feature = "seccomp", target_os = "linux"))]
-    pub fn register_with_extra_allowed_syscalls<
-        Args: ParameterTuple,
-        Output: SupportedReturnType,
-    >(
-        &mut self,
-        name: impl AsRef<str>,
-        host_func: impl Into<HostFunction<Output, Args>>,
-        extra_allowed_syscalls: impl IntoIterator<Item = ExtraAllowedSyscall>,
-    ) -> Result<()> {
-        self.inner
-            .as_mut()
-            .ok_or(new_error!("inner sandbox was none"))?
-            .register_with_extra_allowed_syscalls(name, host_func, extra_allowed_syscalls)
-    }
-
     /// Register the given host printing function `print_func` with `self`.
     /// Return `Ok` if the registration succeeded, and a descriptive `Err` otherwise.
     pub fn register_print(
@@ -148,21 +115,6 @@ impl ProtoWasmSandbox {
             .as_mut()
             .ok_or(new_error!("inner sandbox was none"))?
             .register_print(print_func)
-    }
-
-    /// Register the given host printing function `print_func` with `self` along with a
-    /// vec of syscalls the function requires.
-    /// Return `Ok` if the registration succeeded, and a descriptive `Err` otherwise.
-    #[cfg(all(feature = "seccomp", target_os = "linux"))]
-    pub fn register_print_with_extra_allowed_syscalls(
-        &mut self,
-        print_func: impl Into<HostFunction<i32, (String,)>>,
-        extra_allowed_syscalls: impl IntoIterator<Item = ExtraAllowedSyscall>,
-    ) -> Result<()> {
-        self.inner
-            .as_mut()
-            .ok_or(new_error!("inner sandbox was none"))?
-            .register_print_with_extra_allowed_syscalls(print_func, extra_allowed_syscalls)
     }
 }
 
