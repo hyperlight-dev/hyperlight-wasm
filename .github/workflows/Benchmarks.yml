@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        hypervisor: [hyperv, mshv, mshv3, kvm] # hyperv is windows, mshv and kvm are linux
+        hypervisor: [hyperv, mshv3, kvm] # hyperv is windows, mshv and kvm are linux
         cpu: [amd, intel]
         config: [release] # don't want to benchmark debug-builds
 
@@ -71,7 +71,7 @@ jobs:
         # the component model benchmark depends on the wasm wit component
         just ensure-tools
         just compile-wit
-        just bench-ci dev release ${{ matrix.hypervisor == 'mshv' && 'mshv2' || ''}}
+        just bench-ci dev release
       working-directory: ./src/hyperlight_wasm
 
     - name: Upload Benchmarks
