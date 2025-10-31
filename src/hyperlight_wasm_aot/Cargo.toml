@@ -15,7 +15,7 @@ Application to precompile WebAssembly binaries to for hyperlight-wasm.
 wasmtime = { version = "36.0.2", default-features = false, features = ["cranelift", "runtime", "component-model" ] }
 clap = "4.5"
 cargo_metadata = "0.23"
-cargo-util-schemas = "0.10.0"
+cargo-util-schemas = "0.10.1"
 
 [features]
 gdb = ["wasmtime/debug-builtins"]
