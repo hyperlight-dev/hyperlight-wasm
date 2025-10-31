@@ -57,17 +57,20 @@ use hyperlight_common::flatbuffer_wrappers::guest_error::ErrorCode;
 use hyperlight_common::flatbuffer_wrappers::util::get_flatbuffer_result;
 use hyperlight_guest::error::{HyperlightGuestError, Result};
 use spin::Mutex;
+use tracing::instrument;
 use wasmtime::{AsContextMut, Extern, Val};
 
 // Global tracking for return value allocations that need to be freed on next VM entry
 static RETURN_VALUE_ALLOCATIONS: Mutex<Vec<i32>> = Mutex::new(Vec::new());
 
 /// Track a return value allocation that should be freed on the next VM entry
+#[instrument(skip_all, level = "Trace")]
 fn track_return_value_allocation(addr: i32) {
     RETURN_VALUE_ALLOCATIONS.lock().push(addr);
 }
 
 /// Free all tracked return value allocations from previous VM calls
+#[instrument(skip_all, level = "Trace")]
 pub fn free_return_value_allocations<C: AsContextMut>(
     ctx: &mut C,
     get_export: &impl Fn(&mut C, &str) -> Option<Extern>,
@@ -79,6 +82,7 @@ pub fn free_return_value_allocations<C: AsContextMut>(
     Ok(())
 }
 
+#[instrument(skip_all, level = "Trace")]
 fn malloc<C: AsContextMut>(
     ctx: &mut C,
     get_export: &impl Fn(&mut C, &str) -> Option<Extern>,
@@ -96,6 +100,7 @@ fn malloc<C: AsContextMut>(
     Ok(addr)
 }
 
+#[instrument(skip_all, level = "Trace")]
 fn free<C: AsContextMut>(
     ctx: &mut C,
     get_export: &impl Fn(&mut C, &str) -> Option<Extern>,
@@ -111,6 +116,7 @@ fn free<C: AsContextMut>(
     Ok(())
 }
 
+#[instrument(skip_all, level = "Trace")]
 fn write<C: AsContextMut>(
     ctx: &mut C,
     get_export: &impl Fn(&mut C, &str) -> Option<Extern>,
@@ -132,6 +138,7 @@ fn write<C: AsContextMut>(
     Ok(())
 }
 
+#[instrument(skip_all, level = "Trace")]
 fn read<C: AsContextMut>(
     ctx: &mut C,
     get_export: &impl Fn(&mut C, &str) -> Option<Extern>,
@@ -153,6 +160,7 @@ fn read<C: AsContextMut>(
     Ok(())
 }
 
+#[instrument(skip_all, level = "Trace")]
 fn read_cstr<C: AsContextMut>(
     ctx: &mut C,
     get_export: &impl Fn(&mut C, &str) -> Option<Extern>,
@@ -196,6 +204,7 @@ fn read_cstr<C: AsContextMut>(
 /// For String and VecBytes parameter types, this allocates memory in the guest's memory space
 /// and returns a pointer. The guest function is responsible for freeing this memory when it is no
 /// longer needed using the `free` function exported from the guest module.
+#[instrument(skip_all, level = "Trace")]
 pub fn hl_param_to_val<C: AsContextMut>(
     mut ctx: C,
     get_export: impl Fn(&mut C, &str) -> Option<Extern>,
@@ -230,6 +239,7 @@ pub fn hl_param_to_val<C: AsContextMut>(
 /// For String and VecBytes return types, the guest has allocated memory in its own memory space
 /// and returned pointers. The host takes ownership of these allocations and tracks them for
 /// automatic cleanup on the next VM entry to prevent memory leaks.
+#[instrument(skip_all, level = "Trace")]
 pub fn val_to_hl_result<C: AsContextMut>(
     mut ctx: C,
     get_export: impl Fn(&mut C, &str) -> Option<Extern>,
@@ -284,6 +294,7 @@ pub fn val_to_hl_result<C: AsContextMut>(
 /// For String and VecBytes parameter types, the guest passes pointers to data in its own
 /// memory space. The guest retains ownership of these allocations and remains responsible
 /// for freeing them. This function only reads the data without taking ownership.
+#[instrument(skip_all, level = "Trace")]
 pub fn val_to_hl_param<'a, C: AsContextMut>(
     ctx: &mut C,
     get_export: impl Fn(&mut C, &str) -> Option<Extern>,
@@ -339,6 +350,7 @@ pub fn val_to_hl_param<'a, C: AsContextMut>(
 /// For String and VecBytes return types, this allocates memory in the guest's memory space
 /// and returns a pointer. The guest owns these allocations and must free them when no longer needed
 /// using the `free` function exported from the guest module.
+#[instrument(skip_all, level = "Trace")]
 pub fn hl_return_to_val<C: AsContextMut>(
     ctx: &mut C,
     get_export: impl Fn(&mut C, &str) -> Option<Extern>,

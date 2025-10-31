@@ -49,6 +49,11 @@ name = "metrics"
 path = "examples/metrics/main.rs"
 test = true
 
+[[example]]
+name = "tracing-otlp"
+path = "examples/tracing-otlp/main.rs"
+test = true
+
 [dependencies]
 hyperlight-host = { workspace = true }
 libc = { version = "0.2.176" }
@@ -64,7 +69,7 @@ windows = { version = "0.62", features = ["Win32_System_Threading"] }
 page_size = "0.6.0"
 
 [dev-dependencies]
-hyperlight-component-macro = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "7a266216c658331d9ff6f7315ba8c3f6a4926ad6", version = "0.10.0" }
+hyperlight-component-macro = { git = "https://github.com/hyperlight-dev/hyperlight.git", rev = "2e8b6c8935cbef1188c591ec40d2ecfe92ecd5b4", version = "0.10.0" }
 examples_common = { path = "../examples_common" }
 criterion = { version = "0.7.0", features = ["html_reports"] }
 crossbeam-queue = "0.3"
@@ -72,6 +77,16 @@ blake3 = "1.8"
 toml = "0.9.8"
 metrics-util = "0.20.0"
 metrics-exporter-prometheus = "0.17"
+opentelemetry = "0.31.0"
+opentelemetry-otlp = { version = "0.31.0", default-features = false, features = ["http-proto", "reqwest-blocking-client", "grpc-tonic"] }
+opentelemetry-semantic-conventions = "0.31"
+opentelemetry_sdk = { version = "0.31.0", features = ["rt-tokio"] }
+tokio = { version = "1.48.0", features = ["full"] }
+tracing-forest = { version = "0.2.0", features = ["uuid", "chrono", "smallvec", "serde", "env-filter"] }
+tracing = "0.1.41"
+tracing-subscriber = {version = "0.3.20", features = ["std", "env-filter"]}
+tracing-opentelemetry = "0.32.0"
+uuid = { version = "1.18.1", features = ["v4"] }
 
 [build-dependencies]
 cfg_aliases = "0.2.1"
@@ -85,13 +100,12 @@ tar = "0.4.44"
 [features]
 default = ["function_call_metrics", "kvm", "mshv3"]
 function_call_metrics = ["hyperlight-host/function_call_metrics"]
-seccomp = ["hyperlight-host/seccomp"]
 print_debug = ["hyperlight-host/print_debug"]
 crashdump = ["hyperlight-host/crashdump"]
 gdb = ["hyperlight-host/gdb"]
 kvm = ["hyperlight-host/kvm"]
-mshv2 = ["hyperlight-host/mshv2"]
 mshv3 = ["hyperlight-host/mshv3"]
+trace_guest = ["hyperlight-host/trace_guest"]
 
 [[bench]]
 name = "benchmarks"
