@@ -30,6 +30,7 @@ use hyperlight_guest_bin::guest_function::definition::GuestFunctionDefinition;
 use hyperlight_guest_bin::guest_function::register::register_function;
 use hyperlight_guest_bin::host_comm::call_host_function;
 use spin::Mutex;
+use tracing::instrument;
 use wasmtime::component::{Component, Instance, Linker};
 use wasmtime::{Config, Engine, Store};
 
@@ -43,10 +44,12 @@ static CUR_INSTANCE: Mutex<Option<Instance>> = Mutex::new(None);
 hyperlight_wasm_macro::wasm_guest_bindgen!();
 
 // dummy for compatibility with the module loading approach
+#[instrument(skip_all, level = "Info")]
 fn init_wasm_runtime(_function_call: &FunctionCall) -> Result<Vec<u8>> {
     Ok(get_flatbuffer_result::<i32>(0))
 }
 
+#[instrument(skip_all, level = "Info")]
 fn load_component_common(engine: &Engine, component: Component) -> Result<()> {
     let mut store = Store::new(engine, ());
     let instance = (*CUR_LINKER.lock())
@@ -58,6 +61,7 @@ fn load_component_common(engine: &Engine, component: Component) -> Result<()> {
     Ok(())
 }
 
+#[instrument(skip_all, level = "Info")]
 fn load_wasm_module(function_call: &FunctionCall) -> Result<Vec<u8>> {
     if let (
         ParameterValue::VecBytes(ref wasm_bytes),
@@ -79,6 +83,7 @@ fn load_wasm_module(function_call: &FunctionCall) -> Result<Vec<u8>> {
     }
 }
 
+#[instrument(skip_all, level = "Info")]
 fn load_wasm_module_phys(function_call: &FunctionCall) -> Result<Vec<u8>> {
     if let (ParameterValue::ULong(ref phys), ParameterValue::ULong(ref len), Some(ref engine)) = (
         &function_call.parameters.as_ref().unwrap()[0],
@@ -98,6 +103,7 @@ fn load_wasm_module_phys(function_call: &FunctionCall) -> Result<Vec<u8>> {
 }
 
 #[no_mangle]
+#[instrument(skip_all, level = "Info")]
 pub extern "C" fn hyperlight_main() {
     platform::register_page_fault_handler();
 
@@ -133,6 +139,7 @@ pub extern "C" fn hyperlight_main() {
 }
 
 #[no_mangle]
+#[instrument(skip_all, level = "Info")]
 pub fn guest_dispatch_function(function_call: FunctionCall) -> Result<Vec<u8>> {
     Err(HyperlightGuestError::new(
         ErrorCode::GuestFunctionNotFound,

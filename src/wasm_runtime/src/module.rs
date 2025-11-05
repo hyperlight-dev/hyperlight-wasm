@@ -30,6 +30,7 @@ use hyperlight_guest_bin::guest_function::definition::GuestFunctionDefinition;
 use hyperlight_guest_bin::guest_function::register::register_function;
 use hyperlight_guest_bin::host_comm::print_output_with_host_print;
 use spin::Mutex;
+use tracing::instrument;
 use wasmtime::{Config, Engine, Linker, Module, Store, Val};
 
 use crate::{hostfuncs, marshal, platform, wasip1};
@@ -43,6 +44,7 @@ static CUR_STORE: Mutex<Option<Store<()>>> = Mutex::new(None);
 static CUR_INSTANCE: Mutex<Option<wasmtime::Instance>> = Mutex::new(None);
 
 #[no_mangle]
+#[instrument(skip_all, level = "Info")]
 pub fn guest_dispatch_function(function_call: FunctionCall) -> Result<Vec<u8>> {
     let mut store = CUR_STORE.lock();
     let store = store.deref_mut().as_mut().ok_or(HyperlightGuestError::new(
@@ -93,6 +95,7 @@ pub fn guest_dispatch_function(function_call: FunctionCall) -> Result<Vec<u8>> {
     )
 }
 
+#[instrument(skip_all, level = "Info")]
 fn init_wasm_runtime() -> Result<Vec<u8>> {
     let mut config = Config::new();
     config.with_custom_code_memory(Some(alloc::sync::Arc::new(platform::WasmtimeCodeMemory {})));
@@ -122,6 +125,7 @@ fn init_wasm_runtime() -> Result<Vec<u8>> {
     Ok(get_flatbuffer_result::<i32>(0))
 }
 
+#[instrument(skip_all, level = "Info")]
 fn load_wasm_module(function_call: &FunctionCall) -> Result<Vec<u8>> {
     if let (
         ParameterValue::VecBytes(ref wasm_bytes),
@@ -154,6 +158,7 @@ fn load_wasm_module(function_call: &FunctionCall) -> Result<Vec<u8>> {
     }
 }
 
+#[instrument(skip_all, level = "Info")]
 fn load_wasm_module_phys(function_call: &FunctionCall) -> Result<Vec<u8>> {
     if let (ParameterValue::ULong(ref phys), ParameterValue::ULong(ref len), Some(ref engine)) = (
         &function_call.parameters.as_ref().unwrap()[0],
@@ -182,8 +187,10 @@ fn load_wasm_module_phys(function_call: &FunctionCall) -> Result<Vec<u8>> {
     }
 }
 
+// GuestFunctionDefinition expects a function pointer as i64
 #[no_mangle]
-#[allow(clippy::fn_to_numeric_cast)] // GuestFunctionDefinition expects a function pointer as i64
+#[allow(clippy::fn_to_numeric_cast)]
+#[instrument(skip_all, level = "Info")]
 pub extern "C" fn hyperlight_main() {
     platform::register_page_fault_handler();
 
