@@ -144,6 +144,10 @@ fn build_wasm_runtime() -> PathBuf {
     if std::env::var("CARGO_FEATURE_GDB").is_ok() {
         cmd = cmd.arg("--features").arg("gdb");
     }
+    // Enable the "trace_guest" feature if the corresponding Cargo feature is enabled
+    if std::env::var("CARGO_FEATURE_TRACE_GUEST").is_ok() {
+        cmd = cmd.arg("--features").arg("trace_guest");
+    }
 
     let status = cmd
         .status()
