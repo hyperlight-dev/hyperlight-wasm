@@ -37,7 +37,7 @@ jobs:
     strategy:
         fail-fast: true
         matrix:
-          hypervisor: [hyperv, mshv, mshv3, kvm] # hyperv is windows, mshv and kvm are linux
+          hypervisor: [hyperv, mshv3, kvm] # hyperv is windows, mshv and kvm are linux
           cpu: [amd, intel]
           config: [debug, release]
   
@@ -92,7 +92,7 @@ jobs:
         run: just clippy ${{ matrix.config }}
 
       - name: Build
-        run:  just build ${{ matrix.config }}  ${{ matrix.hypervisor == 'mshv' && 'mshv2' || ''}}
+        run:  just build ${{ matrix.config }}
         working-directory: ./src/hyperlight_wasm
 
       - name: Build Rust Wasm examples
@@ -100,7 +100,7 @@ jobs:
         working-directory: ./src/hyperlight_wasm
 
       - name: Test
-        run:  just test ${{ matrix.config }}  ${{ matrix.hypervisor == 'mshv' && 'mshv2' || ''}}
+        run:  just test ${{ matrix.config }}
         working-directory: ./src/hyperlight_wasm
 
       - name: Install github-cli (Windows)
@@ -118,14 +118,14 @@ jobs:
         shell: pwsh
 
       - name: Test Examples
-        run: just examples-ci ${{ matrix.config }} ${{ matrix.hypervisor == 'mshv' && 'mshv2' || ''}}
+        run: just examples-ci ${{ matrix.config }}
         working-directory: ./src/hyperlight_wasm
         env:
           # required for gh cli when downloading
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Test Component Model Examples
-        run: just examples-components ${{ matrix.config }} ${{ matrix.hypervisor == 'mshv' && 'mshv2' || ''}}
+        run: just examples-components ${{ matrix.config }}
         working-directory: ./src/hyperlight_wasm
       
       ### Benchmarks ###
@@ -141,6 +141,6 @@ jobs:
 
       - name: Run benchmarks
         run: |
-          just bench-ci dev ${{ matrix.config }} ${{ matrix.hypervisor == 'mshv' && 'mshv2' || ''}}
+          just bench-ci dev ${{ matrix.config }}
         working-directory: ./src/hyperlight_wasm
         if: ${{ matrix.config == 'release' }}

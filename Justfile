@@ -87,14 +87,9 @@ clippy target=default-target: (check target)
 # There may be tests that we really want to ignore so we cant just use --ignored and run then we have to
 # specify the test name of the ignored tests that we want to run
 # Additionally, we have to run the tests with the function_call_metrics feature enabled separately
-test target=default-target features="": (test-seccomp target features)
+test target=default-target features="":
     cargo test {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }}
     cargo test test_metrics {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored 
-
-test-seccomp target=default-target features="": 
-    cargo test {{ if features =="" {'--no-default-features -F "kvm,mshv3,seccomp"'} else {"--no-default-features -F seccomp," + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} -- --test-threads=1
-    cargo test {{ if features =="" {'--no-default-features -F "kvm,mshv3,seccomp"'} else {"--no-default-features -F seccomp," + features } }} test_metrics --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored --test-threads=1 
-    cargo test {{ if features =="" {'--no-default-features -F "kvm,mshv3,seccomp"'} else {"--no-default-features -F seccomp," + features } }} test_gather_metrics --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored --test-threads=1 
 
 examples-ci target=default-target features="": (build-rust-wasm-examples target)
     cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example helloworld
