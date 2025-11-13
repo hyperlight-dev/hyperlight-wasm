@@ -14,21 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::{env, fs};
 
 use cargo_metadata::{MetadataCommand, Package};
 
 fn main() {
-    let toolchain_dir = env::var_os("HYPERLIGHT_GUEST_TOOLCHAIN_ROOT").unwrap();
-    let toolchain_dir = PathBuf::from(toolchain_dir);
-    let clang_path = toolchain_dir.join("clang");
-
-    assert!(
-        clang_path.exists(),
-        "could not find clang at {clang_path:?}"
-    );
-
     println!("cargo:rerun-if-changed=.");
     let mut cfg = cc::Build::new();
 
@@ -63,7 +54,6 @@ fn main() {
 
     cfg.include("src/include");
     cfg.file("src/platform.c");
-    cfg.compiler(clang_path);
     if cfg!(windows) {
         env::set_var("AR_x86_64_unknown_none", "llvm-ar");
     }
