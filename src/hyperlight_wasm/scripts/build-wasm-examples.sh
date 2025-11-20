@@ -24,6 +24,13 @@ else
     OPT_FLAGS="-O3"
 fi
 
+# Set AOT debug flags if gdb feature is enabled
+if [[ "$FEATURES" == *"gdb"* ]]; then
+    AOT_DEBUG_FLAGS="--debug"
+else
+    AOT_DEBUG_FLAGS=""
+fi
+
 if [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
     # running in a container so use the installed wasi-sdk as the devcontainer has this installed  
     for FILENAME in $(find . -name '*.c' -not -path './components/*')
@@ -32,7 +39,7 @@ if [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
         # Build the wasm file with wasi-libc for wasmtime
         /opt/wasi-sdk/bin/clang ${DEBUG_FLAGS} -flto -ffunction-sections -mexec-model=reactor ${OPT_FLAGS} -z stack-size=4096 -Wl,--initial-memory=65536 -Wl,--export=__data_end -Wl,--export=__heap_base,--export=malloc,--export=free,--export=__wasm_call_ctors ${STRIP_FLAGS} -Wl,--no-entry -Wl,--allow-undefined -Wl,--gc-sections  -o ${OUTPUT_DIR}/${FILENAME%.*}-wasi-libc.wasm ${FILENAME}
 
-        cargo run ${AOT_FEATURES} -p hyperlight-wasm-aot compile ${OUTPUT_DIR}/${FILENAME%.*}-wasi-libc.wasm ${OUTPUT_DIR}/${FILENAME%.*}.aot
+        cargo run ${AOT_FEATURES} -p hyperlight-wasm-aot compile ${AOT_DEBUG_FLAGS} ${OUTPUT_DIR}/${FILENAME%.*}-wasi-libc.wasm ${OUTPUT_DIR}/${FILENAME%.*}.aot
     done
 
     for WIT_FILE in ${PWD}/components/*.wit; do
@@ -53,7 +60,7 @@ if [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
             ${PWD}/components/bindings/${COMPONENT_NAME}_component_type.o
 
         # Build AOT for Wasmtime
-        cargo run ${AOT_FEATURES} -p hyperlight-wasm-aot compile --component ${OUTPUT_DIR}/${COMPONENT_NAME}-p2.wasm ${OUTPUT_DIR}/${COMPONENT_NAME}.aot
+        cargo run ${AOT_FEATURES} -p hyperlight-wasm-aot compile ${AOT_DEBUG_FLAGS} --component ${OUTPUT_DIR}/${COMPONENT_NAME}-p2.wasm ${OUTPUT_DIR}/${COMPONENT_NAME}.aot
     done
 
 else 
@@ -82,7 +89,7 @@ else
             -v "${OUTPUT_DIR_REAL}:${OUTPUT_DIR_REAL}" \
             wasm-clang-builder:latest /bin/bash -c "/opt/wasi-sdk/bin/clang ${DEBUG_FLAGS} -flto -ffunction-sections -mexec-model=reactor ${OPT_FLAGS} -z stack-size=4096 -Wl,--initial-memory=65536 -Wl,--export=__data_end -Wl,--export=__heap_base,--export=malloc,--export=free,--export=__wasm_call_ctors ${STRIP_FLAGS} -Wl,--no-entry -Wl,--allow-undefined -Wl,--gc-sections  -o ${ABS_OUTPUT} ${ABS_INPUT}"
 
-        cargo run ${AOT_FEATURES} -p hyperlight-wasm-aot compile ${OUTPUT_WASM} ${OUTPUT_DIR}/${FILENAME%.*}.aot
+        cargo run ${AOT_FEATURES} -p hyperlight-wasm-aot compile ${AOT_DEBUG_FLAGS} ${OUTPUT_WASM} ${OUTPUT_DIR}/${FILENAME%.*}.aot
     done
 
     echo Building components
@@ -122,7 +129,7 @@ else
             ${ABS_BINDINGS_TYPE_O}"
 
         # Build AOT for Wasmtime
-        cargo run ${AOT_FEATURES} -p hyperlight-wasm-aot compile --component ${OUTPUT_WASM} ${OUTPUT_DIR}/${COMPONENT_NAME}.aot
+        cargo run ${AOT_FEATURES} -p hyperlight-wasm-aot compile ${AOT_DEBUG_FLAGS} --component ${OUTPUT_WASM} ${OUTPUT_DIR}/${COMPONENT_NAME}.aot
     done
 fi
 
