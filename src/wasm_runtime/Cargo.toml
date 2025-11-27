@@ -3,6 +3,9 @@ name = "wasm-runtime"
 version = "0.11.0"
 edition = "2021"
 
+[profile.release]
+debug = "full"
+
 [[bin]]
 name = "wasm_runtime"
 path = "src/main.rs"
@@ -32,3 +35,8 @@ reqwest =  {version = "0.12", default-features = false, features = ["blocking","
 default = []
 gdb = ["wasmtime/debug-builtins"]
 trace_guest = ["hyperlight-common/trace_guest", "hyperlight-guest/trace_guest", "hyperlight-guest-bin/trace_guest"]
+
+[patch.crates-io]
+hyperlight-common = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "9f1a6fc7c07ba48d726e2d1f193bbacfcca160e5" }
+hyperlight-guest-bin = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "9f1a6fc7c07ba48d726e2d1f193bbacfcca160e5" }
+hyperlight-guest = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "9f1a6fc7c07ba48d726e2d1f193bbacfcca160e5" }
