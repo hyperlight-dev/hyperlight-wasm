@@ -84,7 +84,7 @@ fn get_wasm_runtime_path() -> PathBuf {
     std::os::unix::fs::symlink(crates_dir, &vendor_dir).unwrap();
 
     #[cfg(not(unix))]
-    std::os::windows::fs::symlink_dir(crates_dir, &vendor_dir).unwrap();
+    junction::create(crates_dir, &vendor_dir).unwrap();
 
     let wasm_runtime_dir = crates_dir.join("wasm_runtime");
     if wasm_runtime_dir.exists() {
