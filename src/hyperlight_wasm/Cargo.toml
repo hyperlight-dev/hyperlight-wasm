@@ -71,7 +71,7 @@ page_size = "0.6.0"
 [dev-dependencies]
 hyperlight-component-macro = { version = "0.11.0" }
 examples_common = { path = "../examples_common" }
-criterion = { version = "0.7.0", features = ["html_reports"] }
+criterion = { version = "0.8.0", features = ["html_reports"] }
 crossbeam-queue = "0.3"
 blake3 = "1.8"
 toml = "0.9.8"
