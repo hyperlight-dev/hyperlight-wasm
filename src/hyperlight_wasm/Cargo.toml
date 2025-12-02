@@ -97,6 +97,9 @@ anyhow = { version = "1.0" }
 goblin = "0.10.3"
 tar = "0.4.44"
 
+[target.'cfg(windows)'.build-dependencies]
+junction = "1"
+
 [features]
 default = ["function_call_metrics", "kvm", "mshv3"]
 function_call_metrics = ["hyperlight-host/function_call_metrics"]
