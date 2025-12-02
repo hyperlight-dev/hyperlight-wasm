@@ -84,7 +84,7 @@ opentelemetry_sdk = { version = "0.31.0", features = ["rt-tokio"] }
 tokio = { version = "1.48.0", features = ["full"] }
 tracing-forest = { version = "0.3.0", features = ["uuid", "chrono", "smallvec", "serde", "env-filter"] }
 tracing = "0.1.43"
-tracing-subscriber = {version = "0.3.20", features = ["std", "env-filter"]}
+tracing-subscriber = {version = "0.3.22", features = ["std", "env-filter"]}
 tracing-opentelemetry = "0.32.0"
 uuid = { version = "1.18.1", features = ["v4"] }
 
