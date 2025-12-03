@@ -75,7 +75,7 @@ criterion = { version = "0.8.0", features = ["html_reports"] }
 crossbeam-queue = "0.3"
 blake3 = "1.8"
 toml = "0.9.8"
-metrics-util = "0.20.0"
+metrics-util = "0.20.1"
 metrics-exporter-prometheus = "0.18"
 opentelemetry = "0.31.0"
 opentelemetry-otlp = { version = "0.31.0", default-features = false, features = ["http-proto", "reqwest-blocking-client", "grpc-tonic"] }
