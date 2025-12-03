@@ -86,7 +86,7 @@ tracing-forest = { version = "0.3.0", features = ["uuid", "chrono", "smallvec", 
 tracing = "0.1.43"
 tracing-subscriber = {version = "0.3.22", features = ["std", "env-filter"]}
 tracing-opentelemetry = "0.32.0"
-uuid = { version = "1.18.1", features = ["v4"] }
+uuid = { version = "1.19.0", features = ["v4"] }
 
 [build-dependencies]
 cfg_aliases = "0.2.1"
