@@ -56,7 +56,7 @@ test = true
 
 [dependencies]
 hyperlight-host = { workspace = true }
-libc = { version = "0.2.176" }
+libc = { version = "0.2.178" }
 once_cell = "1.21.3"
 tracing = "0.1.43"
 log = "0.4.28"
