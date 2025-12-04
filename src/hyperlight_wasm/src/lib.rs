@@ -49,7 +49,6 @@ pub use hyperlight_host::func::ParameterTuple;
 pub use hyperlight_host::func::Registerable;
 /// Trait bound for return types from guest/host functions
 pub use hyperlight_host::func::SupportedReturnType;
-// Re-export interrupt handle for cancellation support
 /// Handle for interrupting guest execution
 pub use hyperlight_host::hypervisor::InterruptHandle;
 /// Check if there is a hypervisor present
