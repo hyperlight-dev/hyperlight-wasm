@@ -26,6 +26,9 @@ pub use sandbox::loaded_wasm_sandbox::LoadedWasmSandbox;
 pub use sandbox::proto_wasm_sandbox::ProtoWasmSandbox;
 pub use sandbox::sandbox_builder::SandboxBuilder;
 pub use sandbox::wasm_sandbox::WasmSandbox;
+
+// Re-export types from hyperlight-host so consumers don't need to depend on it directly
+
 /// The container to store the value of a single parameter to a guest
 /// function.
 pub type ParameterValue = hyperlight_host::func::ParameterValue;
@@ -33,13 +36,28 @@ pub type ParameterValue = hyperlight_host::func::ParameterValue;
 pub type ReturnValue = hyperlight_host::func::ReturnValue;
 /// The type of the return value from a guest function call.
 pub type ReturnType = hyperlight_host::func::ReturnType;
-/// The Result of a fuunction call
+/// The Result of a function call
 pub type Result<T> = hyperlight_host::Result<T>;
+
+/// The error type for Hyperlight operations
+pub use hyperlight_host::HyperlightError;
+// Re-export function-related types for host function registration
+/// A host function that can be registered with a sandbox
+pub use hyperlight_host::func::HostFunction;
+/// Trait bound for parameter tuples passed to guest/host functions
+pub use hyperlight_host::func::ParameterTuple;
+/// Trait for types that can register host functions
+pub use hyperlight_host::func::Registerable;
+/// Trait bound for return types from guest/host functions
+pub use hyperlight_host::func::SupportedReturnType;
+// Re-export interrupt handle for cancellation support
+/// Handle for interrupting guest execution
+pub use hyperlight_host::hypervisor::InterruptHandle;
 /// Check if there is a hypervisor present
 pub use hyperlight_host::is_hypervisor_present;
 /// Create a generic HyperlightError
 pub use hyperlight_host::new_error;
-// A snapshot of the memory of a sandbox at a given point in time.
+/// A snapshot of the memory of a sandbox at a given point in time.
 pub use hyperlight_host::sandbox::snapshot::Snapshot;
 
 /// Get the build information for this version of hyperlight-wasm

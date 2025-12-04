@@ -51,7 +51,7 @@ impl SandboxBuilder {
     ///
     /// # Example:
     /// ```rust
-    /// use hyperlight_host::sandbox::SandboxBuilder;
+    /// use hyperlight_wasm::SandboxBuilder;
     /// let sandbox = SandboxBuilder::new()
     ///    .with_debugging_enabled(8080) // Enable debugging on port 8080
     ///    .build()
@@ -132,11 +132,6 @@ impl SandboxBuilder {
     pub fn with_function_definition_size(mut self, size: usize) -> Self {
         self.config.set_host_function_definition_size(size);
         self
-    }
-
-    /// Get the current configuration
-    pub fn get_config(&self) -> &SandboxConfiguration {
-        &self.config
     }
 
     /// Build the ProtoWasmSandbox

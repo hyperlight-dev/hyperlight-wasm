@@ -15,8 +15,7 @@ limitations under the License.
 */
 
 use examples_common::get_wasm_module_path;
-use hyperlight_host::HyperlightError;
-use hyperlight_wasm::{Result, SandboxBuilder};
+use hyperlight_wasm::{HyperlightError, Result, SandboxBuilder};
 
 fn get_time_since_boot_microsecond() -> Result<i64> {
     let res = std::time::SystemTime::now()
