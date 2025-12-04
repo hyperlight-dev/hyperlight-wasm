@@ -18,8 +18,7 @@ use std::fmt::Debug;
 use std::sync::Arc;
 
 use hyperlight_host::func::{ParameterTuple, SupportedReturnType};
-// re-export the InterruptHandle trait as it's part of the public API
-pub use hyperlight_host::hypervisor::InterruptHandle;
+use hyperlight_host::hypervisor::InterruptHandle;
 use hyperlight_host::sandbox::Callable;
 use hyperlight_host::sandbox::snapshot::Snapshot;
 use hyperlight_host::{MultiUseSandbox, Result, log_then_return, new_error};
