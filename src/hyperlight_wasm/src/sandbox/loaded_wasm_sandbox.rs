@@ -52,6 +52,19 @@ impl LoadedWasmSandbox {
     /// On success, return an `Ok` with the return
     /// value and a new copy of `Self` suitable for further use. On failure,
     /// return an appropriate `Err`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(HyperlightError::PoisonedSandbox)` if the sandbox is in a
+    /// poisoned state. Use [`restore()`](Self::restore) to recover a poisoned
+    /// sandbox before calling this method again.
+    ///
+    /// Note: A sandbox becomes poisoned when a *previous* call fails due to
+    /// abnormal guest execution. That call returns the original error (e.g.,
+    /// `ExecutionCanceledByHost` from `interrupt_handle().kill()`, or errors
+    /// from guest panics, memory violations, etc.), and the sandbox is marked
+    /// as poisoned. This method then returns `PoisonedSandbox` on subsequent
+    /// calls until the sandbox is recovered.
     pub fn call_guest_function<Output: SupportedReturnType>(
         &mut self,
         fn_name: &str,
@@ -64,6 +77,15 @@ impl LoadedWasmSandbox {
     }
 
     /// Take a snapshot of the current state of the sandbox.
+    ///
+    /// The snapshot can later be used with [`restore()`](Self::restore) to
+    /// return the sandbox to this state.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(HyperlightError::PoisonedSandbox)` if the sandbox is in a
+    /// poisoned state. Use [`restore()`](Self::restore) with a previously
+    /// taken snapshot to recover before taking a new snapshot.
     pub fn snapshot(&mut self) -> Result<Snapshot> {
         match &mut self.inner {
             Some(inner) => inner.snapshot(),
@@ -72,6 +94,17 @@ impl LoadedWasmSandbox {
     }
 
     /// Restore the state of the sandbox to the state captured in the given snapshot.
+    ///
+    /// This method clears the poisoned state if the sandbox was poisoned, making
+    /// it usable again for guest function calls.
+    ///
+    /// # Recovery from poisoned state
+    ///
+    /// If a sandbox becomes poisoned (e.g., after `interrupt_handle().kill()`),
+    /// calling `restore()` with a valid snapshot will:
+    /// 1. Clear the poisoned state
+    /// 2. Reset memory to the snapshot state
+    /// 3. Allow subsequent [`call_guest_function()`](Self::call_guest_function) calls to succeed
     pub fn restore(&mut self, snapshot: &Snapshot) -> Result<()> {
         match &mut self.inner {
             Some(inner) => inner.restore(snapshot),
@@ -79,7 +112,11 @@ impl LoadedWasmSandbox {
         }
     }
 
-    /// unload the wasm module and return a `WasmSandbox` that can be used to load another module
+    /// Unload the wasm module and return a `WasmSandbox` that can be used to load another module.
+    ///
+    /// This method internally calls [`restore()`](Self::restore) to reset the sandbox to its
+    /// pre-module state, which also clears any poisoned state. This means `unload_module()`
+    /// can be called on a poisoned sandbox to recover it.
     pub fn unload_module(mut self) -> Result<WasmSandbox> {
         let sandbox = self
             .inner
@@ -117,6 +154,36 @@ impl LoadedWasmSandbox {
             Err(new_error!(
                 "WasmSandbox is None, cannot get interrupt handle"
             ))
+        }
+    }
+
+    /// Check if the sandbox is in a poisoned state.
+    ///
+    /// A sandbox becomes poisoned when guest execution does not complete normally,
+    /// such as after:
+    /// - Forced termination via `interrupt_handle().kill()`
+    /// - Guest panic or abort
+    /// - Memory violation
+    /// - Stack or heap exhaustion
+    ///
+    /// Note: The call that causes poisoning returns the original error (e.g.,
+    /// `ExecutionCanceledByHost`), not `PoisonedSandbox`. The sandbox is marked
+    /// as poisoned after that error, and subsequent calls to
+    /// [`call_guest_function()`](Self::call_guest_function) will return
+    /// `Err(HyperlightError::PoisonedSandbox)`.
+    ///
+    /// A poisoned sandbox cannot execute guest functions until recovered via
+    /// [`restore()`](Self::restore). Calling [`unload_module()`](Self::unload_module)
+    /// will also recover a poisoned sandbox since it performs a restore internally.
+    ///
+    /// # Returns
+    /// - `Ok(true)` if the sandbox is poisoned and needs recovery
+    /// - `Ok(false)` if the sandbox is healthy and can execute guest functions
+    /// - `Err` if the sandbox is in an invalid state
+    pub fn is_poisoned(&self) -> Result<bool> {
+        match &self.inner {
+            Some(inner) => Ok(inner.poisoned()),
+            None => log_then_return!("No inner MultiUseSandbox to check poisoned state"),
         }
     }
 }

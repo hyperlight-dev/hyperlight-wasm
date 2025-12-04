@@ -54,6 +54,11 @@ name = "tracing-otlp"
 path = "examples/tracing-otlp/main.rs"
 test = true
 
+[[example]]
+name = "interruption"
+path = "examples/interruption/main.rs"
+test = true
+
 [dependencies]
 hyperlight-host = { workspace = true }
 libc = { version = "0.2.178" }
