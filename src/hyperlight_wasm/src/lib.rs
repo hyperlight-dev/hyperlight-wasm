@@ -41,7 +41,6 @@ pub type Result<T> = hyperlight_host::Result<T>;
 
 /// The error type for Hyperlight operations
 pub use hyperlight_host::HyperlightError;
-// Re-export function-related types for host function registration
 /// A host function that can be registered with a sandbox
 pub use hyperlight_host::func::HostFunction;
 /// Trait bound for parameter tuples passed to guest/host functions
