@@ -35,12 +35,18 @@ pub type ReturnValue = hyperlight_host::func::ReturnValue;
 pub type ReturnType = hyperlight_host::func::ReturnType;
 /// The Result of a fuunction call
 pub type Result<T> = hyperlight_host::Result<T>;
+/// The error type for Hyperlight operations.
+/// Includes variants like `PoisonedSandbox` and `ExecutionCanceledByHost`.
+pub use hyperlight_host::HyperlightError;
 /// Check if there is a hypervisor present
 pub use hyperlight_host::is_hypervisor_present;
 /// Create a generic HyperlightError
 pub use hyperlight_host::new_error;
-// A snapshot of the memory of a sandbox at a given point in time.
+/// A snapshot of the memory of a sandbox at a given point in time.
 pub use hyperlight_host::sandbox::snapshot::Snapshot;
+/// Handle for interrupting guest execution.
+/// Use `LoadedWasmSandbox::interrupt_handle()` to obtain one.
+pub use sandbox::loaded_wasm_sandbox::InterruptHandle;
 
 /// Get the build information for this version of hyperlight-wasm
 pub fn get_build_info() -> BuildInfo {
