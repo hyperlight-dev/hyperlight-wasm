@@ -20,7 +20,7 @@ ensure-tools:
     cargo install wit-bindgen-cli --locked --version 0.43.0
     cargo install cargo-hyperlight --locked --version 0.1.4
 
-build-all target=default-target features="": (build target features) (build-examples target features) (build-wasm-runtime target features)
+build-all target=default-target features="": (build target features) (build-examples target features) 
 
 build target=default-target features="": (fmt-check)
     cargo build {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }} --verbose --profile={{ if target == "debug" {"dev"} else { target } }}
@@ -32,9 +32,6 @@ mkdir-redist target=default-target:
 compile-wit:
     wasm-tools component wit ./src/wasmsamples/components/runcomponent.wit -w -o ./src/wasmsamples/components/runcomponent-world.wasm
     wasm-tools component wit ./src/component_sample/wit/example.wit -w -o ./src/component_sample/wit/component-world.wasm
-
-build-wasm-runtime target=default-target features="":
-    cd ./src/wasm_runtime && cargo hyperlight build --verbose {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--features " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} && rm -R target
 
 build-examples target=default-target features="": (build-wasm-examples target features) (build-rust-wasm-examples target features) (build-rust-component-examples target features)
 

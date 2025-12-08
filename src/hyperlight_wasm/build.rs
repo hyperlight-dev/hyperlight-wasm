@@ -90,7 +90,6 @@ fn get_wasm_runtime_path() -> PathBuf {
 }
 
 fn build_wasm_runtime() -> PathBuf {
-    let cargo_bin = env::var_os("CARGO").unwrap();
     let profile = env::var_os("PROFILE").unwrap();
     let out_dir = env::var_os("OUT_DIR").unwrap();
 
@@ -113,9 +112,8 @@ fn build_wasm_runtime() -> PathBuf {
     let mut env_vars = env::vars().collect::<Vec<_>>();
     env_vars.retain(|(key, _)| !key.starts_with("CARGO_"));
 
-    let mut cargo_cmd = std::process::Command::new(&cargo_bin);
+    let mut cargo_cmd = cargo_hyperlight::cargo().unwrap();
     let mut cmd = cargo_cmd
-        .arg("hyperlight")
         .arg("build")
         .arg("--target-dir")
         .arg(&target_dir)
@@ -136,12 +134,9 @@ fn build_wasm_runtime() -> PathBuf {
         cmd = cmd.arg("--features").arg("trace_guest");
     }
 
-    let status = cmd
-        .status()
+    cmd.status()
         .unwrap_or_else(|e| panic!("could not run cargo build wasm_runtime: {}", e));
-    if !status.success() {
-        panic!("could not compile wasm_runtime");
-    }
+
     let resource = target_dir
         .join("x86_64-hyperlight-none")
         .join(profile)

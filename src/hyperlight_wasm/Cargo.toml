@@ -101,6 +101,7 @@ built = { version = "0.8.0", features = ["chrono", "git2"] }
 anyhow = { version = "1.0" }
 goblin = "0.10.4"
 tar = "0.4.44"
+cargo-hyperlight = "0.1.4"
 
 [target.'cfg(windows)'.build-dependencies]
 junction = "1"

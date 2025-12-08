@@ -38,12 +38,6 @@ jobs:
       with:
         rust-toolchain: "1.89"
 
-    - name: Build Wasm Runtime Binary
-      working-directory: ./src/hyperlight_wasm
-      run: |
-        just ensure-tools
-        just build-wasm-runtime ${{ matrix.config }}
-
     - uses: dtolnay/rust-toolchain@1.89
       with:
         components: clippy, rustfmt
