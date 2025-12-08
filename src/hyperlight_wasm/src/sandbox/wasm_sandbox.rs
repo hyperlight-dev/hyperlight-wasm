@@ -240,6 +240,210 @@ mod tests {
             },
         }
 
+        // Verify sandbox is poisoned after interruption
+        assert!(
+            loaded.is_poisoned()?,
+            "Sandbox should be poisoned after interruption"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_sandbox_is_poisoned_after_interruption() -> Result<()> {
+        let mut sandbox = SandboxBuilder::new().build()?;
+
+        sandbox.register(
+            "GetTimeSinceBootMicrosecond",
+            get_time_since_boot_microsecond,
+        )?;
+
+        let loaded = sandbox.load_runtime()?;
+        let run_wasm = get_test_file_path("RunWasm.aot")?;
+        let mut loaded = loaded.load_module(run_wasm)?;
+
+        // Verify sandbox is not poisoned initially
+        assert!(
+            !loaded.is_poisoned()?,
+            "Sandbox should not be poisoned initially"
+        );
+
+        let interrupt = loaded.interrupt_handle()?;
+
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            interrupt.kill();
+        });
+
+        // This call will be interrupted
+        let _ = loaded.call_guest_function::<i32>("KeepCPUBusy", 100000i32);
+
+        // Verify sandbox is now poisoned
+        assert!(
+            loaded.is_poisoned()?,
+            "Sandbox should be poisoned after interruption"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_call_guest_function_fails_when_poisoned() -> Result<()> {
+        let mut sandbox = SandboxBuilder::new().build()?;
+
+        sandbox.register(
+            "GetTimeSinceBootMicrosecond",
+            get_time_since_boot_microsecond,
+        )?;
+
+        let loaded = sandbox.load_runtime()?;
+        let run_wasm = get_test_file_path("RunWasm.aot")?;
+        let mut loaded = loaded.load_module(run_wasm)?;
+
+        let interrupt = loaded.interrupt_handle()?;
+
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            interrupt.kill();
+        });
+
+        // First call will be interrupted
+        let _ = loaded.call_guest_function::<i32>("KeepCPUBusy", 100000i32);
+
+        // Second call should fail with PoisonedSandbox
+        let result = loaded.call_guest_function::<i32>("PrintOutput", 42i32);
+
+        match result {
+            Ok(_) => panic!("Expected PoisonedSandbox error"),
+            Err(HyperlightError::PoisonedSandbox) => {
+                // Expected error
+            }
+            Err(e) => panic!("Unexpected error: {:?}", e),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_snapshot_fails_when_poisoned() -> Result<()> {
+        let mut sandbox = SandboxBuilder::new().build()?;
+
+        sandbox.register(
+            "GetTimeSinceBootMicrosecond",
+            get_time_since_boot_microsecond,
+        )?;
+
+        let loaded = sandbox.load_runtime()?;
+        let run_wasm = get_test_file_path("RunWasm.aot")?;
+        let mut loaded = loaded.load_module(run_wasm)?;
+
+        let interrupt = loaded.interrupt_handle()?;
+
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            interrupt.kill();
+        });
+
+        // Call will be interrupted, poisoning the sandbox
+        let _ = loaded.call_guest_function::<i32>("KeepCPUBusy", 100000i32);
+
+        // Snapshot should fail on poisoned sandbox
+        let result = loaded.snapshot();
+
+        match result {
+            Ok(_) => panic!("Expected PoisonedSandbox error"),
+            Err(HyperlightError::PoisonedSandbox) => {
+                // Expected error
+            }
+            Err(e) => panic!("Unexpected error: {:?}", e),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_restore_recovers_poisoned_sandbox() -> Result<()> {
+        let mut sandbox = SandboxBuilder::new().build()?;
+
+        sandbox.register(
+            "GetTimeSinceBootMicrosecond",
+            get_time_since_boot_microsecond,
+        )?;
+
+        let loaded = sandbox.load_runtime()?;
+        let run_wasm = get_test_file_path("RunWasm.aot")?;
+        let mut loaded = loaded.load_module(run_wasm)?;
+
+        // Take a snapshot before poisoning
+        let snapshot = loaded.snapshot()?;
+
+        let interrupt = loaded.interrupt_handle()?;
+
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            interrupt.kill();
+        });
+
+        // Call will be interrupted, poisoning the sandbox
+        let _ = loaded.call_guest_function::<i32>("KeepCPUBusy", 100000i32);
+
+        assert!(loaded.is_poisoned()?, "Sandbox should be poisoned");
+
+        // Restore should recover the sandbox
+        loaded.restore(&snapshot)?;
+
+        assert!(
+            !loaded.is_poisoned()?,
+            "Sandbox should not be poisoned after restore"
+        );
+
+        // Should be able to call guest functions again
+        let result: i32 = loaded.call_guest_function("CalcFib", 10i32)?;
+        assert_eq!(result, 55);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_unload_module_recovers_poisoned_sandbox() -> Result<()> {
+        let mut sandbox = SandboxBuilder::new().build()?;
+
+        sandbox.register(
+            "GetTimeSinceBootMicrosecond",
+            get_time_since_boot_microsecond,
+        )?;
+
+        let loaded = sandbox.load_runtime()?;
+        let run_wasm = get_test_file_path("RunWasm.aot")?;
+        let mut loaded = loaded.load_module(run_wasm)?;
+
+        let interrupt = loaded.interrupt_handle()?;
+
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            interrupt.kill();
+        });
+
+        // Call will be interrupted, poisoning the sandbox
+        let _ = loaded.call_guest_function::<i32>("KeepCPUBusy", 100000i32);
+
+        assert!(loaded.is_poisoned()?, "Sandbox should be poisoned");
+
+        // unload_module should recover the sandbox (it calls restore internally)
+        let wasm_sandbox = loaded.unload_module()?;
+
+        // Should be able to load a new module and call functions
+        let helloworld_wasm = get_test_file_path("HelloWorld.aot")?;
+        let mut new_loaded = wasm_sandbox.load_module(helloworld_wasm)?;
+
+        assert!(
+            !new_loaded.is_poisoned()?,
+            "New sandbox should not be poisoned"
+        );
+
+        let result: i32 = new_loaded.call_guest_function("HelloWorld", "Test".to_string())?;
+        assert_eq!(result, 0);
+
         Ok(())
     }
 
