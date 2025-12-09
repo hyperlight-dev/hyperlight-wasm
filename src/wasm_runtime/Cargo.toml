@@ -3,9 +3,6 @@ name = "wasm-runtime"
 version = "0.11.0"
 edition = "2021"
 
-[profile.release]
-debug = "full"
-
 [[bin]]
 name = "wasm_runtime"
 path = "src/main.rs"
