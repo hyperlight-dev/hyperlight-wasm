@@ -582,8 +582,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-common"
-version = "0.11.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=5bfe0bfdf2f168b48bf6242d8eed84d54fab1186#5bfe0bfdf2f168b48bf6242d8eed84d54fab1186"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98f80e9aba9fce2a899c9ff0c62dd39cd479fa2f22ef578faed1d510c5becf94"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -609,8 +610,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest"
-version = "0.11.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=5bfe0bfdf2f168b48bf6242d8eed84d54fab1186#5bfe0bfdf2f168b48bf6242d8eed84d54fab1186"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc7f3cfaa19d263d4110b6f1d371ad778d544f4f30369be8eca79092bc868840"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -622,8 +624,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest-bin"
-version = "0.11.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=5bfe0bfdf2f168b48bf6242d8eed84d54fab1186#5bfe0bfdf2f168b48bf6242d8eed84d54fab1186"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "598a6f53bd1a356cff745af4b20e2e96ff9d4c956d13c52fd7981e91832291d8"
 dependencies = [
  "buddy_system_allocator",
  "cc",
@@ -642,8 +645,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest-macro"
-version = "0.11.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=5bfe0bfdf2f168b48bf6242d8eed84d54fab1186#5bfe0bfdf2f168b48bf6242d8eed84d54fab1186"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc0fec4e1154fe4368a5980101d532eede35c622532aaf83a03440d912d55217"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -653,8 +657,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest-tracing"
-version = "0.11.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=5bfe0bfdf2f168b48bf6242d8eed84d54fab1186#5bfe0bfdf2f168b48bf6242d8eed84d54fab1186"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df0f8d1e992b03c778c6c144f94a81060384e823781c84fae6228cba230d449c"
 dependencies = [
  "hyperlight-common",
  "spin 0.10.0",
