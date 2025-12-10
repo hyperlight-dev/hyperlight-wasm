@@ -629,9 +629,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-component-util"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "717bc84cbab6333112ed6824f56a141b91f1e71b8729eb98ffc9f81098c68446"
+checksum = "b9b3299460dc5f39d37b8233c9aad7fc52c9548d96a76d35cdcc4f4f49ff6662"
 dependencies = [
  "itertools",
  "log",
@@ -639,7 +639,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
- "wasmparser 0.240.0",
+ "wasmparser 0.243.0",
 ]
 
 [[package]]
@@ -1840,9 +1840,9 @@ dependencies = [
 
 [[package]]
 name = "wasmparser"
-version = "0.240.0"
+version = "0.243.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b722dcf61e0ea47440b53ff83ccb5df8efec57a69d150e4f24882e4eba7e24a4"
+checksum = "f6d8db401b0528ec316dfbe579e6ab4152d61739cfe076706d2009127970159d"
 dependencies = [
  "bitflags",
  "hashbrown",
