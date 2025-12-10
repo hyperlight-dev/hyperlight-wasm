@@ -19,6 +19,20 @@ limitations under the License.
 
 extern crate alloc;
 
+// Re-export wasmtime based on expected version
+#[cfg(all(feature = "wasmtime_latest", feature = "wasmtime_lts"))]
+compile_error!(
+    "Features 'wasmtime_latest' and 'wasmtime_lts' are mutually exclusive. Please enable only one."
+);
+
+#[cfg(not(any(feature = "wasmtime_latest", feature = "wasmtime_lts")))]
+compile_error!("Either 'wasmtime_latest' or 'wasmtime_lts' feature must be enabled.");
+
+#[cfg(not(feature = "wasmtime_lts"))]
+extern crate wasmtime;
+#[cfg(feature = "wasmtime_lts")]
+extern crate wasmtime_lts as wasmtime;
+
 mod platform;
 
 #[cfg(not(component))]
