@@ -12,10 +12,12 @@ Application to precompile WebAssembly binaries to for hyperlight-wasm.
 """
 
 [dependencies]
-wasmtime = { version = "36.0.3", default-features = false, features = ["cranelift", "runtime", "component-model" ] }
+# Since we can use the library with either the latest bundled wasmtime or the LTS version 
+# we need to bundle both here as dependencies.
+# The default is latest version bundled
+# To use LTS version pass the --lts flag when using this tool
+wasmtime = { version = "39.0.1", default-features = false, features = ["cranelift", "runtime", "component-model"] }
+wasmtime_lts = { package = "wasmtime", version = "36.0.3", default-features = false, features = ["cranelift", "runtime", "component-model"] }
 clap = "4.5"
 cargo_metadata = "0.23"
 cargo-util-schemas = "0.10.1"
-
-[features]
-gdb = ["wasmtime/debug-builtins"]
