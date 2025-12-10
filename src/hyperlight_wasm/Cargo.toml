@@ -119,6 +119,8 @@ kvm = ["hyperlight-host/kvm"]
 mshv3 = ["hyperlight-host/mshv3"]
 pulley = []
 trace_guest = ["hyperlight-host/trace_guest"]
+# Use wasmtime LTS version instead of latest in wasm_runtime
+wasmtime_lts = []
 
 [[bench]]
 name = "benchmarks"
