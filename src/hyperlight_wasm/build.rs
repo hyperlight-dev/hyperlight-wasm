@@ -122,8 +122,7 @@ fn build_wasm_runtime() -> PathBuf {
         .arg("-v")
         .current_dir(&in_repo_dir)
         .env_clear()
-        .envs(env_vars)
-        .env("CFLAGS_x86_64_unknown_none", "-fPIC"); // Should this go on cargo hyperlight
+        .envs(env_vars);
 
     // Add --features gdb if the gdb feature is enabled for this build script
     if std::env::var("CARGO_FEATURE_GDB").is_ok() {

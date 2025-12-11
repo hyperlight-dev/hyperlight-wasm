@@ -32,4 +32,3 @@ reqwest =  {version = "0.12", default-features = false, features = ["blocking","
 default = []
 gdb = ["wasmtime/debug-builtins"]
 trace_guest = ["hyperlight-common/trace_guest", "hyperlight-guest/trace_guest", "hyperlight-guest-bin/trace_guest"]
-
