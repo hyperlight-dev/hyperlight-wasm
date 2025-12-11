@@ -22,23 +22,13 @@ limitations under the License.
 // this file is included in lib.rs.
 // The wasm_runtime binary is expected to be in the x64/{config} directory.
 
-use std::ffi::OsString;
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::iter::once;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
 
 use anyhow::Result;
 use built::write_built_file;
-
-fn path_with(path: impl Into<PathBuf>) -> OsString {
-    let path = path.into();
-    let paths = env::var_os("PATH").unwrap_or_default();
-    let paths = env::split_paths(&paths);
-    let paths = once(path).chain(paths);
-    env::join_paths(paths).unwrap()
-}
 
 fn get_wasm_runtime_path() -> PathBuf {
     let manifest_dir = env::var_os("CARGO_MANIFEST_DIR").unwrap();
@@ -100,12 +90,10 @@ fn get_wasm_runtime_path() -> PathBuf {
 }
 
 fn build_wasm_runtime() -> PathBuf {
-    let cargo_bin = env::var_os("CARGO").unwrap();
     let profile = env::var_os("PROFILE").unwrap();
     let out_dir = env::var_os("OUT_DIR").unwrap();
 
     let target_dir = Path::new("").join(&out_dir).join("target");
-    let toolchain_dir = Path::new("").join(&out_dir).join("toolchain");
 
     let in_repo_dir = get_wasm_runtime_path();
 
@@ -124,21 +112,17 @@ fn build_wasm_runtime() -> PathBuf {
     let mut env_vars = env::vars().collect::<Vec<_>>();
     env_vars.retain(|(key, _)| !key.starts_with("CARGO_"));
 
-    let mut cargo_cmd = std::process::Command::new(&cargo_bin);
+    let mut cargo_cmd = cargo_hyperlight::cargo().unwrap();
     let mut cmd = cargo_cmd
         .arg("build")
+        .arg("--target-dir")
+        .arg(&target_dir)
         .arg("--profile")
         .arg(cargo_profile)
         .arg("-v")
-        .arg("--target-dir")
-        .arg(&target_dir)
         .current_dir(&in_repo_dir)
         .env_clear()
-        // On windows when `gdb` features is enabled this is not set correctly
-        .env("CFLAGS_x86_64_unknown_none", "-fPIC")
-        .envs(env_vars)
-        .env("PATH", path_with(&toolchain_dir))
-        .env("HYPERLIGHT_GUEST_TOOLCHAIN_ROOT", &toolchain_dir);
+        .envs(env_vars);
 
     // Add --features gdb if the gdb feature is enabled for this build script
     if std::env::var("CARGO_FEATURE_GDB").is_ok() {
@@ -149,14 +133,11 @@ fn build_wasm_runtime() -> PathBuf {
         cmd = cmd.arg("--features").arg("trace_guest");
     }
 
-    let status = cmd
-        .status()
+    cmd.status()
         .unwrap_or_else(|e| panic!("could not run cargo build wasm_runtime: {}", e));
-    if !status.success() {
-        panic!("could not compile wasm_runtime");
-    }
+
     let resource = target_dir
-        .join("x86_64-unknown-none")
+        .join("x86_64-hyperlight-none")
         .join(profile)
         .join("wasm_runtime");
 

@@ -82,5 +82,37 @@ fn main() -> Result<()> {
             );
         }
     }
+
+    let tests = [
+        (1.331, 24.0, 32),
+        (std::f32::consts::PI, std::f32::consts::E, 9),
+        (-5.7, 10.3, -59),
+        (0.0, 0.0, 0),
+        (99.999, 0.001, 0),
+        (-std::f32::consts::PI, -2.86, 9),
+        (1.5, 1.5, 2),
+    ];
+    let mut sandbox = SandboxBuilder::new().build()?;
+    sandbox
+        .register(
+            "GetTimeSinceBootMicrosecond",
+            get_time_since_boot_microsecond,
+        )
+        .unwrap();
+    let wasm_sandbox = sandbox.load_runtime()?;
+    let mod_path = get_wasm_module_path("RunWasm.aot")?;
+    let mut loaded_wasm_sandbox = wasm_sandbox.load_module(mod_path)?;
+    let snapshot = loaded_wasm_sandbox.snapshot()?;
+
+    for (idx, case) in tests.iter().enumerate() {
+        let (a, b, expected_result): (f32, f32, i32) = *case;
+        let result: i32 = loaded_wasm_sandbox.call_guest_function("RoundToNearestInt", (a, b))?;
+        assert_eq!(
+            result, expected_result,
+            "RoundToInt test case {idx} failed: got {}, expected {}",
+            result, expected_result
+        );
+        loaded_wasm_sandbox.restore(&snapshot)?
+    }
     Ok(())
 }

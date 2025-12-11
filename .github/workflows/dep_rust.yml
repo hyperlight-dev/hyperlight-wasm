@@ -67,10 +67,6 @@ jobs:
         if: runner.os == 'Windows'
         run: rustup component add --toolchain nightly-x86_64-pc-windows-msvc rustfmt
 
-      - name: Build Wasm Runtime Binary
-        working-directory: ./src/hyperlight_wasm
-        run: just build-wasm-runtime ${{ matrix.config }}
-
       - name: Download Wasm Modules
         uses: actions/download-artifact@v5
         with:

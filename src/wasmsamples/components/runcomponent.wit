@@ -2,6 +2,7 @@ package example:runcomponent;
 
 interface guest {
     echo: func(msg: string) -> string;
+    round-to-nearest-int: func(a: f32, b: f32) -> s32;
 }
 
 interface host {

@@ -20,6 +20,7 @@ limitations under the License.
 #include <limits.h>
 #include <stdint.h>
 #include <ctype.h>
+#include <math.h>
 
 int HostPrint(char* msg); // Implementation of this will be available in the native host
 
@@ -128,4 +129,13 @@ int KeepCPUBusy(int ms)
     
     printf("Kept CPU busy for %d ms using %d iterations of fib(10) %d|toreach max = %d|", ms, iter, INT_MAX, INT_MAX-iter);
     return ms;
+}
+
+__attribute__((export_name("RoundToNearestInt"))) 
+int RoundToNearestInt(float a, float b)
+{
+    float c = a*b;
+    float r = lrintf(c);
+    printf("rounded answer: %f\n", r);
+    return r;
 }
