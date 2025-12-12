@@ -115,8 +115,6 @@ jobs:
         set -euxo pipefail
         cargo publish -p hyperlight-wasm-aot --dry-run
         cargo publish -p hyperlight-wasm --dry-run
-      env:
-        CARGO_REGISTRY_TOKEN: ${{ steps.crates-io-auth.outputs.token }}
       shell: bash
     - name: Publish to crates.io
       if: ${{ contains(github.ref, 'refs/heads/release/') }}
