@@ -41,14 +41,14 @@ build-wasm-examples target=default-target features="": (compile-wit)
 build-rust-wasm-examples target=default-target features="": (mkdir-redist target)
     rustup target add wasm32-unknown-unknown
     cd ./src/rust_wasm_samples && cargo build --target wasm32-unknown-unknown --profile={{ if target == "debug" {"dev"} else { target } }}
-    cargo run {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--features " + features } }} -p hyperlight-wasm-aot compile {{ if features =~ "gdb" {"--debug"} else {""} }} ./src/rust_wasm_samples/target/wasm32-unknown-unknown/{{ target }}/rust_wasm_samples.wasm ./x64/{{ target }}/rust_wasm_samples.aot
+    cargo run -p hyperlight-wasm-aot compile {{ if features =~ "gdb" {"--debug"} else {""} }} {{ if features =~ "wasmtime_lts" {"--lts"} else {""} }} ./src/rust_wasm_samples/target/wasm32-unknown-unknown/{{ target }}/rust_wasm_samples.wasm ./x64/{{ target }}/rust_wasm_samples.aot
 
 build-rust-component-examples target=default-target features="": (compile-wit)
     # use cargo component so we don't get all the wasi imports https://github.com/bytecodealliance/cargo-component?tab=readme-ov-file#relationship-with-wasm32-wasip2
     # we also explicitly target wasm32-unknown-unknown since cargo component might try to pull in wasi imports https://github.com/bytecodealliance/cargo-component/issues/290
     rustup target add wasm32-unknown-unknown
     cd ./src/component_sample && cargo component build --target wasm32-unknown-unknown --profile={{ if target == "debug" {"dev"} else { target } }}
-    cargo run {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--features " + features } }} -p hyperlight-wasm-aot compile {{ if features =~ "gdb" {"--debug"} else {""} }} --component ./src/component_sample/target/wasm32-unknown-unknown/{{ target }}/component_sample.wasm ./x64/{{ target }}/component_sample.aot
+    cargo run -p hyperlight-wasm-aot compile {{ if features =~ "gdb" {"--debug"} else {""} }} {{ if features =~ "wasmtime_lts" {"--lts"} else {""} }} --component ./src/component_sample/target/wasm32-unknown-unknown/{{ target }}/component_sample.wasm ./x64/{{ target }}/component_sample.aot
 
 check target=default-target:
     cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
@@ -79,7 +79,9 @@ clippy target=default-target: (check target)
     cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/rust_wasm_samples &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/component_sample &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
-    cd src/wasm_runtime && cargo hyperlight clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
+    # wasm_runtime has mutually exclusive wasmtime features, so we run clippy for each separately with all other features
+    cd src/wasm_runtime && cargo hyperlight clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --features wasmtime_latest,gdb,trace_guest -- -D warnings
+    cd src/wasm_runtime && cargo hyperlight clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --no-default-features --features wasmtime_lts,gdb,trace_guest -- -D warnings
     cd src/hyperlight_wasm_macro && cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
 
 # TESTING
@@ -87,11 +89,12 @@ clippy target=default-target: (check target)
 # There may be tests that we really want to ignore so we cant just use --ignored and run then we have to
 # specify the test name of the ignored tests that we want to run
 # Additionally, we have to run the tests with the function_call_metrics feature enabled separately
+# We exclude hyperlight-wasm-aot because it has both wasmtime versions as dependencies and no tests so we don't need to build both versions for testing
 test target=default-target features="":
-    cargo test {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }}
-    cargo test test_metrics {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored 
+    cargo test --workspace --exclude hyperlight-wasm-aot {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }}
+    cargo test --workspace --exclude hyperlight-wasm-aot test_metrics {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored 
 
-examples-ci target=default-target features="": (build-rust-wasm-examples target)
+examples-ci target=default-target features="": (build-wasm-examples target features) (build-rust-wasm-examples target features)
     cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example helloworld
     cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example hostfuncs
     cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example rust_wasm_examples
@@ -99,7 +102,7 @@ examples-ci target=default-target features="": (build-rust-wasm-examples target)
     cargo run {{ if features =="" {''} else {"--no-default-features -F function_call_metrics," + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example metrics
     cargo run {{ if features =="" {"--no-default-features --features kvm,mshv3"} else {"--no-default-features -F function_call_metrics," + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example metrics 
 
-examples-components target=default-target features="": (build-rust-component-examples target) 
+examples-components target=default-target features="": (build-rust-component-examples target features) 
     {{ wit-world }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_example
     {{ wit-world-c }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example c-component
 

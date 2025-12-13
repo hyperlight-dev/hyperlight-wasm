@@ -14,7 +14,10 @@ bench = false
 hyperlight-common = { version = "0.12.0", default-features = false }
 hyperlight-guest-bin = { version = "0.12.0", features = [ "printf" ] }
 hyperlight-guest = { version = "0.12.0" }
-wasmtime = { version = "36.0.3", default-features = false, features = [ "runtime", "custom-virtual-memory", "custom-native-signals", "component-model" ] }
+# Default to latest wasmtime, use wasmtime_lts feature for LTS version 
+# These are marked optional to avoid pulling them both in.  The should be mutually exclusive.
+wasmtime = { version = "39.0.1", default-features = false, features = [ "runtime", "custom-virtual-memory", "custom-native-signals", "component-model" ], optional = true }
+wasmtime_lts = { package = "wasmtime", version = "36.0.3", default-features = false, features = [ "runtime", "custom-virtual-memory", "custom-native-signals", "component-model" ], optional = true }
 hyperlight-wasm-macro = { path = "../hyperlight_wasm_macro" }
 spin = "0.10.0"
 tracing = { version = "0.1.43", default-features = false, features = ["attributes", "log"] }
@@ -29,6 +32,8 @@ reqwest =  {version = "0.12", default-features = false, features = ["blocking","
 [workspace] # indicate that this crate is not part of any workspace
 
 [features]
-default = []
-gdb = ["wasmtime/debug-builtins"]
+default = ["wasmtime_latest"]
+wasmtime_latest = ["dep:wasmtime"]
+wasmtime_lts = ["dep:wasmtime_lts"]
+gdb = ["wasmtime?/debug-builtins", "wasmtime_lts?/debug-builtins"]
 trace_guest = ["hyperlight-common/trace_guest", "hyperlight-guest/trace_guest", "hyperlight-guest-bin/trace_guest"]

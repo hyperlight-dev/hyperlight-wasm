@@ -24,7 +24,7 @@ limitations under the License.
 //! # for C modules
 //! just build-wasm-examples debug gdb
 //! # for Rust modules
-//! just build-rust-wasm-samples debug gdb
+//! just build-rust-wasm-examples debug gdb
 //! ```
 //!
 //! # Running the Example
