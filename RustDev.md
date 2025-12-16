@@ -28,8 +28,7 @@ export WIT_WORLD=$(readlink -f world.wasm)
 
 ## `ProtoWasmSandbox` vs `WasmSandbox` vs `LoadedWasmSandbox`
 
-The three primary APIs with which you'll be interacting are [`ProtoWasmSandbox`](./src/hyperlight_wasm/src/proto_wasm_sandbox.rs), [`WasmSandbox`](./src/hyperlight_wasm/src/wasm_sandbox.rs) and [`LoadedWasmSandbox`](./src/hyperlight_wasm//s
-rc/loaded_wasm_sandbox.rs). These are three different Rust `struct`s that provide a type-safe way to ensure the current state of the system.
+The three primary APIs with which you'll be interacting are [`ProtoWasmSandbox`](./src/hyperlight_wasm/src/sandbox/proto_wasm_sandbox.rs), [`WasmSandbox`](./src/hyperlight_wasm/src/sandbox/wasm_sandbox.rs) and [`LoadedWasmSandbox`](./src/hyperlight_wasm/src/sandbox/loaded_wasm_sandbox.rs). These are three different Rust `struct`s that provide a type-safe way to ensure the current state of the system.
 
 One helpful way to think about these three different types is as a strongly-typed state machine that is enforced by the Rust compiler. This type-safety feature is important because it allows you, the application developer, to detect issues sooner, and without having to write as many tests (because the compiler is doing more checks for you).
 
@@ -74,7 +73,7 @@ Before you can transition a `ProtoWasmSandbox` to a `WasmSandbox` (and on to a `
 
 In module mode, register host functions with `ProtoWasmSandbox::register_host_func_i`. In this method, the `i` suffix indicates the number of parameters your host function has. Currently a number in the range from `0` to `3` (inclusive) is supported.
 
-Please see an illustration of how to do this in the [hostfunc/main.rs](./src/hyperlight_wasm/examples/hostfunc/main.rs) Rust example.
+Please see an illustration of how to do this in the [hostfuncs/main.rs](./src/hyperlight_wasm/examples/hostfuncs/main.rs) Rust example.
 
 #### Parameter and return types
 
@@ -143,8 +142,8 @@ In the above code snippet, we call a guest function named `my_function` that tak
 
 There are more detailed full examples of calling module exports in
 these examples:
-- [helloworld/main.rs](./src/hypuncerlight_wasm/examples/helloworld/main.rs)
-- [hostfunc/main.rs](./src/hyperlight_wasm/examples/hostfunc/main.rs)
+- [helloworld/main.rs](./src/hyperlight_wasm/examples/helloworld/main.rs)
+- [hostfuncs/main.rs](./src/hyperlight_wasm/examples/hostfuncs/main.rs)
 
 ### Calling WebAssembly component exports with generated bindings
 
