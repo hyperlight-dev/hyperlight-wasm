@@ -108,6 +108,16 @@ pub extern "C" fn hyperlight_main() {
     platform::register_page_fault_handler();
 
     let mut config = Config::new();
+    // Enable x86_float_abi_ok only for the latest Wasmtime version.
+    // Safety:
+    // We are using hyperlight cargo to build the guest which
+    // sets the Rust target to be compiled with the hard-float ABI manually via
+    // `-Zbuild-std` and a custom target JSON configuration
+    // See https://github.com/bytecodealliance/wasmtime/pull/11553
+    #[cfg(not(feature = "wasmtime_lts"))]
+    unsafe {
+        config.x86_float_abi_ok(true)
+    };
     config.with_custom_code_memory(Some(alloc::sync::Arc::new(platform::WasmtimeCodeMemory {})));
     #[cfg(gdb)]
     config.debug_info(true);
