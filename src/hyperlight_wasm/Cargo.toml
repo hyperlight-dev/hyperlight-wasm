@@ -79,7 +79,7 @@ examples_common = { path = "../examples_common" }
 criterion = { version = "0.8.1", features = ["html_reports"] }
 crossbeam-queue = "0.3"
 blake3 = "1.8"
-toml = "0.9.10"
+toml = "0.9.11"
 metrics-util = "0.20.1"
 metrics-exporter-prometheus = "0.18"
 opentelemetry = "0.31.0"
