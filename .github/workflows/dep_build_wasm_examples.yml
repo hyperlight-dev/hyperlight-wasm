@@ -21,19 +21,13 @@ permissions:
   contents: read
 
 jobs:
-    build-wasm-examples:
+    build-docker-image:
       if: ${{ inputs.docs_only == 'false' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
       runs-on: ubuntu-latest
       steps:
         - uses: actions/checkout@v5
           with:
             fetch-depth: 0
-        - name: Remove default clang
-          run: sudo rm /usr/bin/clang
-        - name: Hyperlight setup workflow
-          uses: hyperlight-dev/ci-setup-workflow@v1.8.0
-          with:
-            rust-toolchain: "1.89"
         - name: Set up Docker Buildx
           uses: docker/setup-buildx-action@v3
         - name: Login to Registry
@@ -76,15 +70,47 @@ jobs:
             tags: ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:latest
             cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:buildcache
             cache-to: ${{ env.CACHE_TO }}
-        - name: Build Modules
+
+    build-wasm-examples:
+      needs: build-docker-image
+      runs-on: ubuntu-latest
+      strategy:
+        matrix:
+          wasmtime_version:
+            - name: latest
+              features: ""
+            - name: lts
+              features: "wasmtime_lts"
+      steps:
+        - uses: actions/checkout@v5
+          with:
+            fetch-depth: 0
+        - name: Remove default clang
+          run: sudo rm /usr/bin/clang
+        - name: Hyperlight setup workflow
+          uses: hyperlight-dev/ci-setup-workflow@v1.8.0
+          with:
+            rust-toolchain: "1.89"
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v3
+        - name: Login to Registry
+          uses: docker/login-action@v3
+          with:
+            registry: ghcr.io
+            username: ${{ github.actor }}
+            password: ${{ secrets.GITHUB_TOKEN }}
+        - name: Pull wasm-clang-builder
+          run: |
+                docker pull ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:latest
+        - name: Build Modules (wasmtime ${{ matrix.wasmtime_version.name }})
           run: |
             just ensure-tools
-            just build-wasm-examples release
+            just build-wasm-examples release ${{ matrix.wasmtime_version.features }}
           shell: bash
           working-directory:  src/wasmsamples
-        - name: Upload Wasm Modules
+        - name: Upload Wasm Modules (wasmtime ${{ matrix.wasmtime_version.name }})
           uses: actions/upload-artifact@v4
           with:
-            name: guest-modules
+            name: guest-modules-${{ matrix.wasmtime_version.name }}
             path: | 
               x64/release/*.aot

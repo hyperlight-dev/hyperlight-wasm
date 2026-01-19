@@ -124,6 +124,15 @@ fn build_wasm_runtime() -> PathBuf {
         .env_clear()
         .envs(env_vars);
 
+    // Use wasmtime LTS version
+    // This removes wasmtime_latest feature and adds wasmtime_lts
+    if std::env::var("CARGO_FEATURE_WASMTIME_LTS").is_ok() {
+        cmd = cmd
+            .arg("--no-default-features")
+            .arg("--features")
+            .arg("wasmtime_lts");
+    }
+
     // Add --features gdb if the gdb feature is enabled for this build script
     if std::env::var("CARGO_FEATURE_GDB").is_ok() {
         cmd = cmd.arg("--features").arg("gdb");

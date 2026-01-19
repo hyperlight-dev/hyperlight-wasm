@@ -40,12 +40,28 @@ jobs:
           hypervisor: [hyperv, mshv3, kvm] # hyperv is windows, mshv and kvm are linux
           cpu: [amd, intel]
           config: [debug, release]
+          wasmtime: [latest, lts]
+          exclude:
+            # Latest testing: skip Windows, Intel, and debug builds to reduce CI load
+            - wasmtime: latest
+              hypervisor: hyperv
+            - wasmtime: latest
+              cpu: intel
+            - wasmtime: latest
+              config: debug
   
     runs-on: ${{ fromJson(
         format('["self-hosted", "{0}", "X64", "1ES.Pool=hld-{1}-{2}"]', 
           matrix.hypervisor == 'hyperv' && 'Windows' || 'Linux', 
           matrix.hypervisor == 'hyperv' && 'win2022' || matrix.hypervisor == 'mshv3' && 'azlinux3-mshv' || matrix.hypervisor, 
-          matrix.cpu)) }} 
+          matrix.cpu)) }}
+    env:
+      # Features to pass to cargo. 
+      # On windows hyperv do not pass any features.
+      # On Windows LTS builds, only add wasmtime_lts.
+      # On Linux, always pass the hypervisor feature (kvm/mshv3).
+      # On Linux LTS builds, also add wasmtime_lts.
+      FEATURES: ${{ matrix.hypervisor != 'hyperv' && format('{0}{1}', matrix.hypervisor, matrix.wasmtime == 'lts' && ',wasmtime_lts' || '') || (matrix.wasmtime == 'lts' && 'wasmtime_lts' || '') }}
     steps:
       - uses: actions/checkout@v5
 
@@ -70,7 +86,7 @@ jobs:
       - name: Download Wasm Modules
         uses: actions/download-artifact@v5
         with:
-          name: guest-modules
+          name: guest-modules-${{ matrix.wasmtime }}
           path: ./x64/${{ matrix.config }}
 
       - name: Build Rust component model examples
@@ -79,7 +95,7 @@ jobs:
           # because the component model example depends on the wasm component built here
           just ensure-tools
           just compile-wit
-          just build-rust-component-examples ${{ matrix.config }}
+          just build-rust-component-examples ${{ matrix.config }} ${{ matrix.wasmtime == 'lts' && 'wasmtime_lts' || '' }}
       
       - name: Fmt
         run: just fmt-check
@@ -88,15 +104,15 @@ jobs:
         run: just clippy ${{ matrix.config }}
 
       - name: Build
-        run:  just build ${{ matrix.config }}
+        run:  just build ${{ matrix.config }} ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm
 
       - name: Build Rust Wasm examples
-        run:  just build-rust-wasm-examples ${{ matrix.config }}
+        run:  just build-rust-wasm-examples ${{ matrix.config }} ${{ matrix.wasmtime == 'lts' && 'wasmtime_lts' || '' }}
         working-directory: ./src/hyperlight_wasm
 
       - name: Test
-        run:  just test ${{ matrix.config }}
+        run:  just test ${{ matrix.config }} ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm
 
       - name: Install github-cli (Windows)
@@ -114,21 +130,21 @@ jobs:
         shell: pwsh
 
       - name: Test Examples
-        run: just examples-ci ${{ matrix.config }}
+        run: just examples-ci ${{ matrix.config }} ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm
         env:
           # required for gh cli when downloading
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Test Component Model Examples
-        run: just examples-components ${{ matrix.config }}
+        run: just examples-components ${{ matrix.config }} ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm
       
       ### Benchmarks ###
 
       - name: Download benchmarks from "latest"
         run: |
-          just bench-download ${{ runner.os }} ${{ matrix.hypervisor }} ${{ matrix.cpu }} dev-latest
+          just bench-download ${{ runner.os }} ${{ matrix.hypervisor }} ${{ matrix.cpu }} dev-latest ${{ matrix.wasmtime }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
@@ -137,6 +153,7 @@ jobs:
 
       - name: Run benchmarks
         run: |
-          just bench-ci dev ${{ matrix.config }}
+          just bench-ci dev ${{ matrix.config }} ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm
         if: ${{ matrix.config == 'release' }}
+

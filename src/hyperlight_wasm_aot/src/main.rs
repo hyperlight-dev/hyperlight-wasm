@@ -16,10 +16,113 @@ limitations under the License.
 
 use std::path::Path;
 
-use cargo_metadata::{MetadataCommand, Package};
-use cargo_util_schemas::manifest::PackageName;
 use clap::{Arg, Command};
-use wasmtime::{Config, Engine, Module, OptLevel, Precompiled};
+
+fn precompile_bytes(bytes: &[u8], debug: bool, use_lts: bool, is_component: bool) -> Vec<u8> {
+    if use_lts {
+        let mut config = wasmtime_lts::Config::new();
+        config.target("x86_64-unknown-none").unwrap();
+        if debug {
+            config.debug_info(true);
+            config.cranelift_opt_level(wasmtime_lts::OptLevel::None);
+        }
+        let engine = wasmtime_lts::Engine::new(&config).unwrap();
+        if is_component {
+            engine.precompile_component(bytes).unwrap()
+        } else {
+            engine.precompile_module(bytes).unwrap()
+        }
+    } else {
+        let mut config = wasmtime::Config::new();
+        config.target("x86_64-unknown-none").unwrap();
+        unsafe { config.x86_float_abi_ok(true) };
+        if debug {
+            config.debug_info(true);
+            config.cranelift_opt_level(wasmtime::OptLevel::None);
+        }
+        let engine = wasmtime::Engine::new(&config).unwrap();
+        if is_component {
+            engine.precompile_component(bytes).unwrap()
+        } else {
+            engine.precompile_module(bytes).unwrap()
+        }
+    }
+}
+
+fn detect_and_deserialize(
+    bytes: &[u8],
+    debug: bool,
+    use_lts: bool,
+    file: &str,
+    version_label: &str,
+) {
+    if use_lts {
+        let mut config = wasmtime_lts::Config::new();
+        config.target("x86_64-unknown-none").unwrap();
+        if debug {
+            config.debug_info(true);
+            config.cranelift_opt_level(wasmtime_lts::OptLevel::None);
+        }
+        let engine = wasmtime_lts::Engine::new(&config).unwrap();
+        match wasmtime_lts::Engine::detect_precompiled(bytes) {
+            Some(wasmtime_lts::Precompiled::Module) => {
+                println!("The file is a valid AOT compiled Wasmtime module");
+                match unsafe { wasmtime_lts::Module::deserialize(&engine, bytes) } {
+                    Ok(_) => println!(
+                        "File {} was AOT compiled with a compatible wasmtime version ({})",
+                        file, version_label
+                    ),
+                    Err(e) => eprintln!("{}", e),
+                }
+            }
+            Some(wasmtime_lts::Precompiled::Component) => {
+                println!("The file is an AOT compiled Wasmtime component")
+            }
+            None => {
+                eprintln!(
+                    "Error - {} is not a valid AOT compiled Wasmtime module or component",
+                    file
+                );
+            }
+        }
+    } else {
+        let mut config = wasmtime::Config::new();
+        config.target("x86_64-unknown-none").unwrap();
+        // Enable x86_float_abi_ok only for the latest Wasmtime version.
+        // Safety:
+        // We are using hyperlight cargo to build the guest which
+        // sets the Rust target to be compiled with the hard-float ABI manually via
+        // `-Zbuild-std` and a custom target JSON configuration
+        // See https://github.com/bytecodealliance/wasmtime/pull/11553
+        unsafe { config.x86_float_abi_ok(true) };
+        if debug {
+            config.debug_info(true);
+            config.cranelift_opt_level(wasmtime::OptLevel::None);
+        }
+        let engine = wasmtime::Engine::new(&config).unwrap();
+        match wasmtime::Engine::detect_precompiled(bytes) {
+            Some(wasmtime::Precompiled::Module) => {
+                println!("The file is a valid AOT compiled Wasmtime module");
+                match unsafe { wasmtime::Module::deserialize(&engine, bytes) } {
+                    Ok(_) => println!(
+                        "File {} was AOT compiled with a compatible wasmtime version ({})",
+                        file, version_label
+                    ),
+                    Err(e) => eprintln!("{}", e),
+                }
+            }
+            Some(wasmtime::Precompiled::Component) => {
+                println!("The file is an AOT compiled Wasmtime component")
+            }
+            None => {
+                eprintln!(
+                    "Error - {} is not a valid AOT compiled Wasmtime module or component",
+                    file
+                );
+            }
+        }
+    }
+}
 
 fn main() {
     let hyperlight_wasm_aot_version = env!("CARGO_PKG_VERSION");
@@ -54,11 +157,18 @@ fn main() {
                         .required(false)
                         .long("debug")
                         .action(clap::ArgAction::SetTrue),
+                )
+                .arg(
+                    Arg::new("lts")
+                        .help("Use LTS wasmtime version instead of latest")
+                        .required(false)
+                        .long("lts")
+                        .action(clap::ArgAction::SetTrue),
                 ),
         )
         .subcommand(
             Command::new("check-wasmtime-version")
-                .about("Check the Wasmtime version use to compile a AOT file")
+                .about("Check the Wasmtime version used to compile an AOT file")
                 .arg(
                     Arg::new("file")
                         .help("The aot compiled file to check")
@@ -70,6 +180,13 @@ fn main() {
                         .help("Specifies if the module has been compiled with debug support")
                         .required(false)
                         .long("debug")
+                        .action(clap::ArgAction::SetTrue),
+                )
+                .arg(
+                    Arg::new("lts")
+                        .help("Use LTS wasmtime version instead of latest")
+                        .required(false)
+                        .long("lts")
                         .action(clap::ArgAction::SetTrue),
                 ),
         )
@@ -88,108 +205,52 @@ fn main() {
                 }
             };
             let debug = args.get_flag("debug");
+            let use_lts = args.get_flag("lts");
+            let is_component = args.get_flag("component");
+            let version_label = if use_lts { "LTS" } else { "latest" };
+
             if debug {
                 println!(
-                    "Aot Compiling {} to {} with debug info and optimizations off",
-                    infile, outfile
+                    "Aot Compiling {} to {} with debug info and optimizations ({} wasmtime)",
+                    infile, outfile, version_label
                 );
             } else {
-                println!("Aot Compiling {} to {}", infile, outfile);
+                println!(
+                    "Aot Compiling {} to {} ({} wasmtime)",
+                    infile, outfile, version_label
+                );
             }
-            let config = get_config(debug);
-            let engine = Engine::new(&config).unwrap();
+
             let bytes = std::fs::read(infile).unwrap();
-            let serialized = if args.get_flag("component") {
-                engine.precompile_component(&bytes).unwrap()
-            } else {
-                engine.precompile_module(&bytes).unwrap()
-            };
+            let serialized = precompile_bytes(&bytes, debug, use_lts, is_component);
             std::fs::write(outfile, serialized).unwrap();
         }
         Some("check-wasmtime-version") => {
-            // get the wasmtime version used by hyperlight-wasm-aot
-            let metadata = MetadataCommand::new().exec().unwrap();
-            let package_name = PackageName::new("wasmtime".to_string()).unwrap();
-            let wasmtime_package: Option<&Package> =
-                metadata.packages.iter().find(|p| p.name == package_name);
-            let version_number = match wasmtime_package {
-                Some(pkg) => pkg.version.clone(),
-                None => panic!("wasmtime dependency not found"),
-            };
             let args = matches
                 .subcommand_matches("check-wasmtime-version")
                 .unwrap();
             let debug = args.get_flag("debug");
+            let use_lts = args.get_flag("lts");
             let file = args.get_one::<String>("file").unwrap();
+            let version_label = if use_lts { "LTS" } else { "latest" };
+
             if debug {
                 println!(
-                    "Checking Wasmtime version used to compile debug info enabled file: {}",
-                    file
+                    "Checking Wasmtime version used to compile with debug info enabled file: {} ({} wasmtime)",
+                    file, version_label
                 );
             } else {
-                println!("Checking Wasmtime version used to compile file: {}", file);
+                println!(
+                    "Checking Wasmtime version used to compile file: {} ({} wasmtime)",
+                    file, version_label
+                );
             }
-            // load the file into wasmtime, check that it is aot compiled and extract the version of wasmtime used to compile it from its metadata
+
             let bytes = std::fs::read(file).unwrap();
-            let config = get_config(debug);
-            let engine = Engine::new(&config).unwrap();
-            match Engine::detect_precompiled(&bytes) {
-                Some(pre_compiled) => {
-                    match pre_compiled {
-                        Precompiled::Module => {
-                            println!("The file is a valid AOT compiled Wasmtime module");
-                            // It doesnt seem like the functions or data needed to extract the version of wasmtime used to compile the module are exposed in the wasmtime crate
-                            // so we will try and load it and then catch the error and parse the version from the error message :-(
-                            match unsafe { Module::deserialize(&engine, bytes) } {
-                                Ok(_) => println!(
-                                    "File {} was AOT compiled with wasmtime version: {}",
-                                    file, version_number
-                                ),
-                                Err(e) => {
-                                    let error_message = e.to_string();
-                                    if !error_message.starts_with(
-                                        "Module was compiled with incompatible Wasmtime version",
-                                    ) {
-                                        eprintln!("{}", error_message);
-                                        return;
-                                    }
-                                    let version = error_message.trim_start_matches("Module was compiled with incompatible Wasmtime version ").trim();
-                                    println!(
-                                        "File {} was AOT compiled with wasmtime version: {}",
-                                        file, version
-                                    );
-                                }
-                            };
-                        }
-                        Precompiled::Component => {
-                            eprintln!("The file is an AOT compiled Wasmtime component")
-                        }
-                    }
-                }
-                None => {
-                    eprintln!(
-                        "Error - {} is not a valid AOT compiled Wasmtime module or component",
-                        file
-                    );
-                }
-            }
+            detect_and_deserialize(&bytes, debug, use_lts, file, version_label);
         }
         _ => {
             println!("No subcommand specified");
         }
     }
-}
-
-/// Returns a new `Config` for the Wasmtime engine with additional settings for AOT compilation.
-fn get_config(debug: bool) -> Config {
-    let mut config = Config::new();
-    config.target("x86_64-unknown-none").unwrap();
-
-    // Enable the default features for the Wasmtime engine.
-    if debug {
-        config.debug_info(true);
-        config.cranelift_opt_level(OptLevel::None);
-    }
-
-    config
 }
