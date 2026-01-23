@@ -1,0 +1,31 @@
+# WASI P2 Guest Component Example
+#
+# This crate demonstrates building a WebAssembly component using the NATIVE
+# Rust `wasm32-wasip2` target with `wit-bindgen`, rather than `cargo-component`.
+#
+# Key differences from cargo-component approach:
+# - Uses `wasm32-wasip2` target directly (rustup target add wasm32-wasip2)
+# - Uses `wit-bindgen` crate for guest bindings (not cargo-component)
+# - Requires `#![no_std]` and `#![no_main]` for minimal output
+# - MUST build in release mode (debug pulls in WASI dependencies)
+#
+# Build command:
+#   cargo build --lib --target wasm32-wasip2 --release
+#
+# The generated .wasm is a valid WASI P2 component that can be compiled
+# to AOT format using hyperlight-wasm-aot.
+
+[package]
+name = "wasip2-guest"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "monte_carlo"
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[workspace] # standalone crate, not part of parent workspace
+
+[dependencies]
+wit-bindgen = "0.51.0"

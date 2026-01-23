@@ -5,6 +5,7 @@ mkdir-arg := if os() == "windows" { "-Force" } else { "-p" }
 latest-release:= if os() == "windows" {"$(git tag -l --sort=v:refname | select -last 2 | select -first 1)"} else {`git tag -l --sort=v:refname | tail -n 2 | head -n 1`}
 wit-world := if os() == "windows" { "$env:WIT_WORLD=\"" + justfile_directory() + "\\src\\component_sample\\wit\\component-world.wasm" + "\";" } else { "WIT_WORLD=" + justfile_directory() + "/src/component_sample/wit/component-world.wasm" }
 wit-world-c := if os() == "windows" { "$env:WIT_WORLD=\"" + justfile_directory() + "\\src\\wasmsamples\\components\\runcomponent-world.wasm" + "\";" } else { "WIT_WORLD=" + justfile_directory() + "/src/wasmsamples/components/runcomponent-world.wasm" }
+wit-world-monte-carlo := if os() == "windows" { "$env:WIT_WORLD=\"" + justfile_directory() + "\\src\\wasip2_guest\\monte-carlo-world.wasm" + "\";" } else { "WIT_WORLD=" + justfile_directory() + "/src/wasip2_guest/monte-carlo-world.wasm" }
 
 set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
 
@@ -32,6 +33,7 @@ mkdir-redist target=default-target:
 compile-wit:
     wasm-tools component wit ./src/wasmsamples/components/runcomponent.wit -w -o ./src/wasmsamples/components/runcomponent-world.wasm
     wasm-tools component wit ./src/component_sample/wit/example.wit -w -o ./src/component_sample/wit/component-world.wasm
+    wasm-tools component wit ./src/wasip2_guest/wit/monte-carlo.wit -w -o ./src/wasip2_guest/monte-carlo-world.wasm
 
 build-examples target=default-target features="": (build-wasm-examples target features) (build-rust-wasm-examples target features) (build-rust-component-examples target features)
 
@@ -49,6 +51,13 @@ build-rust-component-examples target=default-target features="": (compile-wit)
     rustup target add wasm32-unknown-unknown
     cd ./src/component_sample && cargo component build --target wasm32-unknown-unknown --profile={{ if target == "debug" {"dev"} else { target } }}
     cargo run {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--features " + features } }} -p hyperlight-wasm-aot compile {{ if features =~ "gdb" {"--debug"} else {""} }} --component ./src/component_sample/target/wasm32-unknown-unknown/{{ target }}/component_sample.wasm ./x64/{{ target }}/component_sample.aot
+
+build-monte-carlo-example features="": (compile-wit) (mkdir-redist "release")
+    # Monte Carlo Pi example using native wasm32-wasip2 + wit-bindgen
+    # Always build in release mode to avoid WASI dependencies (debug mode pulls in entire WASI for some reason)
+    rustup target add wasm32-wasip2
+    cd ./src/wasip2_guest && cargo build --lib --target wasm32-wasip2 --release
+    cargo run {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--features " + features } }} -p hyperlight-wasm-aot compile {{ if features =~ "gdb" {"--debug"} else {""} }} --component ./src/wasip2_guest/target/wasm32-wasip2/release/monte_carlo.wasm ./x64/release/monte_carlo.aot
 
 check target=default-target:
     cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
@@ -99,9 +108,10 @@ examples-ci target=default-target features="": (build-rust-wasm-examples target)
     cargo run {{ if features =="" {''} else {"--no-default-features -F function_call_metrics," + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example metrics
     cargo run {{ if features =="" {"--no-default-features --features kvm,mshv3"} else {"--no-default-features -F function_call_metrics," + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example metrics 
 
-examples-components target=default-target features="": (build-rust-component-examples target) 
+examples-components target=default-target features="": (build-rust-component-examples target) (build-monte-carlo-example)
     {{ wit-world }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_example
     {{ wit-world-c }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example c-component
+    {{ wit-world-monte-carlo }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example monte_carlo_example
 
 # warning, compares to and then OVERWRITES the given baseline
 bench-ci baseline target="release" features="":

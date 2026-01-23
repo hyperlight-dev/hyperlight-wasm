@@ -59,6 +59,11 @@ name = "interruption"
 path = "examples/interruption/main.rs"
 test = true
 
+[[example]]
+name = "monte_carlo_example"
+path = "examples/monte_carlo_example/main.rs"
+test = true
+
 [dependencies]
 hyperlight-host = { workspace = true }
 libc = { version = "0.2.180" }
@@ -92,6 +97,7 @@ tracing = "0.1.44"
 tracing-subscriber = {version = "0.3.22", features = ["std", "env-filter"]}
 tracing-opentelemetry = "0.32.1"
 uuid = { version = "1.19.0", features = ["v4"] }
+rand = "0.8"
 
 [build-dependencies]
 cfg_aliases = "0.2.1"
