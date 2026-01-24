@@ -1,0 +1,15 @@
+package my:monte-carlo;
+
+/// Host provides random numbers (guest can't generate them)
+interface random {
+    /// Returns a random f32 in the range [0.0, 1.0)
+    random: func() -> f32;
+}
+
+world estimator {
+    import random;
+
+    /// Estimate pi using n random samples
+    /// Returns the estimate of pi
+    export estimate-pi: func(samples: u32) -> f32;
+}
