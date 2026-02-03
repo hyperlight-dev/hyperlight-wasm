@@ -47,6 +47,10 @@ enum Commands {
         /// Precompile with debug and disable optimizations
         #[arg(long)]
         debug: bool,
+
+        /// Disable address map and native unwind info for smaller binaries
+        #[arg(long)]
+        minimal: bool,
     },
 
     /// Check which Wasmtime version was used to precompile a module
@@ -69,6 +73,7 @@ fn main() {
             output,
             component,
             debug,
+            minimal,
         } => {
             let outfile = match output {
                 Some(s) => s,
@@ -86,7 +91,7 @@ fn main() {
             } else {
                 println!("Aot Compiling {} to {}", input, outfile);
             }
-            let config = get_config(debug);
+            let config = get_config(debug, minimal);
             let engine = Engine::new(&config).unwrap();
             let bytes = std::fs::read(&input).unwrap();
             let serialized = if component {
@@ -116,7 +121,7 @@ fn main() {
             }
             // load the file into wasmtime, check that it is aot compiled and extract the version of wasmtime used to compile it from its metadata
             let bytes = std::fs::read(&file).unwrap();
-            let config = get_config(debug);
+            let config = get_config(debug, false);
             let engine = Engine::new(&config).unwrap();
             match Engine::detect_precompiled(&bytes) {
                 Some(pre_compiled) => {
@@ -163,7 +168,7 @@ fn main() {
 }
 
 /// Returns a new `Config` for the Wasmtime engine with additional settings for AOT compilation.
-fn get_config(debug: bool) -> Config {
+fn get_config(debug: bool, minimal: bool) -> Config {
     let mut config = Config::new();
     config.target("x86_64-unknown-none").unwrap();
 
@@ -171,6 +176,11 @@ fn get_config(debug: bool) -> Config {
     if debug {
         config.debug_info(true);
         config.cranelift_opt_level(OptLevel::None);
+    }
+
+    if minimal {
+        config.generate_address_map(false);
+        config.native_unwind_info(false);
     }
 
     config
