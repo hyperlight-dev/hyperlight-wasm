@@ -67,5 +67,6 @@ fn main() {
 
     cfg_aliases::cfg_aliases! {
         gdb: { all(feature = "gdb", debug_assertions) },
+        pulley: { feature = "pulley" },
     }
 }

@@ -51,6 +51,10 @@ enum Commands {
         /// Disable address map and native unwind info for smaller binaries
         #[arg(long)]
         minimal: bool,
+
+        /// Pre-compile for the pulley64 target
+        #[arg(long)]
+        pulley: bool,
     },
 
     /// Check which Wasmtime version was used to precompile a module
@@ -61,6 +65,10 @@ enum Commands {
         /// Specifies if the module has been compiled with debug support
         #[arg(long)]
         debug: bool,
+
+        /// Specifies if the module has been compiled for pulley64 target
+        #[arg(long)]
+        pulley: bool,
     },
 }
 
@@ -74,6 +82,7 @@ fn main() {
             component,
             debug,
             minimal,
+            pulley,
         } => {
             let outfile = match output {
                 Some(s) => s,
@@ -83,15 +92,20 @@ fn main() {
                     path.to_str().unwrap().to_string()
                 }
             };
+            let target = if pulley {
+                "pulley64".to_string()
+            } else {
+                "x86_64-unknown-none".to_string()
+            };
             if debug {
                 println!(
-                    "Aot Compiling {} to {} with debug info and optimizations off",
-                    input, outfile
+                    "Aot Compiling {} to [{}]: {} with debug info and optimizations off",
+                    input, target, outfile
                 );
             } else {
-                println!("Aot Compiling {} to {}", input, outfile);
+                println!("Aot Compiling {} to [{}]: {}", input, target, outfile);
             }
-            let config = get_config(debug, minimal);
+            let config = get_config(debug, minimal, pulley);
             let engine = Engine::new(&config).unwrap();
             let bytes = std::fs::read(&input).unwrap();
             let serialized = if component {
@@ -101,7 +115,11 @@ fn main() {
             };
             std::fs::write(outfile, serialized).unwrap();
         }
-        Commands::CheckWasmtimeVersion { file, debug } => {
+        Commands::CheckWasmtimeVersion {
+            file,
+            debug,
+            pulley,
+        } => {
             // get the wasmtime version used by hyperlight-wasm-aot
             let metadata = MetadataCommand::new().exec().unwrap();
             let package_name = PackageName::new("wasmtime".to_string()).unwrap();
@@ -121,7 +139,7 @@ fn main() {
             }
             // load the file into wasmtime, check that it is aot compiled and extract the version of wasmtime used to compile it from its metadata
             let bytes = std::fs::read(&file).unwrap();
-            let config = get_config(debug, false);
+            let config = get_config(debug, false, pulley);
             let engine = Engine::new(&config).unwrap();
             match Engine::detect_precompiled(&bytes) {
                 Some(pre_compiled) => {
@@ -168,9 +186,15 @@ fn main() {
 }
 
 /// Returns a new `Config` for the Wasmtime engine with additional settings for AOT compilation.
-fn get_config(debug: bool, minimal: bool) -> Config {
+fn get_config(debug: bool, minimal: bool, pulley: bool) -> Config {
     let mut config = Config::new();
-    config.target("x86_64-unknown-none").unwrap();
+
+    // Compile for the pulley64 target if specified
+    if pulley {
+        config.target("pulley64").unwrap();
+    } else {
+        config.target("x86_64-unknown-none").unwrap();
+    }
 
     // Enable the default features for the Wasmtime engine.
     if debug {
