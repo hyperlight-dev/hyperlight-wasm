@@ -295,9 +295,9 @@ dependencies = [
 
 [[package]]
 name = "cargo-hyperlight"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "090c25c7dc78090ca923e0910fc7d2b03926ab4315f31a55b8f5f2c2765f1899"
+checksum = "efc254da43b84f3cfb3cd06b7ed1c17500779867a662cd8d50408f26ea7d4530"
 dependencies = [
  "anyhow",
  "console",
