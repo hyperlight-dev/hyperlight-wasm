@@ -30,6 +30,7 @@ pub const MIN_HEAP_SIZE: u64 = 1024 * 1024;
 #[derive(Clone)]
 pub struct SandboxBuilder {
     config: SandboxConfiguration,
+    scratch_size: Option<usize>,
     host_print_fn: Option<HostFunction<i32, (String,)>>,
 }
 
@@ -42,6 +43,7 @@ impl SandboxBuilder {
 
         Self {
             config,
+            scratch_size: None,
             host_print_fn: None,
         }
     }
@@ -99,10 +101,21 @@ impl SandboxBuilder {
     /// This is the size of the stack that code executing in the guest can use.
     /// If this value is too small then the guest will fail with a stack overflow error
     /// The default value (and minimum) is set to the value of the MIN_STACK_SIZE const.
+    #[allow(unused_mut)]
     pub fn with_guest_stack_size(mut self, guest_stack_size: u64) -> Self {
         if guest_stack_size > MIN_STACK_SIZE {
-            self.config.set_stack_size(guest_stack_size);
+            //self.config.set_stack_size(guest_stack_size);
         }
+        self
+    }
+
+    /// Set the guest stack size
+    /// This is the size of the stack that code executing in the guest can use.
+    /// If this value is too small then the guest will fail with a stack overflow error
+    /// The default value (and minimum) is set to the value of the MIN_STACK_SIZE const.
+    #[allow(unused_mut)]
+    pub fn with_guest_scratch_size(mut self, guest_scratch_size: usize) -> Self {
+        self.scratch_size = Some(guest_scratch_size);
         self
     }
 
@@ -129,13 +142,19 @@ impl SandboxBuilder {
     /// Set the size of the memory buffer that is made available
     /// for serialising host function definitions the minimum value
     /// is MIN_FUNCTION_DEFINITION_SIZE
+    #[allow(unused_mut)]
     pub fn with_function_definition_size(mut self, size: usize) -> Self {
-        self.config.set_host_function_definition_size(size);
+        //self.config.set_host_function_definition_size(size);
         self
     }
 
     /// Build the ProtoWasmSandbox
-    pub fn build(self) -> Result<ProtoWasmSandbox> {
+    pub fn build(mut self) -> Result<ProtoWasmSandbox> {
+        if let Some(sz) = self.scratch_size {
+            self.config.set_scratch_size(sz);
+        } else {
+            self.config.set_scratch_size(0x100000);
+        }
         if !is_hypervisor_present() {
             return Err(HyperlightError::NoHypervisorFound());
         }

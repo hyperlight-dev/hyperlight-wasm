@@ -42,7 +42,7 @@ pub struct LoadedWasmSandbox {
     // because of this we cannot implement drop without making inner an Option (alternatively we could make MultiUseSandbox Copy but that would introduce other issues)
     inner: Option<MultiUseSandbox>,
     // The state the sandbox was in before loading a wasm module. Used for transitioning back to a `WasmSandbox` (unloading the wasm module).
-    runtime_snapshot: Option<Snapshot>,
+    runtime_snapshot: Option<Arc<Snapshot>>,
 }
 
 impl LoadedWasmSandbox {
@@ -86,9 +86,9 @@ impl LoadedWasmSandbox {
     /// Returns `Err(HyperlightError::PoisonedSandbox)` if the sandbox is in a
     /// poisoned state. Use [`restore()`](Self::restore) with a previously
     /// taken snapshot to recover before taking a new snapshot.
-    pub fn snapshot(&mut self) -> Result<Snapshot> {
+    pub fn snapshot(&mut self) -> Result<Arc<Snapshot>> {
         match &mut self.inner {
-            Some(inner) => inner.snapshot(),
+            Some(inner) => inner.snapshot(None),
             None => log_then_return!("No inner MultiUseSandbox to snapshot"),
         }
     }
@@ -105,7 +105,8 @@ impl LoadedWasmSandbox {
     /// 1. Clear the poisoned state
     /// 2. Reset memory to the snapshot state
     /// 3. Allow subsequent [`call_guest_function()`](Self::call_guest_function) calls to succeed
-    pub fn restore(&mut self, snapshot: &Snapshot) -> Result<()> {
+    pub fn restore(&mut self, snapshot: Arc<Snapshot>) -> Result<()> {
+        eprintln!("did a restore (2)");
         match &mut self.inner {
             Some(inner) => inner.restore(snapshot),
             None => log_then_return!("No inner MultiUseSandbox to restore"),
@@ -135,7 +136,7 @@ impl LoadedWasmSandbox {
 
     pub(super) fn new(
         inner: MultiUseSandbox,
-        runtime_snapshot: Snapshot,
+        runtime_snapshot: Arc<Snapshot>,
     ) -> Result<LoadedWasmSandbox> {
         metrics::gauge!(METRIC_ACTIVE_LOADED_WASM_SANDBOXES).increment(1);
         metrics::counter!(METRIC_TOTAL_LOADED_WASM_SANDBOXES).increment(1);

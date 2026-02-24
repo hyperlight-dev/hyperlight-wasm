@@ -47,6 +47,7 @@ fn main() {
     let state = State::new();
     let mut sb: hyperlight_wasm::ProtoWasmSandbox = hyperlight_wasm::SandboxBuilder::new()
         .with_guest_input_buffer_size(70000000)
+        .with_guest_scratch_size(70995968)
         .with_guest_heap_size(200000000)
         .with_guest_stack_size(100000000)
         .build()

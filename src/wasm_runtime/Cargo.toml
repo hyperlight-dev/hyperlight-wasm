@@ -11,9 +11,9 @@ doctest = false
 bench = false
 
 [dependencies]
-hyperlight-common = { version = "0.12.0", default-features = false }
-hyperlight-guest-bin = { version = "0.12.0", features = [ "printf" ] }
-hyperlight-guest = { version = "0.12.0" }
+hyperlight-common = { git = "https://github.com/hyperlight-dev/hyperlight", branch = "lm/cow-wasm-work", default-features = false }
+hyperlight-guest-bin = { git = "https://github.com/hyperlight-dev/hyperlight", branch = "lm/cow-wasm-work", features = [ "printf" ] }
+hyperlight-guest = { git = "https://github.com/hyperlight-dev/hyperlight", branch = "lm/cow-wasm-work"  }
 wasmtime = { version = "36.0.5", default-features = false, features = [ "runtime", "custom-virtual-memory", "custom-native-signals", "component-model" ] }
 hyperlight-wasm-macro = { path = "../hyperlight_wasm_macro" }
 spin = "0.10.0"

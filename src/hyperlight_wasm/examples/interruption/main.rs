@@ -97,7 +97,7 @@ fn main() -> Result<()> {
 
     // Recovery option 1: Use restore() to recover the sandbox
     println!("\n7. Recovering sandbox using restore()...");
-    loaded.restore(&snapshot)?;
+    loaded.restore(snapshot)?;
     assert!(!loaded.is_poisoned()?);
     println!("   is_poisoned after restore: {}", loaded.is_poisoned()?);
 

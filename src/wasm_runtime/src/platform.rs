@@ -18,7 +18,9 @@ use core::ffi::c_void;
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicPtr, AtomicU64, Ordering};
 
-use hyperlight_guest_bin::exceptions::handler;
+use hyperlight_common::vmem::{BasicMapping, CowMapping, MappingKind};
+use hyperlight_guest::prim_alloc::alloc_phys_pages;
+use hyperlight_guest_bin::exception::arch;
 use hyperlight_guest_bin::paging;
 
 // Extremely stupid virtual address allocator
@@ -28,8 +30,8 @@ use hyperlight_guest_bin::paging;
 static FIRST_VADDR: AtomicU64 = AtomicU64::new(0x100_0000_0000u64);
 fn page_fault_handler(
     _exception_number: u64,
-    info: *mut handler::ExceptionInfo,
-    _ctx: *mut handler::Context,
+    info: *mut arch::ExceptionInfo,
+    _ctx: *mut arch::Context,
     page_fault_address: u64,
 ) -> bool {
     let error_code = unsafe { (&raw const (*info).error_code).read_volatile() };
@@ -41,12 +43,17 @@ fn page_fault_handler(
     // structure in hyperlight core
     if (error_code & 0x1) == 0x0 && page_fault_address >= 0x100_0000_0000u64 {
         unsafe {
-            let phys_page = paging::alloc_phys_pages(1);
+            let phys_page = alloc_phys_pages(1);
             let virt_base = (page_fault_address & !0xFFF) as *mut u8;
             paging::map_region(
                 phys_page,
                 virt_base,
                 hyperlight_guest_bin::OS_PAGE_SIZE as u64,
+                MappingKind::Basic(BasicMapping {
+                    readable: true,
+                    writable: true,
+                    executable: true,
+                }),
             );
             virt_base.write_bytes(0u8, hyperlight_guest_bin::OS_PAGE_SIZE as usize);
         }
@@ -59,7 +66,7 @@ pub(crate) fn register_page_fault_handler() {
     // See AMD64 Architecture Programmer's Manual, Volume 2
     //    §8.2 Vectors, p. 245
     //      Table 8-1: Interrupt Vector Source and Cause
-    handler::HANDLERS[14].store(page_fault_handler as usize as u64, Ordering::Release);
+    arch::HANDLERS[14].store(page_fault_handler as usize as u64, Ordering::Release);
 }
 
 // Wasmtime Embedding Interface
@@ -120,8 +127,8 @@ type wasmtime_trap_handler_t =
 static WASMTIME_REQUESTED_TRAP_HANDLER: AtomicU64 = AtomicU64::new(0);
 fn wasmtime_trap_handler(
     exception_number: u64,
-    info: *mut handler::ExceptionInfo,
-    ctx: *mut handler::Context,
+    info: *mut arch::ExceptionInfo,
+    ctx: *mut arch::Context,
     _page_fault_address: u64,
 ) -> bool {
     let requested_handler = WASMTIME_REQUESTED_TRAP_HANDLER.load(Ordering::Relaxed);
@@ -155,7 +162,7 @@ pub extern "C" fn wasmtime_init_traps(handler: wasmtime_trap_handler_t) -> i32 {
     // See AMD64 Architecture Programmer's Manual, Volume 2
     //    §8.2 Vectors, p. 245
     //      Table 8-1: Interrupt Vector Source and Cause
-    handler::HANDLERS[6].store(wasmtime_trap_handler as usize as u64, Ordering::Release);
+    arch::HANDLERS[6].store(wasmtime_trap_handler as usize as u64, Ordering::Release);
     // TODO: Add handlers for any other traps that wasmtime needs,
     //       probably including at least some floating-point
     //       exceptions
@@ -169,23 +176,46 @@ pub extern "C" fn wasmtime_init_traps(handler: wasmtime_trap_handler_t) -> i32 {
 // The wasmtime_memory_image APIs are not yet supported.
 #[no_mangle]
 pub extern "C" fn wasmtime_memory_image_new(
-    _ptr: *const u8,
-    _len: usize,
+    ptr: *const u8,
+    len: usize,
     ret: &mut *mut c_void,
 ) -> i32 {
-    *ret = core::ptr::null_mut();
+    let new_virt = FIRST_VADDR.fetch_add(0x100_0000_0000, Ordering::Relaxed) as *mut u8;
+    let phys = paging::virt_to_phys(ptr as u64).next().unwrap().phys_base;
+    unsafe {
+        paging::map_region(
+            phys,
+            new_virt,
+            len as u64,
+            MappingKind::Cow(CowMapping {
+                readable: true,
+                executable: true,
+            }),
+        );
+        *ret = new_virt as *mut c_void;
+    }
     0
 }
 
 #[no_mangle]
 pub extern "C" fn wasmtime_memory_image_map_at(
-    _image: *mut c_void,
-    _addr: *mut u8,
-    _len: usize,
+    image: *mut c_void,
+    addr: *mut u8,
+    len: usize,
 ) -> i32 {
-    /* This should never be called because wasmtime_memory_image_new
-     * returns NULL */
-    panic!("wasmtime_memory_image_map_at");
+    let phys = paging::virt_to_phys(image as u64).next().unwrap().phys_base;
+    unsafe {
+        paging::map_region(
+            phys,
+            addr,
+            len as u64,
+            MappingKind::Cow(CowMapping {
+                readable: true,
+                executable: true,
+            }),
+        );
+    }
+    0
 }
 
 #[no_mangle]
@@ -233,7 +263,29 @@ pub(crate) unsafe fn map_buffer(phys: u64, len: u64) -> NonNull<[u8]> {
     // TODO: Use a VA allocator
     let virt = phys as *mut u8;
     unsafe {
-        paging::map_region(phys, virt, len);
+        paging::map_region(
+            phys,
+            virt,
+            len,
+            MappingKind::Basic(BasicMapping {
+                readable: true,
+                writable: true,
+                executable: true,
+            }),
+        );
+        paging::barrier::first_valid_same_ctx();
         NonNull::new_unchecked(core::ptr::slice_from_raw_parts_mut(virt, len as usize))
+    }
+}
+
+pub(crate) unsafe fn unmap_buffer(phys: u64, virt: NonNull<[u8]>, len: u64) {
+    unsafe {
+        paging::map_region(
+            phys,
+            virt.as_ptr() as *mut u8,
+            len,
+            MappingKind::Unmapped
+        );
+        // should do a tlbi here but it doesnt really matter at present
     }
 }
