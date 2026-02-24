@@ -14,5 +14,7 @@ opt-level = 'z'
 strip = true
 
 
+[workspace] # indicate that this crate is not part of any workspace
+
 [dependencies]
 
