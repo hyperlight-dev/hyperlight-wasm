@@ -18,3 +18,4 @@ world = "example"
 
 [package.metadata.component.target.dependencies]
 
+[workspace] # indicate that this crate is not part of any workspace

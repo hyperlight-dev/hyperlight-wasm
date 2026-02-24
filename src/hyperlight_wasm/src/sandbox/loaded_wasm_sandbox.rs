@@ -425,6 +425,29 @@ mod tests {
         assert_eq!(r, 0);
     }
 
+    #[test]
+    fn test_load_module_fails_with_missing_host_function() {
+        // HostFunction.aot imports "HostFuncWithBufferAndLength" from "env".
+        // Loading it without registering that host function should fail
+        // at instantiation time (linker.instantiate) because the import
+        // cannot be satisfied.
+        let proto_wasm_sandbox = SandboxBuilder::new().build().unwrap();
+
+        let wasm_sandbox = proto_wasm_sandbox.load_runtime().unwrap();
+
+        let result: std::result::Result<LoadedWasmSandbox, _> = {
+            let mod_path = get_wasm_module_path("HostFunction.aot").unwrap();
+            wasm_sandbox.load_module(mod_path)
+        };
+
+        let err = result.unwrap_err();
+        let err_msg = format!("{:?}", err);
+        assert!(
+            err_msg.contains("HostFuncWithBufferAndLength"),
+            "Error should mention the missing host function, got: {err_msg}"
+        );
+    }
+
     fn call_funcs(
         mut loaded_wasm_sandbox: LoadedWasmSandbox,
         iterations: i32,

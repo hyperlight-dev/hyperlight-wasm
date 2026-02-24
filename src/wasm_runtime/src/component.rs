@@ -130,7 +130,7 @@ pub extern "C" fn hyperlight_main() {
 
     register_function(GuestFunctionDefinition::new(
         "InitWasmRuntime".to_string(),
-        vec![],
+        vec![ParameterType::VecBytes],
         ReturnType::Int,
         init_wasm_runtime as usize,
     ));

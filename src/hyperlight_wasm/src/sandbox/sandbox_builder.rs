@@ -126,14 +126,6 @@ impl SandboxBuilder {
         self
     }
 
-    /// Set the size of the memory buffer that is made available
-    /// for serialising host function definitions the minimum value
-    /// is MIN_FUNCTION_DEFINITION_SIZE
-    pub fn with_function_definition_size(mut self, size: usize) -> Self {
-        self.config.set_host_function_definition_size(size);
-        self
-    }
-
     /// Build the ProtoWasmSandbox
     pub fn build(self) -> Result<ProtoWasmSandbox> {
         if !is_hypervisor_present() {

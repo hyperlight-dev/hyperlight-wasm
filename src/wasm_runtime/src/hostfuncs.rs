@@ -32,10 +32,6 @@ pub(crate) type HostFunctionDefinition =
 pub(crate) type HostFunctionDetails =
     hyperlight_common::flatbuffer_wrappers::host_function_details::HostFunctionDetails;
 
-pub(crate) fn get_host_function_details() -> HostFunctionDetails {
-    hyperlight_guest_bin::host_comm::get_host_function_details()
-}
-
 pub(crate) fn hostfunc_type(d: &HostFunctionDefinition, e: &Engine) -> Result<FuncType> {
     let mut params = Vec::new();
     let mut last_was_vec = false;
