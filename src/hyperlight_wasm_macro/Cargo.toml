@@ -17,3 +17,5 @@ syn = { version = "2.0.117" }
 itertools = { version = "0.14.0" }
 prettyplease = { version = "0.2.37" }
 hyperlight-component-util = { version = "0.12.0" }
+
+[workspace] # indicate that this crate is not part of any workspace
