@@ -14,3 +14,4 @@ readme = "README.md"
 
 [workspace.dependencies]
 hyperlight-host = { version = "0.12.0", default-features = false, features = ["executable_heap", "init-paging"] }
+hyperlight-common = { version = "0.12.0", default-features = false }
