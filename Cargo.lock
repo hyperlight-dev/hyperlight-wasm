@@ -1645,6 +1645,7 @@ dependencies = [
  "env_logger",
  "examples_common",
  "goblin",
+ "hyperlight-common",
  "hyperlight-component-macro",
  "hyperlight-host",
  "hyperlight-wasm-runtime",

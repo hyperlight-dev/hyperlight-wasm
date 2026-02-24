@@ -96,7 +96,7 @@ pub fn guest_dispatch_function(function_call: FunctionCall) -> Result<Vec<u8>> {
 }
 
 #[instrument(skip_all, level = "Info")]
-fn init_wasm_runtime() -> Result<Vec<u8>> {
+fn init_wasm_runtime(function_call: &FunctionCall) -> Result<Vec<u8>> {
     let mut config = Config::new();
     config.with_custom_code_memory(Some(alloc::sync::Arc::new(platform::WasmtimeCodeMemory {})));
     #[cfg(gdb)]
@@ -112,9 +112,32 @@ fn init_wasm_runtime() -> Result<Vec<u8>> {
     let mut linker = Linker::new(&engine);
     wasip1::register_handlers(&mut linker)?;
 
-    let hostfuncs = hostfuncs::get_host_function_details()
-        .host_functions
-        .unwrap_or_default();
+    // Parse host function details pushed by the host as a parameter
+    let params = function_call.parameters.as_ref().ok_or_else(|| {
+        HyperlightGuestError::new(
+            ErrorCode::GuestFunctionParameterTypeMismatch,
+            "InitWasmRuntime: missing parameters".to_string(),
+        )
+    })?;
+
+    let bytes = match params.first() {
+        Some(ParameterValue::VecBytes(ref b)) => b,
+        _ => {
+            return Err(HyperlightGuestError::new(
+                ErrorCode::GuestFunctionParameterTypeMismatch,
+                "InitWasmRuntime: first parameter must be VecBytes".to_string(),
+            ))
+        }
+    };
+
+    let hfd: hostfuncs::HostFunctionDetails = bytes.as_slice().try_into().map_err(|e| {
+        HyperlightGuestError::new(
+            ErrorCode::GuestError,
+            alloc::format!("Failed to parse host function details: {:?}", e),
+        )
+    })?;
+    let hostfuncs = hfd.host_functions.unwrap_or_default();
+
     for hostfunc in hostfuncs.iter() {
         let captured = hostfunc.clone();
         linker.func_new(
@@ -210,7 +233,7 @@ pub extern "C" fn hyperlight_main() {
 
     register_function(GuestFunctionDefinition::new(
         "InitWasmRuntime".to_string(),
-        vec![],
+        vec![ParameterType::VecBytes],
         ReturnType::Int,
         init_wasm_runtime as usize,
     ));
