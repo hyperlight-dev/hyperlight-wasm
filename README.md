@@ -98,6 +98,32 @@ generate bindings from the same component type in the host.  For a
 complete (albeit small) example of this, see [this
 example](https://aka.ms/hyperlight-wasm-sockets-sample).
 
+### Selecting a specific world
+
+If your WIT file contains multiple worlds, you can select which world
+to use by setting the `WIT_WORLD_NAME` environment variable to the name
+of the desired world. If not set, the last world in the file will be used.
+
+For example, given a WIT file with multiple worlds:
+
+```wit
+package example:worlds;
+
+world http-world {
+    export http-interface;
+}
+
+world queue-world {
+    export queue-interface;
+}
+```
+
+To generate bindings for `http-world` instead of the default `queue-world`:
+
+```
+WIT_WORLD=/path/to/output.wasm WIT_WORLD_NAME=http-world cargo build -p hyperlight-wasm
+```
+
 ### Debugging the macro
 
 You can get more detailed error messages by expanding the Macro locally:
