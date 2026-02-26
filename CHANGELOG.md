@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Prerelease] - Unreleased
 
+### Added
+- Added support for selecting a specific world from WIT files with multiple worlds using the `WIT_WORLD_NAME` environment variable (#202)
+
 ## [v0.12.0] - 2025-12
 
 ### Added
