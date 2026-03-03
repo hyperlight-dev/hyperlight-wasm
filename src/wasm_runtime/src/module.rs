@@ -122,10 +122,16 @@ fn init_wasm_runtime(function_call: &FunctionCall) -> Result<Vec<u8>> {
 
     let bytes = match params.first() {
         Some(ParameterValue::VecBytes(ref b)) => b,
-        _ => {
+        Some(_) => {
             return Err(HyperlightGuestError::new(
                 ErrorCode::GuestFunctionParameterTypeMismatch,
                 "InitWasmRuntime: first parameter must be VecBytes".to_string(),
+            ))
+        }
+        None => {
+            return Err(HyperlightGuestError::new(
+                ErrorCode::GuestFunctionParameterTypeMismatch,
+                "InitWasmRuntime: expected 1 parameter, got 0".to_string(),
             ))
         }
     };
