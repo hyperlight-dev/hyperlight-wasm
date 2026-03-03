@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::collections::HashMap;
+
 use hyperlight_common::flatbuffer_wrappers::function_types::{ParameterType, ReturnType};
 use hyperlight_common::flatbuffer_wrappers::host_function_definition::HostFunctionDefinition;
 use hyperlight_common::flatbuffer_wrappers::host_function_details::HostFunctionDetails;
@@ -34,8 +36,7 @@ use crate::build_info::BuildInfo;
 /// With that `WasmSandbox` you can load a Wasm module through the `load_module` method and get a `LoadedWasmSandbox` which can then execute functions defined in the Wasm module.
 pub struct ProtoWasmSandbox {
     pub(super) inner: Option<UninitializedSandbox>,
-    /// Tracks registered host function definitions for pushing to the guest at load time
-    host_function_definitions: Vec<HostFunctionDefinition>,
+    host_function_definitions: HashMap<String, HostFunctionDefinition>,
 }
 
 impl Registerable for ProtoWasmSandbox {
@@ -44,17 +45,15 @@ impl Registerable for ProtoWasmSandbox {
         name: &str,
         hf: impl Into<HostFunction<Output, Args>>,
     ) -> Result<()> {
-        // Track the host function definition for pushing to guest at load time
-        self.host_function_definitions.push(HostFunctionDefinition {
-            function_name: name.to_string(),
-            parameter_types: Some(Args::TYPE.to_vec()),
-            return_type: Output::TYPE,
-        });
-
         self.inner
             .as_mut()
             .ok_or(new_error!("inner sandbox was none"))
-            .and_then(|sb| sb.register(name, hf))
+            .and_then(|sb| sb.register(name, hf))?;
+
+        // Track the host function definition for pushing to guest at load time.
+        // matching hyperlight-core's FunctionRegistry behavior.
+        self.track_host_function_definition(name, Args::TYPE, Output::TYPE);
+        Ok(())
     }
 }
 
@@ -79,11 +78,15 @@ impl ProtoWasmSandbox {
         metrics::counter!(METRIC_TOTAL_PROTO_WASM_SANDBOXES).increment(1);
 
         // HostPrint is always registered by UninitializedSandbox, so include it by default
-        let host_function_definitions = vec![HostFunctionDefinition {
-            function_name: "HostPrint".to_string(),
-            parameter_types: Some(vec![ParameterType::String]),
-            return_type: ReturnType::Int,
-        }];
+        let mut host_function_definitions = HashMap::new();
+        host_function_definitions.insert(
+            "HostPrint".to_string(),
+            HostFunctionDefinition {
+                function_name: "HostPrint".to_string(),
+                parameter_types: Some(vec![ParameterType::String]),
+                return_type: ReturnType::Int,
+            },
+        );
 
         Ok(Self {
             inner: Some(inner),
@@ -100,7 +103,11 @@ impl ProtoWasmSandbox {
     pub fn load_runtime(mut self) -> Result<WasmSandbox> {
         // Serialize host function definitions to push to the guest during InitWasmRuntime
         let host_function_definitions = HostFunctionDetails {
-            host_functions: Some(std::mem::take(&mut self.host_function_definitions)),
+            host_functions: Some(
+                std::mem::take(&mut self.host_function_definitions)
+                    .into_values()
+                    .collect(),
+            ),
         };
 
         let host_function_definitions_bytes: Vec<u8> = (&host_function_definitions)
@@ -132,17 +139,29 @@ impl ProtoWasmSandbox {
         name: impl AsRef<str>,
         host_func: impl Into<HostFunction<Output, Args>>,
     ) -> Result<()> {
-        // Track the host function definition for pushing to guest at load time
-        self.host_function_definitions.push(HostFunctionDefinition {
-            function_name: name.as_ref().to_string(),
-            parameter_types: Some(Args::TYPE.to_vec()),
-            return_type: Output::TYPE,
-        });
-
         self.inner
             .as_mut()
             .ok_or(new_error!("inner sandbox was none"))?
-            .register(name, host_func)
+            .register(&name, host_func)?;
+
+        self.track_host_function_definition(name.as_ref(), Args::TYPE, Output::TYPE);
+        Ok(())
+    }
+
+    fn track_host_function_definition(
+        &mut self,
+        name: &str,
+        parameter_types: &[ParameterType],
+        return_type: ReturnType,
+    ) {
+        self.host_function_definitions.insert(
+            name.to_string(),
+            HostFunctionDefinition {
+                function_name: name.to_string(),
+                parameter_types: Some(parameter_types.to_vec()),
+                return_type,
+            },
+        );
     }
 
     /// Register the given host printing function `print_func` with `self`.
