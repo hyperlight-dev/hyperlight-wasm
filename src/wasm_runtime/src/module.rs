@@ -155,6 +155,23 @@ fn init_wasm_runtime(function_call: FunctionCall) -> Result<Vec<u8>> {
                     .map_err(|e| wasmtime::Error::msg(format!("{:?}", e)))
             },
         )?;
+
+        // Always register HostPrint
+        let host_print_def = hostfuncs::HostFunctionDefinition {
+            function_name: "HostPrint".to_string(),
+            parameter_types: Some(alloc::vec![ParameterType::String]),
+            return_type: ReturnType::Int,
+        };
+        let captured = host_print_def.clone();
+        linker.func_new(
+            "env",
+            "HostPrint",
+            hostfuncs::hostfunc_type(&host_print_def, &engine)?,
+            move |c, ps, rs| {
+                hostfuncs::call(&captured, c, ps, rs)
+                    .map_err(|e| wasmtime::Error::msg(format!("{:?}", e)))
+            },
+        )?;
     }
     *CUR_ENGINE.lock() = Some(engine);
     *CUR_LINKER.lock() = Some(linker);

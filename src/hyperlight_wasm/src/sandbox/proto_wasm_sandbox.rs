@@ -77,17 +77,7 @@ impl ProtoWasmSandbox {
         metrics::gauge!(METRIC_ACTIVE_PROTO_WASM_SANDBOXES).increment(1);
         metrics::counter!(METRIC_TOTAL_PROTO_WASM_SANDBOXES).increment(1);
 
-        // HostPrint is always registered by UninitializedSandbox, so include it by default
-        let mut host_function_definitions = HashMap::new();
-        host_function_definitions.insert(
-            "HostPrint".to_string(),
-            HostFunctionDefinition {
-                function_name: "HostPrint".to_string(),
-                parameter_types: Some(vec![ParameterType::String]),
-                return_type: ReturnType::Int,
-            },
-        );
-
+        let host_function_definitions = HashMap::new();
         Ok(Self {
             inner: Some(inner),
             host_function_definitions,
@@ -170,8 +160,6 @@ impl ProtoWasmSandbox {
         &mut self,
         print_func: impl Into<HostFunction<i32, (String,)>>,
     ) -> Result<()> {
-        // HostPrint definition is already tracked from new() since
-        // UninitializedSandbox always registers a default HostPrint.
         // This method only replaces the implementation, not the definition.
         self.inner
             .as_mut()
