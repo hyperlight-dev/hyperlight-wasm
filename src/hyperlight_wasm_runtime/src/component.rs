@@ -45,7 +45,7 @@ hyperlight_wasm_macro::wasm_guest_bindgen!();
 
 // dummy for compatibility with the module loading approach
 #[instrument(skip_all, level = "Info")]
-fn init_wasm_runtime(_function_call: &FunctionCall) -> Result<Vec<u8>> {
+fn init_wasm_runtime(_function_call: FunctionCall) -> Result<Vec<u8>> {
     Ok(get_flatbuffer_result::<i32>(0))
 }
 
@@ -62,7 +62,7 @@ fn load_component_common(engine: &Engine, component: Component) -> Result<()> {
 }
 
 #[instrument(skip_all, level = "Info")]
-fn load_wasm_module(function_call: &FunctionCall) -> Result<Vec<u8>> {
+fn load_wasm_module(function_call: FunctionCall) -> Result<Vec<u8>> {
     if let (
         ParameterValue::VecBytes(ref wasm_bytes),
         ParameterValue::Int(ref _len),
@@ -84,7 +84,7 @@ fn load_wasm_module(function_call: &FunctionCall) -> Result<Vec<u8>> {
 }
 
 #[instrument(skip_all, level = "Info")]
-fn load_wasm_module_phys(function_call: &FunctionCall) -> Result<Vec<u8>> {
+fn load_wasm_module_phys(function_call: FunctionCall) -> Result<Vec<u8>> {
     if let (ParameterValue::ULong(ref phys), ParameterValue::ULong(ref len), Some(ref engine)) = (
         &function_call.parameters.as_ref().unwrap()[0],
         &function_call.parameters.as_ref().unwrap()[1],
@@ -132,19 +132,19 @@ pub extern "C" fn hyperlight_main() {
         "InitWasmRuntime".to_string(),
         vec![ParameterType::VecBytes],
         ReturnType::Int,
-        init_wasm_runtime as usize,
+        init_wasm_runtime,
     ));
     register_function(GuestFunctionDefinition::new(
         "LoadWasmModule".to_string(),
         vec![ParameterType::VecBytes, ParameterType::Int],
         ReturnType::Int,
-        load_wasm_module as usize,
+        load_wasm_module,
     ));
     register_function(GuestFunctionDefinition::new(
         "LoadWasmModulePhys".to_string(),
         vec![ParameterType::ULong, ParameterType::ULong],
         ReturnType::Void,
-        load_wasm_module_phys as usize,
+        load_wasm_module_phys,
     ));
 }
 
