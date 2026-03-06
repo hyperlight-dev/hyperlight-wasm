@@ -96,7 +96,7 @@ pub fn guest_dispatch_function(function_call: FunctionCall) -> Result<Vec<u8>> {
 }
 
 #[instrument(skip_all, level = "Info")]
-fn init_wasm_runtime(function_call: &FunctionCall) -> Result<Vec<u8>> {
+fn init_wasm_runtime(function_call: FunctionCall) -> Result<Vec<u8>> {
     let mut config = Config::new();
     config.with_custom_code_memory(Some(alloc::sync::Arc::new(platform::WasmtimeCodeMemory {})));
     #[cfg(gdb)]
@@ -162,7 +162,7 @@ fn init_wasm_runtime(function_call: &FunctionCall) -> Result<Vec<u8>> {
 }
 
 #[instrument(skip_all, level = "Info")]
-fn load_wasm_module(function_call: &FunctionCall) -> Result<Vec<u8>> {
+fn load_wasm_module(function_call: FunctionCall) -> Result<Vec<u8>> {
     if let (
         ParameterValue::VecBytes(ref wasm_bytes),
         ParameterValue::Int(ref _len),
@@ -195,7 +195,7 @@ fn load_wasm_module(function_call: &FunctionCall) -> Result<Vec<u8>> {
 }
 
 #[instrument(skip_all, level = "Info")]
-fn load_wasm_module_phys(function_call: &FunctionCall) -> Result<Vec<u8>> {
+fn load_wasm_module_phys(function_call: FunctionCall) -> Result<Vec<u8>> {
     if let (ParameterValue::ULong(ref phys), ParameterValue::ULong(ref len), Some(ref engine)) = (
         &function_call.parameters.as_ref().unwrap()[0],
         &function_call.parameters.as_ref().unwrap()[1],
@@ -223,9 +223,8 @@ fn load_wasm_module_phys(function_call: &FunctionCall) -> Result<Vec<u8>> {
     }
 }
 
-// GuestFunctionDefinition expects a function pointer as i64
+// GuestFunctionDefinition expects a function pointer
 #[no_mangle]
-#[allow(clippy::fn_to_numeric_cast)]
 #[instrument(skip_all, level = "Info")]
 pub extern "C" fn hyperlight_main() {
     platform::register_page_fault_handler();
@@ -234,26 +233,26 @@ pub extern "C" fn hyperlight_main() {
         "PrintOutput".to_string(),
         vec![ParameterType::String],
         ReturnType::Int,
-        print_output_with_host_print as usize,
+        print_output_with_host_print,
     ));
 
     register_function(GuestFunctionDefinition::new(
         "InitWasmRuntime".to_string(),
         vec![ParameterType::VecBytes],
         ReturnType::Int,
-        init_wasm_runtime as usize,
+        init_wasm_runtime,
     ));
 
     register_function(GuestFunctionDefinition::new(
         "LoadWasmModule".to_string(),
         vec![ParameterType::VecBytes, ParameterType::Int],
         ReturnType::Int,
-        load_wasm_module as usize,
+        load_wasm_module,
     ));
     register_function(GuestFunctionDefinition::new(
         "LoadWasmModulePhys".to_string(),
         vec![ParameterType::ULong, ParameterType::ULong],
         ReturnType::Void,
-        load_wasm_module_phys as usize,
+        load_wasm_module_phys,
     ));
 }

@@ -112,7 +112,7 @@ fn main() -> Result<()> {
             "RoundToInt test case {idx} failed: got {}, expected {}",
             result, expected_result
         );
-        loaded_wasm_sandbox.restore(&snapshot)?
+        loaded_wasm_sandbox.restore(snapshot.clone())?
     }
     Ok(())
 }
