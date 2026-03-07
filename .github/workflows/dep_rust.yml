@@ -120,10 +120,6 @@ jobs:
           # required for gh cli when downloading
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Test Component Model Examples
-        run: just examples-components ${{ matrix.config }}
-        working-directory: ./src/hyperlight_wasm
-      
       ### Benchmarks ###
 
       - name: Download benchmarks from "latest"

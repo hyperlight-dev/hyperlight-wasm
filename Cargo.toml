@@ -1,6 +1,6 @@
 [workspace]
 members = [ "src/hyperlight_wasm", "src/examples_common", "src/hyperlight_wasm_aot", "src/hyperlight_wasm_runtime", "src/hyperlight_wasm_macro" ]
-exclude = [ "src/rust_wasm_samples", "src/component_sample", "src/greeter_sample" ]
+exclude = [ "src/tests/rust_guests/rust_wasm_samples", "src/tests/rust_guests/component_sample", "src/tests/rust_guests/greeter_sample" ]
 resolver = "2"
 
 [workspace.package]

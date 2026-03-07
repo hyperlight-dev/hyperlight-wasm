@@ -32,7 +32,7 @@ updates:
       - dependency-name: "wasmtime"
         update-types: ["version-update:semver-minor", "version-update:semver-major"]
   - package-ecosystem: "cargo"
-    directory: "/src/rust_wasm_samples"
+    directory: "/src/tests/rust_guests/rust_wasm_samples"
     schedule:
       interval: "daily"
       time: "03:00"
@@ -48,7 +48,7 @@ updates:
     labels:
       - "kind/dependencies"
   - package-ecosystem: "cargo"
-    directory: "/src/component_sample"
+    directory: "/src/tests/rust_guests/component_sample"
     schedule:
       interval: "daily"
       time: "03:00"

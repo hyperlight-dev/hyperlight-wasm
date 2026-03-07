@@ -66,8 +66,8 @@ jobs:
         # Only push if not from a fork, not from pull request, and not from dependabot
           uses: docker/build-push-action@v6
           with:
-            context: src/wasmsamples
-            file: src/wasmsamples/dockerfile
+            context: src/tests/c_guests/wasmsamples
+            file: src/tests/c_guests/wasmsamples/dockerfile
             load: true
             push: ${{ env.DO_PUSH }}
             build-args: |
@@ -81,7 +81,6 @@ jobs:
             just ensure-tools
             just build-wasm-examples release
           shell: bash
-          working-directory:  src/wasmsamples
         - name: Upload Wasm Modules
           uses: actions/upload-artifact@v4
           with:

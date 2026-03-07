@@ -8,7 +8,7 @@ use examples_common::get_wasm_module_path;
 extern crate alloc;
 mod bindings {
     hyperlight_component_macro::host_bindgen!({
-        path: "../component_sample/wit/component-world.wasm",
+        path: "../tests/rust_guests/component_sample/wit/component-world.wasm",
     });
 }
 
