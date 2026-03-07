@@ -1,5 +1,5 @@
 @echo off
-pushd %~dp0\..\..\wasmsamples
+pushd %~dp0\..\..\tests\c_guests\wasmsamples
 call :NORMALIZEPATH "..\..\x64\%1"
 echo "%ABSPATH%"
 call compile-wasm.bat "." "%ABSPATH%"

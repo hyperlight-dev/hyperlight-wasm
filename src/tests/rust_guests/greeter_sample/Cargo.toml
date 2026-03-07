@@ -1,5 +1,5 @@
 [package]
-name = "component_sample"
+name = "greeter_sample"
 version = "0.1.0"
 edition = "2024"
 
@@ -13,8 +13,9 @@ crate-type = ["cdylib"]
 package = "component-sample:example"
 
 [package.metadata.component.target]
-path = "wit/example.wit"
-world = "example"
+path = "../component_sample/wit/example.wit"
+world = "greeter-world"
 
 [package.metadata.component.target.dependencies]
 
+[workspace]

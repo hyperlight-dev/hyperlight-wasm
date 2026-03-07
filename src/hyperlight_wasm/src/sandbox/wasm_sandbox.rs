@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 use std::path::Path;
+use std::sync::Arc;
 
-use hyperlight_host::mem::memory_region::{MemoryRegion, MemoryRegionFlags, MemoryRegionType};
 use hyperlight_host::sandbox::snapshot::Snapshot;
 use hyperlight_host::{MultiUseSandbox, Result, new_error};
 
@@ -38,7 +38,7 @@ pub struct WasmSandbox {
     inner: Option<MultiUseSandbox>,
     // Snapshot of state of an initial WasmSandbox (runtime loaded, but no guest module code loaded).
     // Used for LoadedWasmSandbox to be able restore state back to WasmSandbox
-    snapshot: Option<Snapshot>,
+    snapshot: Option<Arc<Snapshot>>,
 }
 
 const MAPPED_BINARY_VA: u64 = 0x1_0000_0000u64;
@@ -61,8 +61,11 @@ impl WasmSandbox {
     /// for example when creating a `WasmSandbox` from a `LoadedWasmSandbox`, since
     /// the snapshot has already been created in that case.
     /// Expects a snapshot of the state where wasm runtime is loaded, but no guest module code is loaded.
-    pub(super) fn new_from_loaded(mut loaded: MultiUseSandbox, snapshot: Snapshot) -> Result<Self> {
-        loaded.restore(&snapshot)?;
+    pub(super) fn new_from_loaded(
+        mut loaded: MultiUseSandbox,
+        snapshot: Arc<Snapshot>,
+    ) -> Result<Self> {
+        loaded.restore(snapshot.clone())?;
         metrics::gauge!(METRIC_ACTIVE_WASM_SANDBOXES).increment(1);
         metrics::counter!(METRIC_TOTAL_WASM_SANDBOXES).increment(1);
         Ok(WasmSandbox {
@@ -113,19 +116,8 @@ impl WasmSandbox {
             .as_mut()
             .ok_or_else(|| new_error!("WasmSandbox is None"))?;
 
-        let guest_base: usize = MAPPED_BINARY_VA as usize;
-        let rgn = MemoryRegion {
-            host_region: base as usize..base.wrapping_add(len) as usize,
-            guest_region: guest_base..guest_base + len,
-            flags: MemoryRegionFlags::READ | MemoryRegionFlags::EXECUTE,
-            region_type: MemoryRegionType::Heap,
-        };
-        if let Ok(()) = unsafe { inner.map_region(&rgn) } {
-            inner.call::<()>("LoadWasmModulePhys", (MAPPED_BINARY_VA, len as u64))?;
-        } else {
-            let wasm_bytes = unsafe { std::slice::from_raw_parts(base as *const u8, len).to_vec() };
-            load_wasm_module_from_bytes(inner, wasm_bytes)?;
-        }
+        let wasm_bytes = unsafe { std::slice::from_raw_parts(base as *const u8, len).to_vec() };
+        load_wasm_module_from_bytes(inner, wasm_bytes)?;
 
         self.finalize_module_load()
     }
@@ -390,7 +382,7 @@ mod tests {
         assert!(loaded.is_poisoned()?, "Sandbox should be poisoned");
 
         // Restore should recover the sandbox
-        loaded.restore(&snapshot)?;
+        loaded.restore(snapshot)?;
 
         assert!(
             !loaded.is_poisoned()?,
@@ -526,7 +518,7 @@ mod tests {
         let builder = SandboxBuilder::new()
             .with_guest_input_buffer_size(0x8000)
             .with_guest_output_buffer_size(0x8000)
-            .with_guest_stack_size(0x2000)
+            .with_guest_scratch_size(0x2000)
             .with_guest_heap_size(0x100000);
 
         let mut sandboxes: Vec<SandboxTest> = Vec::new();

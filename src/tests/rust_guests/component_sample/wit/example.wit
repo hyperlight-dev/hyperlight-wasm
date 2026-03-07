@@ -1,4 +1,8 @@
 package component-sample:example;
+world greeter-world {
+  import host;
+  export greeter;
+}
 
 world example {
   import host;
@@ -14,4 +18,8 @@ interface adder {
 interface host {
   print: func(message: string);
   host-function: func(input: string) -> string;
+}
+
+interface greeter {
+  greet: func(name: string) -> string;
 }

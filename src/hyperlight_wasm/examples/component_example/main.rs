@@ -7,7 +7,9 @@ use examples_common::get_wasm_module_path;
 
 extern crate alloc;
 mod bindings {
-    hyperlight_component_macro::host_bindgen!("../component_sample/wit/component-world.wasm");
+    hyperlight_component_macro::host_bindgen!({
+        path: "../tests/rust_guests/component_sample/wit/component-world.wasm",
+    });
 }
 
 pub struct State {}
@@ -48,7 +50,7 @@ fn main() {
     let mut sb: hyperlight_wasm::ProtoWasmSandbox = hyperlight_wasm::SandboxBuilder::new()
         .with_guest_input_buffer_size(70000000)
         .with_guest_heap_size(200000000)
-        .with_guest_stack_size(100000000)
+        .with_guest_scratch_size(100 * 1024 * 1024)
         .build()
         .unwrap();
     let rt = bindings::register_host_functions(&mut sb, state);

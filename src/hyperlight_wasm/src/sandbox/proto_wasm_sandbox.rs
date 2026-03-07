@@ -14,6 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::collections::HashMap;
+
+use hyperlight_common::flatbuffer_wrappers::function_types::{ParameterType, ReturnType};
+use hyperlight_common::flatbuffer_wrappers::host_function_definition::HostFunctionDefinition;
+use hyperlight_common::flatbuffer_wrappers::host_function_details::HostFunctionDetails;
 use hyperlight_host::func::{HostFunction, ParameterTuple, Registerable, SupportedReturnType};
 use hyperlight_host::sandbox::config::SandboxConfiguration;
 use hyperlight_host::{GuestBinary, Result, UninitializedSandbox, new_error};
@@ -31,6 +36,7 @@ use crate::build_info::BuildInfo;
 /// With that `WasmSandbox` you can load a Wasm module through the `load_module` method and get a `LoadedWasmSandbox` which can then execute functions defined in the Wasm module.
 pub struct ProtoWasmSandbox {
     pub(super) inner: Option<UninitializedSandbox>,
+    host_function_definitions: HashMap<String, HostFunctionDefinition>,
 }
 
 impl Registerable for ProtoWasmSandbox {
@@ -42,7 +48,12 @@ impl Registerable for ProtoWasmSandbox {
         self.inner
             .as_mut()
             .ok_or(new_error!("inner sandbox was none"))
-            .and_then(|sb| sb.register(name, hf))
+            .and_then(|sb| sb.register(name, hf))?;
+
+        // Track the host function definition for pushing to guest at load time.
+        // matching hyperlight-core's FunctionRegistry behavior.
+        self.track_host_function_definition(name, Args::TYPE, Output::TYPE);
+        Ok(())
     }
 }
 
@@ -65,7 +76,12 @@ impl ProtoWasmSandbox {
         let inner = UninitializedSandbox::new(guest_binary, cfg)?;
         metrics::gauge!(METRIC_ACTIVE_PROTO_WASM_SANDBOXES).increment(1);
         metrics::counter!(METRIC_TOTAL_PROTO_WASM_SANDBOXES).increment(1);
-        Ok(Self { inner: Some(inner) })
+
+        let host_function_definitions = HashMap::new();
+        Ok(Self {
+            inner: Some(inner),
+            host_function_definitions,
+        })
     }
 
     /// Load the Wasm runtime into the sandbox and return a `WasmSandbox`
@@ -75,12 +91,26 @@ impl ProtoWasmSandbox {
     /// The returned `WasmSandbox` can be then be cached and used to load a different Wasm module.
     ///
     pub fn load_runtime(mut self) -> Result<WasmSandbox> {
+        // Serialize host function definitions to push to the guest during InitWasmRuntime
+        let host_function_definitions = HostFunctionDetails {
+            host_functions: Some(
+                std::mem::take(&mut self.host_function_definitions)
+                    .into_values()
+                    .collect(),
+            ),
+        };
+
+        let host_function_definitions_bytes: Vec<u8> = (&host_function_definitions)
+            .try_into()
+            .map_err(|e| new_error!("Failed to serialize host function details: {:?}", e))?;
+
         let mut sandbox = match self.inner.take() {
             Some(s) => s.evolve()?,
             None => return Err(new_error!("No inner sandbox found.")),
         };
 
-        let res: i32 = sandbox.call("InitWasmRuntime", ())?;
+        // Pass host function definitions to the guest as a parameter
+        let res: i32 = sandbox.call("InitWasmRuntime", (host_function_definitions_bytes,))?;
         if res != 0 {
             return Err(new_error!(
                 "InitWasmRuntime Failed  with error code {:?}",
@@ -102,7 +132,26 @@ impl ProtoWasmSandbox {
         self.inner
             .as_mut()
             .ok_or(new_error!("inner sandbox was none"))?
-            .register(name, host_func)
+            .register(&name, host_func)?;
+
+        self.track_host_function_definition(name.as_ref(), Args::TYPE, Output::TYPE);
+        Ok(())
+    }
+
+    fn track_host_function_definition(
+        &mut self,
+        name: &str,
+        parameter_types: &[ParameterType],
+        return_type: ReturnType,
+    ) {
+        self.host_function_definitions.insert(
+            name.to_string(),
+            HostFunctionDefinition {
+                function_name: name.to_string(),
+                parameter_types: Some(parameter_types.to_vec()),
+                return_type,
+            },
+        );
     }
 
     /// Register the given host printing function `print_func` with `self`.
@@ -111,6 +160,7 @@ impl ProtoWasmSandbox {
         &mut self,
         print_func: impl Into<HostFunction<i32, (String,)>>,
     ) -> Result<()> {
+        // This method only replaces the implementation, not the definition.
         self.inner
             .as_mut()
             .ok_or(new_error!("inner sandbox was none"))?

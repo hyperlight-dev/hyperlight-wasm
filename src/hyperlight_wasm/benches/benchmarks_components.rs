@@ -8,7 +8,7 @@ use crate::bindings::example::runcomponent::Guest;
 extern crate alloc;
 mod bindings {
     hyperlight_component_macro::host_bindgen!(
-        "../../src/wasmsamples/components/runcomponent-world.wasm"
+        "../../src/tests/c_guests/wasmsamples/components/runcomponent-world.wasm"
     );
 }
 

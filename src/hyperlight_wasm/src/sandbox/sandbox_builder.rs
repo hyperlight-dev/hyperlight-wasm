@@ -22,7 +22,9 @@ use super::proto_wasm_sandbox::ProtoWasmSandbox;
 
 // use unreasonably large minimum stack/heap/input data sizes for now to
 // deal with the size of wasmtime/wasi-libc aot artifacts
-pub const MIN_STACK_SIZE: u64 = 64 * 1024;
+// use reasonably large minimum scratch/heap/input data sizes
+// to deal with the size of wasmtime/wasi-libc aot artifacts
+pub const MIN_SCRATCH_SIZE: usize = 2 * 1024 * 1024;
 pub const MIN_INPUT_DATA_SIZE: usize = 192 * 1024;
 pub const MIN_HEAP_SIZE: u64 = 1024 * 1024;
 
@@ -39,6 +41,7 @@ impl SandboxBuilder {
         let mut config: SandboxConfiguration = Default::default();
         config.set_input_data_size(MIN_INPUT_DATA_SIZE);
         config.set_heap_size(MIN_HEAP_SIZE);
+        config.set_scratch_size(MIN_SCRATCH_SIZE);
 
         Self {
             config,
@@ -95,13 +98,14 @@ impl SandboxBuilder {
         self
     }
 
-    /// Set the guest stack size
-    /// This is the size of the stack that code executing in the guest can use.
-    /// If this value is too small then the guest will fail with a stack overflow error
-    /// The default value (and minimum) is set to the value of the MIN_STACK_SIZE const.
-    pub fn with_guest_stack_size(mut self, guest_stack_size: u64) -> Self {
-        if guest_stack_size > MIN_STACK_SIZE {
-            self.config.set_stack_size(guest_stack_size);
+    /// Set the guest scratch size in bytes.
+    /// The scratch region provides writable memory for the guest, including the
+    /// dynamically-sized stack. Increase this if your guest code needs deep
+    /// recursion or large local variables.
+    /// Values smaller than the default (288 KiB) are ignored.
+    pub fn with_guest_scratch_size(mut self, guest_scratch_size: usize) -> Self {
+        if guest_scratch_size > MIN_SCRATCH_SIZE {
+            self.config.set_scratch_size(guest_scratch_size);
         }
         self
     }
@@ -123,14 +127,6 @@ impl SandboxBuilder {
     #[cfg(feature = "crashdump")]
     pub fn with_crashdump_enabled(mut self, enabled: bool) -> Self {
         self.config.set_guest_core_dump(enabled);
-        self
-    }
-
-    /// Set the size of the memory buffer that is made available
-    /// for serialising host function definitions the minimum value
-    /// is MIN_FUNCTION_DEFINITION_SIZE
-    pub fn with_function_definition_size(mut self, size: usize) -> Self {
-        self.config.set_host_function_definition_size(size);
         self
     }
 
