@@ -12,7 +12,7 @@ mod bindings {
     // and we select "greeter-world" via world_name.
     // Both worlds import the same "host" interface, showing interface reuse.
     hyperlight_component_macro::host_bindgen!({
-        path: "../component_sample/wit/component-world.wasm",
+        path: "../tests/rust_guests/component_sample/wit/component-world.wasm",
         world_name: "greeter-world",
     });
 }
