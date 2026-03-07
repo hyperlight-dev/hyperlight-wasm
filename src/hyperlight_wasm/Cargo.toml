@@ -59,6 +59,11 @@ name = "interruption"
 path = "examples/interruption/main.rs"
 test = true
 
+[[example]]
+name = "component_greeter_example"
+path = "examples/component_greeter_example/main.rs"
+test = true
+
 [dependencies]
 hyperlight-host = { workspace = true }
 hyperlight-common = { workspace = true }

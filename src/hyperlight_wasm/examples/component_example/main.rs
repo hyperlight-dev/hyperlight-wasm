@@ -7,7 +7,9 @@ use examples_common::get_wasm_module_path;
 
 extern crate alloc;
 mod bindings {
-    hyperlight_component_macro::host_bindgen!("../component_sample/wit/component-world.wasm");
+    hyperlight_component_macro::host_bindgen!({
+        path: "../component_sample/wit/component-world.wasm",
+    });
 }
 
 pub struct State {}

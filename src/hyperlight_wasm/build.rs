@@ -139,7 +139,7 @@ fn build_wasm_runtime() -> PathBuf {
     }
 
     cmd.status()
-        .unwrap_or_else(|e| panic!("could not run cargo build wasm_runtime: {}", e));
+        .unwrap_or_else(|e| panic!("could not run cargo build wasm_runtime: {:?}", e));
 
     let resource = target_dir
         .join("x86_64-hyperlight-none")

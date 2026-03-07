@@ -48,3 +48,5 @@ pub fn wasm_guest_bindgen(_: proc_macro::TokenStream) -> proc_macro::TokenStream
         util::emit_decls(decls).into()
     })
 }
+
+
