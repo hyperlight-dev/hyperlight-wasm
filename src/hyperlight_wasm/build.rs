@@ -30,99 +30,117 @@ use std::{env, fs};
 use anyhow::Result;
 use built::write_built_file;
 
-fn get_wasm_runtime_path() -> PathBuf {
-    let manifest_dir = env::var_os("CARGO_MANIFEST_DIR").unwrap();
-    let manifest_dir = PathBuf::from(manifest_dir);
+fn get_wasm_runtime_manifest_path() -> PathBuf {
+    // Use cargo metadata to obtain information about our dependencies
+    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    let output = std::process::Command::new(&cargo)
+        .args(["metadata", "--format-version=1"])
+        .output()
+        .expect("Cargo is not installed or not found in PATH");
 
-    let tar_path = manifest_dir.join("vendor.tar");
-
-    let out_dir = env::var_os("OUT_DIR").unwrap();
-    let out_dir = PathBuf::from(out_dir);
-    let vendor_dir = out_dir.join("vendor");
-
-    if vendor_dir.exists() {
-        fs::remove_dir_all(&vendor_dir).unwrap();
-    }
-
-    println!("cargo::rerun-if-changed={}", tar_path.display());
-
-    // If the vendor.tar file exists, extract it to the OUT_DIR/vendor directory
-    // and return the wasm_runtime directory inside it.
-    // This is useful for vendoring the wasm_runtime crate in a release build, since crates.io
-    // does not allow vendoring folders with Cargo.toml files (i.e., other crates).
-    // The vendor.tar file is expected to be in the same directory as this build script.
-    if tar_path.exists() {
-        let out_dir = env::var_os("OUT_DIR").unwrap();
-        let out_dir = PathBuf::from(out_dir);
-        let vendor_dir = out_dir.join("vendor");
-
-        let mut tar = tar::Archive::new(fs::File::open(&tar_path).unwrap());
-        tar.unpack(&vendor_dir).unwrap();
-
-        let wasm_runtime_dir = vendor_dir.join("wasm_runtime");
-
-        println!(
-            "cargo::warning=using vendor wasm_runtime from {}",
-            tar_path.display()
-        );
-        return wasm_runtime_dir;
-    }
-
-    let crates_dir = manifest_dir.parent().unwrap();
-
-    #[cfg(unix)]
-    std::os::unix::fs::symlink(crates_dir, &vendor_dir).unwrap();
-
-    #[cfg(not(unix))]
-    junction::create(crates_dir, &vendor_dir).unwrap();
-
-    let wasm_runtime_dir = crates_dir.join("wasm_runtime");
-    if wasm_runtime_dir.exists() {
-        return wasm_runtime_dir;
-    }
-
-    panic!(
-        r#"
-        The wasm_runtime directory not found in the expected locations.
-        If you are using hyperlight-wasm from a crates.io release, please file an issue: https://github.com/hyperlight-dev/hyperlight-wasm/issues
-        "#
+    assert!(
+        output.status.success(),
+        "Failed to get cargo metadata: {}",
+        String::from_utf8_lossy(&output.stderr)
     );
+
+    // Cargo metadata output is in JSON format, so we use serde_json to parse it.
+    // The output will look like this:
+    // {
+    //     "packages": [
+    //         ...,
+    //         {
+    //             "name": "wasm-runtime",
+    //             "manifest_path": "/path/to/wasm-runtime/Cargo.toml",
+    //             ...
+    //         },
+    //         ...
+    //     ],
+    //     ...
+    // }
+    // We only care about the name and manifest_path fields of the packages, so we
+    // define a minimal struct to deserialize the output.
+    #[derive(serde::Deserialize)]
+    struct CargoMetadata {
+        packages: Vec<CargoPackage>,
+    }
+
+    #[derive(serde::Deserialize)]
+    struct CargoPackage {
+        name: String,
+        manifest_path: PathBuf,
+    }
+
+    let metadata: CargoMetadata =
+        serde_json::from_slice(&output.stdout).expect("Failed to parse cargo metadata");
+
+    // find the package entry for wasm-runtime and get its manifest_path
+    let wasm_runtime = metadata
+        .packages
+        .into_iter()
+        .find(|pkg| pkg.name == "wasm-runtime")
+        .expect("wasm-runtime crate not found in cargo metadata");
+
+    wasm_runtime.manifest_path
+}
+
+fn find_target_dir() -> PathBuf {
+    let out_dir = env::var_os("OUT_DIR").unwrap();
+    let out_dir = Path::new(&out_dir);
+    let target = env::var("TARGET").unwrap();
+
+    // out_dir is expected to be something like /path/to/target/(ARCH?)/debug/build/hyperlight_wasm-xxxx/out
+    // move up until either ARCH or "target"
+    let target_dir = out_dir
+        .ancestors()
+        .nth(4)
+        .expect("OUT_DIR does not have enough ancestors to find target directory");
+
+    // If the target directory is named after the target triple, move up one more level to get to the actual target directory
+    // Also, check that the parent directory contains a CACHEDIR.TAG file to make sure we're in the right place
+    if target_dir.file_name() == Some(target.as_str().as_ref())
+        && let Some(parent) = target_dir.parent()
+        && parent.join("CACHEDIR.TAG").exists()
+    {
+        return parent.to_path_buf();
+    }
+
+    target_dir.to_path_buf()
 }
 
 fn build_wasm_runtime() -> PathBuf {
     let profile = env::var_os("PROFILE").unwrap();
-    let out_dir = env::var_os("OUT_DIR").unwrap();
 
-    let target_dir = Path::new("").join(&out_dir).join("target");
+    // Get the current target directory.
+    let target_dir = find_target_dir();
+    // Do not use the target directory directly, as it is locked by cargo with the current build
+    // and would result in a deadlock
+    let target_dir = target_dir.join("hyperlight-wasm-runtime");
 
-    let in_repo_dir = get_wasm_runtime_path();
+    let manifest_path = get_wasm_runtime_manifest_path();
+    let runtime_dir = manifest_path.parent().unwrap();
 
-    if !in_repo_dir.exists() {
+    if !runtime_dir.exists() {
         panic!("missing wasm_runtime in-tree dependency");
     }
 
-    println!("cargo::rerun-if-changed={}", in_repo_dir.display());
+    println!("cargo::rerun-if-changed={}", runtime_dir.display());
     println!("cargo::rerun-if-env-changed=WIT_WORLD");
     // the PROFILE env var unfortunately only gives us 1 bit of "dev or release"
     let cargo_profile = if profile == "debug" { "dev" } else { "release" };
 
-    // Clear the variables that control Cargo's behaviour (as listed
-    // at https://doc.rust-lang.org/cargo/reference/environment-variables.html):
-    // otherwise the nested build will build the wrong thing
-    let mut env_vars = env::vars().collect::<Vec<_>>();
-    env_vars.retain(|(key, _)| !key.starts_with("CARGO_"));
-
     let mut cargo_cmd = cargo_hyperlight::cargo().unwrap();
     let mut cmd = cargo_cmd
         .arg("build")
-        .arg("--target-dir")
-        .arg(&target_dir)
         .arg("--profile")
         .arg(cargo_profile)
         .arg("-v")
-        .current_dir(&in_repo_dir)
-        .env_clear()
-        .envs(env_vars);
+        .arg("--target-dir")
+        .arg(&target_dir)
+        .arg("--manifest-path")
+        .arg(&manifest_path)
+        .arg("--locked")
+        .env_clear_cargo();
 
     // Add --features gdb if the gdb feature is enabled for this build script
     if std::env::var("CARGO_FEATURE_GDB").is_ok() {
@@ -138,7 +156,7 @@ fn build_wasm_runtime() -> PathBuf {
     }
 
     cmd.status()
-        .unwrap_or_else(|e| panic!("could not run cargo build wasm_runtime: {}", e));
+        .unwrap_or_else(|e| panic!("could not run cargo build wasm_runtime: {e:?}"));
 
     let resource = target_dir
         .join("x86_64-hyperlight-none")
