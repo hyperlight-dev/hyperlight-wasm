@@ -8,6 +8,11 @@ repository.workspace = true
 readme.workspace = true
 edition = "2021"
 
+[lib]
+test = false
+doctest = false
+bench = false
+
 [[bin]]
 name = "wasm_runtime"
 path = "src/main.rs"
