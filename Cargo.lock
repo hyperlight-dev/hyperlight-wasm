@@ -1635,6 +1635,8 @@ dependencies = [
  "opentelemetry-semantic-conventions",
  "opentelemetry_sdk",
  "page_size",
+ "serde",
+ "serde_json",
  "tar",
  "tokio",
  "toml 1.0.6+spec-1.1.0",
@@ -1643,6 +1645,7 @@ dependencies = [
  "tracing-opentelemetry",
  "tracing-subscriber",
  "uuid",
+ "wasm-runtime",
  "windows",
 ]
 
