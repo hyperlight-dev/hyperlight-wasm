@@ -463,8 +463,6 @@ $RECYCLE.BIN/
 **/include/libc/musl/**
 **/include/flatbuffers/generated/**
 **/include/flatcc/**
-**/guest-toolchain
-src/wasm_runtime/src/include
 
 ## Rust  from https://github.com/github/gitignore/blob/main/Rust.gitignore
 

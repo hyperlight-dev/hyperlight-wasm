@@ -39,7 +39,7 @@ After you attach, you can set breakpoints, step through the code, and inspect va
     {
       "id": "program",
       "type": "promptString",
-      "default": "x64/debug/wasm_runtime",
+      "default": "x64/debug/hyperlight_wasm_runtime",
       "description": "Path to the program to debug"
     },
   ],

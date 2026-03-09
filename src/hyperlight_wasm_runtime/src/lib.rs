@@ -37,7 +37,7 @@ mod component;
 // build.rs script.  The build.rs script gets the current version of
 // wasmtime that this runtime binary uses, and writes it to the
 // metadata.rs file so that it is embedded as metadata in the
-// wasm_runtime binary. This allows hyperlight-wasm to then this
+// hyperlight-wasm-runtime binary. This allows hyperlight-wasm to then this
 // metadata and log it when the hyperlight-wasm crate is loaded.
 
 include!(concat!(env!("OUT_DIR"), "/metadata.rs"));

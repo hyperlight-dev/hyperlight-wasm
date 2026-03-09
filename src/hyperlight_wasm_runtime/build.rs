@@ -62,7 +62,7 @@ fn main() {
     if cfg!(windows) {
         env::set_var("AR_x86_64_unknown_none", "llvm-ar");
     }
-    cfg.compile("wasm_runtime");
+    cfg.compile("wasmtime-hyperlight-platform");
 
     println!("cargo::rerun-if-env-changed=WIT_WORLD");
     println!("cargo::rustc-check-cfg=cfg(component)");

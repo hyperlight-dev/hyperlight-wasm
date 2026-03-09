@@ -41,7 +41,7 @@ but has no Wasm runtime loaded. Once it has been transitioned to a `WasmSandbox`
 
 ### More about `WasmSandbox`
 
-The `WasmSandbox` represents a sandbox state that is not completely ready for use. While it does have the `wasm_runtime` guest binary loaded into it (see [Rust.md](./Rust.md) for more details on this guest binary), and the Wasm runtime initialised, it is missing a user's WebAssembly module code. The 'WasmSandbox' type is an intermediate state that is designed to be cached in a host to avoid having to pay the cost of loading the `wasm_runtime` guest binary and initializing the Wasm runtime each time a new user code module is loaded.
+The `WasmSandbox` represents a sandbox state that is not completely ready for use. While it does have the `hyperlight-wasm-runtime` guest binary loaded into it (see [Rust.md](./Rust.md) for more details on this guest binary), and the Wasm runtime initialised, it is missing a user's WebAssembly module code. The 'WasmSandbox' type is an intermediate state that is designed to be cached in a host to avoid having to pay the cost of loading the `hyperlight-wasm-runtime` guest binary and initializing the Wasm runtime each time a new user code module is loaded.
 
 Loading user code is the final initialization step necessary to have a ready-to-use sandbox, so moving from the `WasmSandbox` state to the `LoadedWasmSandbox` state requires specifying what user code to load. See the "State transitions" section below for details on making this state transition.
 

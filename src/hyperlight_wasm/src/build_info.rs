@@ -23,19 +23,19 @@ static LOG_ONCE: Once = Once::new();
 // The `built` crate is used in build.rs to generate a `built.rs` file that contains
 // information about the build environment.
 //
-// In addition build.rs appends information about the wasm_runtime binary to the `built.rs` file
+// In addition build.rs appends information about the hyperlight-wasm-runtime binary to the `built.rs` file
 //
 // Collectively that information is used to populate the `BuildInfo` struct.
 //
 include!(concat!(env!("OUT_DIR"), "/built.rs"));
 
-/// The build information for the hyperligt-wasm crate
+/// The build information for the hyperlight-wasm crate
 pub struct BuildInfo {
-    /// The date and time the wasm_runtime was built
+    /// The date and time the hyperlight-wasm-runtime was built
     pub wasm_runtime_created: &'static str,
-    /// The size of the wasm_runtime binary
+    /// The size of the hyperlight-wasm-runtime binary
     pub wasm_runtime_size: &'static str,
-    /// The blake3 hash of the wasm_runtime binary
+    /// The blake3 hash of the hyperlight-wasm-runtime binary
     pub wasm_runtime_blake3_hash: &'static str,
     /// The version of wasmtime being used by hyperlight-wasm
     pub wasm_runtime_wasmtime_version: &'static str,
@@ -121,12 +121,24 @@ impl BuildInfo {
 
 impl std::fmt::Display for BuildInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "wasm_runtime created at: {}", self.wasm_runtime_created)?;
-        writeln!(f, "wasm_runtime size: {}", self.wasm_runtime_size)?;
-        writeln!(f, "wasm_runtime hash: {}", self.wasm_runtime_blake3_hash)?;
         writeln!(
             f,
-            "wasm_runtime wasmtime version: {}",
+            "hyperlight-wasm-runtime created at: {}",
+            self.wasm_runtime_created
+        )?;
+        writeln!(
+            f,
+            "hyperlight-wasm-runtime size: {}",
+            self.wasm_runtime_size
+        )?;
+        writeln!(
+            f,
+            "hyperlight-wasm-runtime hash: {}",
+            self.wasm_runtime_blake3_hash
+        )?;
+        writeln!(
+            f,
+            "hyperlight-wasm-runtime wasmtime version: {}",
             self.wasm_runtime_wasmtime_version
         )?;
         writeln!(f, "Package name: {}", self.package_name)?;

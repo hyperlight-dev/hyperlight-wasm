@@ -26,7 +26,7 @@ pub(crate) mod wasm_sandbox;
 pub(crate) mod proto_wasm_sandbox;
 
 // This include! macro is replaced by the build.rs script.
-// The build.rs script reads the wasm_runtime binary into a static byte array named WASM_RUNTIME
+// The build.rs script reads the hyperlight-wasm-runtime binary into a static byte array named WASM_RUNTIME
 // contained in the wasm_runtime_resource.rs file.
 
 include!(concat!(env!("OUT_DIR"), "/wasm_runtime_resource.rs"));

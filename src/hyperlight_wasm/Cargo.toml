@@ -60,7 +60,7 @@ log = "0.4"
 cfg-if = "1"
 metrics = "0.24.3"
 env_logger = "0.11.9"
-wasm-runtime.workspace = true
+hyperlight-wasm-runtime.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62", features = ["Win32_System_Threading"] }
