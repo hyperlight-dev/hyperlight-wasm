@@ -20,6 +20,11 @@ use std::{env, fs};
 use cargo_metadata::{MetadataCommand, Package};
 
 fn main() {
+    if env::var_os("CARGO_CFG_HYPERLIGHT").is_none() {
+        // we are not building for hyperlight, this is a no-op
+        return;
+    }
+
     println!("cargo:rerun-if-changed=.");
     let mut cfg = cc::Build::new();
 

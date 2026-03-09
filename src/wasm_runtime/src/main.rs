@@ -14,30 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#![no_std]
-#![no_main]
+#![cfg_attr(hyperlight, no_std)]
+#![cfg_attr(hyperlight, no_main)]
 
-extern crate alloc;
+// Since we are not explicitly using anything from the library, we need to
+// explicitly import it to ensure it is linked in.
+extern crate wasm_runtime;
 
-mod platform;
-
-#[cfg(not(component))]
-mod hostfuncs;
-#[cfg(not(component))]
-mod marshal;
-#[cfg(not(component))]
-mod module;
-#[cfg(not(component))]
-mod wasip1;
-
-#[cfg(component)]
-mod component;
-
-// The file referenced in this include! macro is created by the
-// build.rs script.  The build.rs script gets the current version of
-// wasmtime that this runtime binary uses, and writes it to the
-// metadata.rs file so that it is embedded as metadata in the
-// wasm_runtime binary. This allows hyperlight-wasm to then this
-// metadata and log it when the hyperlight-wasm crate is loaded.
-
-include!(concat!(env!("OUT_DIR"), "/metadata.rs"));
+#[cfg(not(hyperlight))]
+fn main() {
+    panic!("This is the hyperlight-wasm-runtime crate. It is not meant to be run outside of a hyperlight sandbox.");
+}
