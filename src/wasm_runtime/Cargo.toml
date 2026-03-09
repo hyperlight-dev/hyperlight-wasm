@@ -1,6 +1,11 @@
 [package]
 name = "wasm-runtime"
-version = "0.12.0"
+version.workspace = true
+rust-version.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme.workspace = true
 edition = "2021"
 
 [[bin]]
@@ -11,11 +16,11 @@ doctest = false
 bench = false
 
 [target.'cfg(hyperlight)'.dependencies]
-hyperlight-common = { version = "0.12.0", default-features = false }
-hyperlight-guest-bin = { version = "0.12.0", features = [ "printf" ] }
-hyperlight-guest = { version = "0.12.0" }
+hyperlight-common = { workspace = true, default-features = false }
+hyperlight-guest-bin = { workspace = true, features = [ "printf" ] }
+hyperlight-guest.workspace = true
+hyperlight-wasm-macro.workspace = true
 wasmtime = { version = "36.0.6", default-features = false, features = [ "runtime", "custom-virtual-memory", "custom-native-signals", "component-model" ] }
-hyperlight-wasm-macro = { version = "0.12.0", path = "../hyperlight_wasm_macro" }
 spin = "0.10.0"
 tracing = { version = "0.1.44", default-features = false, features = ["attributes", "log"] }
 
