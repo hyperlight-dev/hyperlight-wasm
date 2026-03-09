@@ -70,7 +70,6 @@ pub fn get_wasmtime_version() -> &'static str {
 #[cfg(test)]
 mod tests {
     use std::env;
-    use std::path::Path;
 
     // Test that the build info is correct
     #[test]
@@ -90,16 +89,46 @@ mod tests {
     fn test_wasmtime_version() {
         let wasmtime_version = super::get_wasmtime_version();
         // get the wasmtime version from the wasm_runtime binary's Cargo.toml
-        let cargo_toml_path = Path::new(env!("OUT_DIR"))
-            .join("vendor")
-            .join("wasm_runtime")
-            .join("Cargo.toml");
+
+        let manifest_path = env!("CARGO_MANIFEST_PATH");
+        let output = std::process::Command::new("cargo")
+            .arg("metadata")
+            .arg("--manifest-path")
+            .arg(manifest_path)
+            .arg("--format-version=1")
+            .output()
+            .expect("Failed to get cargo metadata");
+
+        #[derive(serde::Deserialize)]
+        struct CargoMetadata {
+            packages: Vec<CargoPackage>,
+        }
+
+        #[derive(serde::Deserialize)]
+        struct CargoPackage {
+            name: String,
+            manifest_path: std::path::PathBuf,
+        }
+
+        let metadata: CargoMetadata =
+            serde_json::from_slice(&output.stdout).expect("Failed to parse cargo metadata");
+
+        // find the package entry for wasm-runtime and get its manifest_path
+        let wasm_runtime = metadata
+            .packages
+            .into_iter()
+            .find(|pkg| pkg.name == "wasm-runtime")
+            .expect("wasm-runtime crate not found in cargo metadata");
+
+        let cargo_toml_path = wasm_runtime.manifest_path;
         let cargo_toml_content =
             std::fs::read_to_string(cargo_toml_path).expect("Failed to read Cargo.toml");
         let cargo_toml: toml::Value =
             toml::from_str(&cargo_toml_content).expect("Failed to parse Cargo.toml");
         let wasmtime_version_from_toml = cargo_toml
-            .get("dependencies")
+            .get("target")
+            .and_then(|deps| deps.get("cfg(hyperlight)"))
+            .and_then(|cfg| cfg.get("dependencies"))
             .and_then(|deps| deps.get("wasmtime"))
             .and_then(|wasmtime| wasmtime.get("version"))
             .and_then(|version| version.as_str())
