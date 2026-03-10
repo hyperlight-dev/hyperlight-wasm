@@ -279,11 +279,11 @@ dependencies = [
 
 [[package]]
 name = "buddy_system_allocator"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1a0108968a3a2dab95b089c0fc3f1afa7759aa5ebe6f1d86d206d6f7ba726eb"
+checksum = "b672b945a3e4f4f40bfd4cd5ee07df9e796a42254ce7cd6d2599ad969244c44a"
 dependencies = [
- "spin 0.9.8",
+ "spin",
 ]
 
 [[package]]
@@ -1492,8 +1492,8 @@ dependencies = [
  "anyhow",
  "flatbuffers",
  "log",
- "spin 0.10.0",
- "thiserror 2.0.17",
+ "spin",
+ "thiserror 2.0.18",
  "tracing",
  "tracing-core",
 ]
@@ -1505,27 +1505,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "951465558e3104075650d27461cca83b9b25115b3bf68c5e9399068d12fa9885"
 dependencies = [
  "env_logger",
- "hyperlight-component-util 0.13.0",
+ "hyperlight-component-util",
  "itertools 0.14.0",
  "prettyplease",
  "proc-macro2",
  "quote",
  "syn",
- "wasmparser 0.245.1",
-]
-
-[[package]]
-name = "hyperlight-component-util"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41501638fd9877bd0c2e0cbbd20ea55d5a532f4e45a870d626de56da9795fc9a"
-dependencies = [
- "itertools 0.14.0",
- "prettyplease",
- "proc-macro2",
- "quote",
- "syn",
- "tracing",
  "wasmparser 0.245.1",
 ]
 
@@ -1546,9 +1531,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc7f3cfaa19d263d4110b6f1d371ad778d544f4f30369be8eca79092bc868840"
+checksum = "e9d3e421c1058a950dffaa414dd9e0348d21b18ec218cf2777752c436087bcb0"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -1560,9 +1545,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest-bin"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "598a6f53bd1a356cff745af4b20e2e96ff9d4c956d13c52fd7981e91832291d8"
+checksum = "ae0b7568c1df39e78f9ee844243ad722ef4990e46950232747e14460379a3930"
 dependencies = [
  "buddy_system_allocator",
  "cc",
@@ -1575,15 +1560,15 @@ dependencies = [
  "hyperlight-guest-tracing",
  "linkme",
  "log",
- "spin 0.10.0",
+ "spin",
  "tracing",
 ]
 
 [[package]]
 name = "hyperlight-guest-macro"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc0fec4e1154fe4368a5980101d532eede35c622532aaf83a03440d912d55217"
+checksum = "f1d7915f27b534dc2c26e215f0372f80b34b172fb8d2507d0c0f0c4616259a42"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -1598,7 +1583,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "266a23a83726db78b114fd177bda2833df84e9e2894e460aed7c7da9a0967a5e"
 dependencies = [
  "hyperlight-common",
- "spin 0.10.0",
+ "spin",
  "tracing",
  "tracing-core",
 ]
@@ -1709,9 +1694,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-wasm-macro"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
- "hyperlight-component-util 0.12.0",
+ "hyperlight-component-util",
  "itertools 0.14.0",
  "prettyplease",
  "proc-macro2",
@@ -1721,7 +1706,7 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-wasm-runtime"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "cargo_metadata",
  "cc",
@@ -1732,7 +1717,7 @@ dependencies = [
  "hyperlight-guest-bin",
  "hyperlight-wasm-macro",
  "reqwest",
- "spin 0.10.0",
+ "spin",
  "tracing",
  "wasmtime",
 ]
@@ -2749,7 +2734,7 @@ dependencies = [
  "rustc-hash",
  "rustls",
  "socket2",
- "thiserror 2.0.17",
+ "thiserror 2.0.18",
  "tokio",
  "tracing",
  "web-time",
@@ -2764,13 +2749,13 @@ dependencies = [
  "bytes",
  "getrandom 0.3.4",
  "lru-slab",
- "rand",
+ "rand 0.9.2",
  "ring",
  "rustc-hash",
  "rustls",
  "rustls-pki-types",
  "slab",
- "thiserror 2.0.17",
+ "thiserror 2.0.18",
  "tinyvec",
  "tracing",
  "web-time",
@@ -3390,15 +3375,6 @@ checksum = "17129e116933cf371d018bb80ae557e889637989d8638274fb25622827b03881"
 dependencies = [
  "libc",
  "windows-sys 0.60.2",
-]
-
-[[package]]
-name = "spin"
-version = "0.9.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
-dependencies = [
- "lock_api",
 ]
 
 [[package]]
@@ -4151,7 +4127,7 @@ version = "0.245.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f08c9adee0428b7bddf3890fc27e015ac4b761cc608c822667102b8bfd6995e"
 dependencies = [
- "bitflags 2.10.0",
+ "bitflags 2.11.0",
  "hashbrown 0.16.1",
  "indexmap",
  "semver",
