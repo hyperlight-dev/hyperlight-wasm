@@ -17,6 +17,7 @@ limitations under the License.
 use std::path::Path;
 use std::sync::Arc;
 
+#[cfg(target_os = "linux")]
 use hyperlight_host::mem::memory_region::{MemoryRegion, MemoryRegionFlags, MemoryRegionType};
 use hyperlight_host::sandbox::snapshot::Snapshot;
 use hyperlight_host::{MultiUseSandbox, Result, new_error};
@@ -107,6 +108,7 @@ impl WasmSandbox {
     /// It is the caller's responsibility to ensure that the host side
     /// of the region remains intact and is not written to until the
     /// produced LoadedWasmSandbox is discarded or devolved.
+    #[cfg(target_os = "linux")]
     pub unsafe fn load_module_by_mapping(
         mut self,
         base: *mut libc::c_void,
