@@ -20,7 +20,7 @@ use hyperlight_component_util::*;
 mod wasmguest;
 
 /// Create the hyperlight_guest_wasm_init() function (called by
-/// wasm_runtime:component.rs) for the wasm component type located at
+/// hyperlight-wasm-runtime:component.rs) for the wasm component type located at
 /// $WIT_WORLD. This function registers Hyperlight
 /// functions for component exports (which are implemented by calling
 /// into wasmtime) and registers wasmtime host functions with the

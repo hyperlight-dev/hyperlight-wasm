@@ -16,11 +16,11 @@ limitations under the License.
 
 // build.rs
 
-// The purpose of this build script is to embed the wasm_runtime binary as a resource in the hyperlight-wasm binary.
-// This is done by reading the wasm_runtime binary into a static byte array named WASM_RUNTIME.
-// this build script writes the code to do that to a file named wasm_runtime_resource.rs in the OUT_DIR.
+// The purpose of this build script is to embed the hyperlight-wasm-runtime binary as a resource in the hyperlight-wasm binary.
+// This is done by reading the hyperlight-wasm-runtime binary into a static byte array named WASM_RUNTIME.
+// this build script writes the code to do that to a file named built.rs in the OUT_DIR.
 // this file is included in lib.rs.
-// The wasm_runtime binary is expected to be in the x64/{config} directory.
+// The hyperlight-wasm-runtime binary is expected to be in the x64/{config} directory.
 
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -50,8 +50,8 @@ fn get_wasm_runtime_manifest_path() -> PathBuf {
     //     "packages": [
     //         ...,
     //         {
-    //             "name": "wasm-runtime",
-    //             "manifest_path": "/path/to/wasm-runtime/Cargo.toml",
+    //             "name": "hyperlight-wasm-runtime",
+    //             "manifest_path": "/path/to/hyperlight-wasm-runtime/Cargo.toml",
     //             ...
     //         },
     //         ...
@@ -74,14 +74,14 @@ fn get_wasm_runtime_manifest_path() -> PathBuf {
     let metadata: CargoMetadata =
         serde_json::from_slice(&output.stdout).expect("Failed to parse cargo metadata");
 
-    // find the package entry for wasm-runtime and get its manifest_path
-    let wasm_runtime = metadata
+    // find the package entry for hyperlight-wasm-runtime and get its manifest_path
+    let hyperlight_wasm_runtime = metadata
         .packages
         .into_iter()
-        .find(|pkg| pkg.name == "wasm-runtime")
-        .expect("wasm-runtime crate not found in cargo metadata");
+        .find(|pkg| pkg.name == "hyperlight-wasm-runtime")
+        .expect("hyperlight-wasm-runtime crate not found in cargo metadata");
 
-    wasm_runtime.manifest_path
+    hyperlight_wasm_runtime.manifest_path
 }
 
 fn find_target_dir() -> PathBuf {
@@ -121,7 +121,7 @@ fn build_wasm_runtime() -> PathBuf {
     let runtime_dir = manifest_path.parent().unwrap();
 
     if !runtime_dir.exists() {
-        panic!("missing wasm_runtime in-tree dependency");
+        panic!("missing hyperlight-wasm-runtime in-tree dependency");
     }
 
     println!("cargo::rerun-if-changed={}", runtime_dir.display());
@@ -156,17 +156,17 @@ fn build_wasm_runtime() -> PathBuf {
     }
 
     cmd.status()
-        .unwrap_or_else(|e| panic!("could not run cargo build wasm_runtime: {e:?}"));
+        .unwrap_or_else(|e| panic!("could not run cargo build hyperlight-wasm-runtime: {e:?}"));
 
     let resource = target_dir
         .join("x86_64-hyperlight-none")
         .join(profile)
-        .join("wasm_runtime");
+        .join("hyperlight-wasm-runtime");
 
     if let Ok(path) = resource.canonicalize() {
         if std::env::var("CARGO_FEATURE_GDB").is_ok() {
             println!(
-                "cargo:warning=Wasm runtime guest binary at: {}",
+                "cargo:warning=Hyperlight wasm runtime guest binary at: {}",
                 path.display()
             );
         }
@@ -174,7 +174,7 @@ fn build_wasm_runtime() -> PathBuf {
         path
     } else {
         panic!(
-            "could not find wasm_runtime after building it (expected {:?})",
+            "could not find hyperlight-wasm-runtime after building it (expected {:?})",
             resource
         )
     }
@@ -192,13 +192,13 @@ fn main() -> Result<()> {
 
     fs::write(dest_path, contents).unwrap();
 
-    // get the wasmtime version number from the wasm_runtime metadata
+    // get the wasmtime version number from the hyperlight-wasm-runtime metadata
 
     let wasm_runtime_bytes = fs::read(&wasm_runtime_resource).unwrap();
     let elf = goblin::elf::Elf::parse(&wasm_runtime_bytes).unwrap();
 
-    // the wasm_runtime binary has a section named .note_hyperlight_metadata that contains the wasmtime version number
-    // this section is added to the wasm_runtime binary by the build.rs script in the wasm_runtime crate
+    // the hyperlight-wasm-runtime binary has a section named .note_hyperlight_metadata that contains the wasmtime version number
+    // this section is added to the hyperlight-wasm-runtime binary by the build.rs script in the hyperlight-wasm-runtime crate
     let section_name = ".note_hyperlight_metadata";
     let wasmtime_version_number = if let Some(header) = elf.section_headers.iter().find(|hdr| {
         if let Some(name) = elf.shdr_strtab.get_at(hdr.sh_name) {
@@ -218,13 +218,13 @@ fn main() -> Result<()> {
             std::str::from_utf8(metadata_bytes).unwrap()
         }
     } else {
-        panic!(".note_hyperlight_metadata section not found in wasm_runtime binary");
+        panic!(".note_hyperlight_metadata section not found in hyperlight-wasm-runtime binary");
     };
 
     // write the build information to the built.rs file
     write_built_file()?;
 
-    // open the built.rs file and append the details of the wasm_runtime file
+    // open the built.rs file and append the details of the hyperlight-wasm-runtime file
     let built_path = Path::new(&out_dir).join("built.rs");
     let mut file = OpenOptions::new()
         .create(false)
@@ -254,9 +254,9 @@ fn main() -> Result<()> {
     writeln!(file, "{}", wasm_runtime_size).unwrap();
     writeln!(file, "{}", wasm_runtime_wasmtime_version).unwrap();
 
-    // Calculate the blake3 hash of the wasm_runtime file and write it to the wasm_runtime_resource.rs file so we can include it in the binary
-    let wasm_runtime = fs::read(wasm_runtime_resource).unwrap();
-    let hash = blake3::hash(&wasm_runtime);
+    // Calculate the blake3 hash of the hyperlight-wasm-runtime file and write it to the wasm_runtime_resource.rs file so we can include it in the binary
+    let hyperlight_wasm_runtime = fs::read(wasm_runtime_resource).unwrap();
+    let hash = blake3::hash(&hyperlight_wasm_runtime);
     let hash_str = format!("static WASM_RUNTIME_BLAKE3_HASH: &str = \"{}\";", hash);
 
     writeln!(file, "{}", hash_str).unwrap();

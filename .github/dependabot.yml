@@ -21,7 +21,7 @@ updates:
         update-types: ["version-update:semver-minor", "version-update:semver-major"]
   # Add entries for excluded workspace members
   - package-ecosystem: "cargo"
-    directory: "/src/wasm_runtime"
+    directory: "/src/hyperlight_wasm_runtime"
     schedule:
       interval: "daily"
       time: "03:00"

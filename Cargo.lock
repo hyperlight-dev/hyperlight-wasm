@@ -1623,6 +1623,7 @@ dependencies = [
  "goblin",
  "hyperlight-component-macro",
  "hyperlight-host",
+ "hyperlight-wasm-runtime",
  "junction",
  "libc",
  "log",
@@ -1645,7 +1646,6 @@ dependencies = [
  "tracing-opentelemetry",
  "tracing-subscriber",
  "uuid",
- "wasm-runtime",
  "windows",
 ]
 
@@ -1670,6 +1670,24 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "hyperlight-wasm-runtime"
+version = "0.12.0"
+dependencies = [
+ "cargo_metadata",
+ "cc",
+ "cfg-if",
+ "cfg_aliases",
+ "hyperlight-common",
+ "hyperlight-guest",
+ "hyperlight-guest-bin",
+ "hyperlight-wasm-macro",
+ "reqwest",
+ "spin 0.10.0",
+ "tracing",
+ "wasmtime",
 ]
 
 [[package]]
@@ -4036,24 +4054,6 @@ dependencies = [
  "indexmap",
  "wasm-encoder 0.244.0",
  "wasmparser 0.244.0",
-]
-
-[[package]]
-name = "wasm-runtime"
-version = "0.12.0"
-dependencies = [
- "cargo_metadata",
- "cc",
- "cfg-if",
- "cfg_aliases",
- "hyperlight-common",
- "hyperlight-guest",
- "hyperlight-guest-bin",
- "hyperlight-wasm-macro",
- "reqwest",
- "spin 0.10.0",
- "tracing",
- "wasmtime",
 ]
 
 [[package]]

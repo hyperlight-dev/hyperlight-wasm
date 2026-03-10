@@ -19,7 +19,7 @@ limitations under the License.
 
 // Since we are not explicitly using anything from the library, we need to
 // explicitly import it to ensure it is linked in.
-extern crate wasm_runtime;
+extern crate hyperlight_wasm_runtime;
 
 #[cfg(not(hyperlight))]
 fn main() {

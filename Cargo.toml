@@ -1,5 +1,5 @@
 [workspace]
-members = [ "src/hyperlight_wasm", "src/examples_common", "src/hyperlight_wasm_aot", "src/wasm_runtime", "src/hyperlight_wasm_macro" ]
+members = [ "src/hyperlight_wasm", "src/examples_common", "src/hyperlight_wasm_aot", "src/hyperlight_wasm_runtime", "src/hyperlight_wasm_macro" ]
 exclude = [ "src/rust_wasm_samples", "src/component_sample" ]
 resolver = "2"
 
@@ -20,4 +20,4 @@ hyperlight-guest = { version = "0.12.0" }
 hyperlight-guest-bin = { version = "0.12.0", features = [ "printf" ] }
 hyperlight-host = { version = "0.12.0", default-features = false, features = ["executable_heap", "init-paging"] }
 hyperlight-wasm-macro = { version = "0.12.0", path = "src/hyperlight_wasm_macro" }
-wasm-runtime = { version = "0.12.0", path = "src/wasm_runtime" }
+hyperlight-wasm-runtime = { version = "0.12.0", path = "src/hyperlight_wasm_runtime" }

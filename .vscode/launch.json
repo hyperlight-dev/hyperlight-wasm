@@ -3,7 +3,7 @@
         {
             "id": "program",
             "type": "promptString",
-            "default": "x64/debug/wasm_runtime",
+            "default": "x64/debug/hyperlight_wasm_runtime",
             "description": "Path to the program to debug",
         }
     ],

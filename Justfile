@@ -8,12 +8,6 @@ wit-world-c := if os() == "windows" { "$env:WIT_WORLD=\"" + justfile_directory()
 
 set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
 
-make-vendor-tar:
-    tar cf ./src/hyperlight_wasm/vendor.tar \
-        --owner=0 --group=0 \
-        --exclude-vcs-ignores \
-        -C ./src wasm_runtime hyperlight_wasm_macro
-
 ensure-tools:
     cargo install wasm-tools --locked --version 1.235.0
     cargo install cargo-component --locked --version 0.21.1
@@ -66,14 +60,14 @@ check target=default-target:
     cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
     cd src/rust_wasm_samples  && cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
     cd src/component_sample  && cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
-    cd src/wasm_runtime && cargo hyperlight check --profile={{ if target == "debug" {"dev"} else { target } }}
+    cd src/hyperlight_wasm_runtime && cargo hyperlight check --profile={{ if target == "debug" {"dev"} else { target } }}
     cd src/hyperlight_wasm_macro && cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
 
 fmt-check:
     rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
     cd src/rust_wasm_samples && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
     cd src/component_sample && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
-    cd src/wasm_runtime && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
+    cd src/hyperlight_wasm_runtime && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
     cd src/hyperlight_wasm_macro && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
 
 fmt:
@@ -81,17 +75,14 @@ fmt:
     cargo +nightly fmt --all
     cd src/rust_wasm_samples &&  cargo +nightly fmt -v --all
     cd src/component_sample &&  cargo +nightly fmt -v --all
-    cd src/wasm_runtime && cargo +nightly fmt -v --all
+    cd src/hyperlight_wasm_runtime && cargo +nightly fmt -v --all
     cd src/hyperlight_wasm_macro && cargo +nightly fmt -v --all
-
-export CC_x86_64_unknown_none:= if os() == "windows" { justfile_directory() / "src/wasm_runtime/guest-toolchain/clang" } else { "" }
-export AR_x86_64_unknown_none:= if os() == "windows" { "llvm-ar" } else { "" }
 
 clippy target=default-target: (check target)
     cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/rust_wasm_samples &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/component_sample &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
-    cd src/wasm_runtime && cargo hyperlight clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
+    cd src/hyperlight_wasm_runtime && cargo hyperlight clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/hyperlight_wasm_macro && cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
 
 # TESTING

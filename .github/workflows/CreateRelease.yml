@@ -39,21 +39,6 @@ jobs:
       uses: hyperlight-dev/ci-setup-workflow@v1.8.0
       with:
           rust-toolchain: "1.89"
-    - name: Verify vendor.tar
-      if: ${{ contains(github.ref, 'refs/heads/release/') }}
-      run: |
-        set -euxo pipefail
-        VENDOR1=$(mktemp -d)
-        VENDOR2=$(mktemp -d)
-        tar xf ./src/hyperlight_wasm/vendor.tar -C $VENDOR1
-        just make-vendor-tar
-        tar xf ./src/hyperlight_wasm/vendor.tar -C $VENDOR2
-        if ! git diff --no-index $VENDOR1 $VENDOR2; then
-          echo "vendor.tar is not up to date, please run 'just make-vendor-tar' and commit the changes"
-          exit 1
-        fi
-        git restore ./src/hyperlight_wasm/vendor.tar
-      shell: bash
     - name: Package hyperlight-wasm crate
       if: ${{ contains(github.ref, 'refs/heads/release/') }}
       run: cargo package -p hyperlight-wasm

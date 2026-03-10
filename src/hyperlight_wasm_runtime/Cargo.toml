@@ -1,5 +1,5 @@
 [package]
-name = "wasm-runtime"
+name = "hyperlight-wasm-runtime"
 version.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -14,7 +14,7 @@ doctest = false
 bench = false
 
 [[bin]]
-name = "wasm_runtime"
+name = "hyperlight-wasm-runtime"
 path = "src/main.rs"
 test = false
 doctest = false

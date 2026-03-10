@@ -75,9 +75,9 @@ mod tests {
     #[test]
     fn test_build_info() {
         let build_info = super::get_build_info();
-        // calculate the blake3 hash of the wasm_runtime binary
+        // calculate the blake3 hash of the hyperlight-wasm-runtime binary
         let wasm_runtime_hash = blake3::hash(&super::sandbox::WASM_RUNTIME);
-        // check that the build info hash matches the wasm_runtime hash
+        // check that the build info hash matches the hyperlight-wasm-runtime hash
         assert_eq!(
             build_info.wasm_runtime_blake3_hash,
             &wasm_runtime_hash.to_string()
@@ -88,7 +88,7 @@ mod tests {
     #[test]
     fn test_wasmtime_version() {
         let wasmtime_version = super::get_wasmtime_version();
-        // get the wasmtime version from the wasm_runtime binary's Cargo.toml
+        // get the wasmtime version from the hyperlight-wasm-runtime binary's Cargo.toml
 
         let manifest_path = env!("CARGO_MANIFEST_PATH");
         let output = std::process::Command::new("cargo")
@@ -113,14 +113,14 @@ mod tests {
         let metadata: CargoMetadata =
             serde_json::from_slice(&output.stdout).expect("Failed to parse cargo metadata");
 
-        // find the package entry for wasm-runtime and get its manifest_path
-        let wasm_runtime = metadata
+        // find the package entry for hyperlight-wasm-runtime and get its manifest_path
+        let hyperlight_wasm_runtime = metadata
             .packages
             .into_iter()
-            .find(|pkg| pkg.name == "wasm-runtime")
-            .expect("wasm-runtime crate not found in cargo metadata");
+            .find(|pkg| pkg.name == "hyperlight-wasm-runtime")
+            .expect("hyperlight-wasm-runtime crate not found in cargo metadata");
 
-        let cargo_toml_path = wasm_runtime.manifest_path;
+        let cargo_toml_path = hyperlight_wasm_runtime.manifest_path;
         let cargo_toml_content =
             std::fs::read_to_string(cargo_toml_path).expect("Failed to read Cargo.toml");
         let cargo_toml: toml::Value =
