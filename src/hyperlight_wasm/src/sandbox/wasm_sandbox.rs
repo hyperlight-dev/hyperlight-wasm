@@ -17,6 +17,7 @@ limitations under the License.
 use std::path::Path;
 use std::sync::Arc;
 
+use hyperlight_host::mem::memory_region::{MemoryRegion, MemoryRegionFlags, MemoryRegionType};
 use hyperlight_host::sandbox::snapshot::Snapshot;
 use hyperlight_host::{MultiUseSandbox, Result, new_error};
 
@@ -116,8 +117,19 @@ impl WasmSandbox {
             .as_mut()
             .ok_or_else(|| new_error!("WasmSandbox is None"))?;
 
-        let wasm_bytes = unsafe { std::slice::from_raw_parts(base as *const u8, len).to_vec() };
-        load_wasm_module_from_bytes(inner, wasm_bytes)?;
+        let guest_base: usize = MAPPED_BINARY_VA as usize;
+        let rgn = MemoryRegion {
+            host_region: base as usize..base.wrapping_add(len) as usize,
+            guest_region: guest_base..guest_base + len,
+            flags: MemoryRegionFlags::READ | MemoryRegionFlags::EXECUTE,
+            region_type: MemoryRegionType::Heap,
+        };
+        if let Ok(()) = unsafe { inner.map_region(&rgn) } {
+            inner.call::<()>("LoadWasmModulePhys", (MAPPED_BINARY_VA, len as u64))?;
+        } else {
+            let wasm_bytes = unsafe { std::slice::from_raw_parts(base as *const u8, len).to_vec() };
+            load_wasm_module_from_bytes(inner, wasm_bytes)?;
+        }
 
         self.finalize_module_load()
     }

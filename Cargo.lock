@@ -1486,8 +1486,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-common"
 version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "725ce602c72dce1d83a87f98f3731e7db62f5ca7e1a255eea875e9bad408766f"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=c9a1a4cefce6a085af92e375121e9f1b1c8deeec#c9a1a4cefce6a085af92e375121e9f1b1c8deeec"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -1501,8 +1500,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-component-macro"
 version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "951465558e3104075650d27461cca83b9b25115b3bf68c5e9399068d12fa9885"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=c9a1a4cefce6a085af92e375121e9f1b1c8deeec#c9a1a4cefce6a085af92e375121e9f1b1c8deeec"
 dependencies = [
  "env_logger",
  "hyperlight-component-util",
@@ -1517,8 +1515,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-component-util"
 version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41501638fd9877bd0c2e0cbbd20ea55d5a532f4e45a870d626de56da9795fc9a"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=c9a1a4cefce6a085af92e375121e9f1b1c8deeec#c9a1a4cefce6a085af92e375121e9f1b1c8deeec"
 dependencies = [
  "itertools 0.14.0",
  "prettyplease",
@@ -1532,8 +1529,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest"
 version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9d3e421c1058a950dffaa414dd9e0348d21b18ec218cf2777752c436087bcb0"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=c9a1a4cefce6a085af92e375121e9f1b1c8deeec#c9a1a4cefce6a085af92e375121e9f1b1c8deeec"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -1546,8 +1542,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest-bin"
 version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae0b7568c1df39e78f9ee844243ad722ef4990e46950232747e14460379a3930"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=c9a1a4cefce6a085af92e375121e9f1b1c8deeec#c9a1a4cefce6a085af92e375121e9f1b1c8deeec"
 dependencies = [
  "buddy_system_allocator",
  "cc",
@@ -1567,8 +1562,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest-macro"
 version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1d7915f27b534dc2c26e215f0372f80b34b172fb8d2507d0c0f0c4616259a42"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=c9a1a4cefce6a085af92e375121e9f1b1c8deeec#c9a1a4cefce6a085af92e375121e9f1b1c8deeec"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -1579,8 +1573,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest-tracing"
 version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "266a23a83726db78b114fd177bda2833df84e9e2894e460aed7c7da9a0967a5e"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=c9a1a4cefce6a085af92e375121e9f1b1c8deeec#c9a1a4cefce6a085af92e375121e9f1b1c8deeec"
 dependencies = [
  "hyperlight-common",
  "spin",
@@ -1591,8 +1584,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-host"
 version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d37f39e7660b0b2173a07595e2049aa6215d73e74757be653ab4da99445e9714"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=c9a1a4cefce6a085af92e375121e9f1b1c8deeec#c9a1a4cefce6a085af92e375121e9f1b1c8deeec"
 dependencies = [
  "anyhow",
  "bitflags 2.11.0",
