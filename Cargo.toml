@@ -16,7 +16,7 @@ readme = "README.md"
 hyperlight-common = { version = "0.12.0", default-features = false }
 hyperlight-component-macro = { version = "0.13.0" }
 hyperlight-component-util = { version = "0.12.0" }
-hyperlight-guest = { version = "0.12.0" }
+hyperlight-guest = { version = "0.13.0" }
 hyperlight-guest-bin = { version = "0.12.0", features = [ "printf" ] }
 hyperlight-host = { version = "0.12.0", default-features = false, features = ["executable_heap", "init-paging"] }
 hyperlight-wasm-macro = { version = "0.12.0", path = "src/hyperlight_wasm_macro" }
