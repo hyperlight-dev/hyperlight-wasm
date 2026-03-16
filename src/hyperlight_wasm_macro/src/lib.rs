@@ -29,7 +29,7 @@ mod wasmguest;
 #[proc_macro]
 pub fn wasm_guest_bindgen(_: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let path = std::env::var_os("WIT_WORLD").unwrap();
-    util::read_wit_type_from_file(path, |kebab_name, ct| {
+    util::read_wit_type_from_file(path, None, |kebab_name, ct| {
         let decls = emit::run_state(true, true, |s| {
             // Emit type/trait definitions for all instances in the world
             rtypes::emit_toplevel(s, &kebab_name, ct);

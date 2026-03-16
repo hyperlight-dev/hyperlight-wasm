@@ -15,7 +15,9 @@ limitations under the License.
 */
 
 use std::path::Path;
+use std::sync::Arc;
 
+#[cfg(target_os = "linux")]
 use hyperlight_host::mem::memory_region::{MemoryRegion, MemoryRegionFlags, MemoryRegionType};
 use hyperlight_host::sandbox::snapshot::Snapshot;
 use hyperlight_host::{MultiUseSandbox, Result, new_error};
@@ -38,7 +40,7 @@ pub struct WasmSandbox {
     inner: Option<MultiUseSandbox>,
     // Snapshot of state of an initial WasmSandbox (runtime loaded, but no guest module code loaded).
     // Used for LoadedWasmSandbox to be able restore state back to WasmSandbox
-    snapshot: Option<Snapshot>,
+    snapshot: Option<Arc<Snapshot>>,
 }
 
 const MAPPED_BINARY_VA: u64 = 0x1_0000_0000u64;
@@ -61,8 +63,11 @@ impl WasmSandbox {
     /// for example when creating a `WasmSandbox` from a `LoadedWasmSandbox`, since
     /// the snapshot has already been created in that case.
     /// Expects a snapshot of the state where wasm runtime is loaded, but no guest module code is loaded.
-    pub(super) fn new_from_loaded(mut loaded: MultiUseSandbox, snapshot: Snapshot) -> Result<Self> {
-        loaded.restore(&snapshot)?;
+    pub(super) fn new_from_loaded(
+        mut loaded: MultiUseSandbox,
+        snapshot: Arc<Snapshot>,
+    ) -> Result<Self> {
+        loaded.restore(snapshot.clone())?;
         metrics::gauge!(METRIC_ACTIVE_WASM_SANDBOXES).increment(1);
         metrics::counter!(METRIC_TOTAL_WASM_SANDBOXES).increment(1);
         Ok(WasmSandbox {
@@ -103,6 +108,7 @@ impl WasmSandbox {
     /// It is the caller's responsibility to ensure that the host side
     /// of the region remains intact and is not written to until the
     /// produced LoadedWasmSandbox is discarded or devolved.
+    #[cfg(target_os = "linux")]
     pub unsafe fn load_module_by_mapping(
         mut self,
         base: *mut libc::c_void,
@@ -390,7 +396,7 @@ mod tests {
         assert!(loaded.is_poisoned()?, "Sandbox should be poisoned");
 
         // Restore should recover the sandbox
-        loaded.restore(&snapshot)?;
+        loaded.restore(snapshot)?;
 
         assert!(
             !loaded.is_poisoned()?,
@@ -526,7 +532,7 @@ mod tests {
         let builder = SandboxBuilder::new()
             .with_guest_input_buffer_size(0x8000)
             .with_guest_output_buffer_size(0x8000)
-            .with_guest_stack_size(0x2000)
+            .with_guest_scratch_size(0x2000)
             .with_guest_heap_size(0x100000);
 
         let mut sandboxes: Vec<SandboxTest> = Vec::new();

@@ -22,8 +22,6 @@ limitations under the License.
 #include <ctype.h>
 #include <math.h>
 
-int HostPrint(char* msg); // Implementation of this will be available in the native host
-
 int64_t GetTimeSinceBootMicrosecond();
 
 __attribute__((export_name("CalcFib")))
@@ -53,7 +51,7 @@ void* ReceiveByteArray(void* data, int length) {
 __attribute__((export_name("WasmPrintUsingHostPrint")))
 int WasmPrintUsingHostPrint(char* msg)
 {
-    HostPrint(msg); // Host borrows msg
+    printf("%s", msg);
     int len = strlen(msg);
     free(msg); // Free the param since we own
     return len;
@@ -69,7 +67,7 @@ void PrintHelloWorld()
 __attribute__((export_name("Print")))
 void Print(char* msg)
 {
-    HostPrint(msg);
+    printf("%s", msg);
     free(msg); // Free the msg since we own it
 }
 
@@ -99,7 +97,7 @@ char* ToUpper(char* msg)
 __attribute__((export_name("PrintUpper"), optnone))
 void PrintUpper(char* msg)
 {
-    HostPrint(ToUpper(msg));
+    printf("%s", ToUpper(msg));
     free(msg);
 }
 

@@ -14,13 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::ffi::CString;
 mod hostfuncs {
-
-    use std::os::raw::c_char;
-    extern "C" {
-        pub fn HostPrint(s: *const c_char) -> i32;
-    }
 
     mod host {
         extern "C" {
@@ -33,15 +27,31 @@ mod hostfuncs {
     }
 }
 
+#[link(wasm_import_module = "wasi_snapshot_preview1")]
+extern "C" {
+    fn fd_write(fd: i32, iovs: i32, iovs_len: i32, retptr: i32) -> i32;
+}
+
+fn wasi_print(s: &str) -> i32 {
+    let buf = s.as_ptr();
+    let len = s.len();
+    let iov: [u32; 2] = [buf as u32, len as u32];
+    let mut written: u32 = 0;
+    unsafe {
+        fd_write(
+            1, // stdout
+            iov.as_ptr() as i32,
+            1, // one iovec
+            &mut written as *mut u32 as i32,
+        );
+    }
+    written as i32
+}
+
 macro_rules! hlprint {
     ($($arg:tt)*) => {{
         let f = format!($($arg)*);
-        let s = CString::new(f).unwrap();
-        let r;
-        unsafe {
-            r = hostfuncs::HostPrint(s.as_ptr());
-        }
-        r
+        wasi_print(&f)
     }}
 }
 
