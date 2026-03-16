@@ -20,9 +20,7 @@ use hyperlight_host::{GuestBinary, HyperlightError, Result, is_hypervisor_presen
 
 use super::proto_wasm_sandbox::ProtoWasmSandbox;
 
-// use unreasonably large minimum stack/heap/input data sizes for now to
-// deal with the size of wasmtime/wasi-libc aot artifacts
-// use reasonably large minimum scratch/heap/input data sizes
+// use large minimum scratch/heap/input data sizes
 // to deal with the size of wasmtime/wasi-libc aot artifacts
 pub const MIN_SCRATCH_SIZE: usize = 2 * 1024 * 1024;
 pub const MIN_INPUT_DATA_SIZE: usize = 192 * 1024;

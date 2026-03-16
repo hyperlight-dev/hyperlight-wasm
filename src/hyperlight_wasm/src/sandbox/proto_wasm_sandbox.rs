@@ -16,7 +16,6 @@ limitations under the License.
 
 use std::collections::HashMap;
 
-use hyperlight_common::flatbuffer_wrappers::function_types::{ParameterType, ReturnType};
 use hyperlight_common::flatbuffer_wrappers::host_function_definition::HostFunctionDefinition;
 use hyperlight_common::flatbuffer_wrappers::host_function_details::HostFunctionDetails;
 use hyperlight_host::func::{HostFunction, ParameterTuple, Registerable, SupportedReturnType};
@@ -52,7 +51,14 @@ impl Registerable for ProtoWasmSandbox {
 
         // Track the host function definition for pushing to guest at load time.
         // matching hyperlight-core's FunctionRegistry behavior.
-        self.track_host_function_definition(name, Args::TYPE, Output::TYPE);
+        self.host_function_definitions.insert(
+            name.to_string(),
+            HostFunctionDefinition {
+                function_name: name.to_string(),
+                parameter_types: Some(Args::TYPE.to_vec()),
+                return_type: Output::TYPE,
+            },
+        );
         Ok(())
     }
 }
@@ -129,29 +135,7 @@ impl ProtoWasmSandbox {
         name: impl AsRef<str>,
         host_func: impl Into<HostFunction<Output, Args>>,
     ) -> Result<()> {
-        self.inner
-            .as_mut()
-            .ok_or(new_error!("inner sandbox was none"))?
-            .register(&name, host_func)?;
-
-        self.track_host_function_definition(name.as_ref(), Args::TYPE, Output::TYPE);
-        Ok(())
-    }
-
-    fn track_host_function_definition(
-        &mut self,
-        name: &str,
-        parameter_types: &[ParameterType],
-        return_type: ReturnType,
-    ) {
-        self.host_function_definitions.insert(
-            name.to_string(),
-            HostFunctionDefinition {
-                function_name: name.to_string(),
-                parameter_types: Some(parameter_types.to_vec()),
-                return_type,
-            },
-        );
+        self.register_host_function(name.as_ref(), host_func)
     }
 
     /// Register the given host printing function `print_func` with `self`.
