@@ -82,7 +82,7 @@ toml = "1.0.7"
 metrics-util = "0.20.1"
 metrics-exporter-prometheus = "0.18"
 opentelemetry = "0.31.0"
-opentelemetry-otlp = { version = "0.31.0", default-features = false, features = ["http-proto", "reqwest-blocking-client", "grpc-tonic"] }
+opentelemetry-otlp = { version = "0.31.1", default-features = false, features = ["http-proto", "reqwest-blocking-client", "grpc-tonic"] }
 opentelemetry-semantic-conventions = "0.31"
 opentelemetry_sdk = { version = "0.31.0", features = ["rt-tokio"] }
 tokio = { version = "1.50.0", features = ["full"] }
