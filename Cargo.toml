@@ -4,7 +4,7 @@ exclude = [ "src/tests/rust_guests/rust_wasm_samples", "src/tests/rust_guests/co
 resolver = "2"
 
 [workspace.package]
-version = "0.13.0"
+version = "0.13.1"
 edition = "2024"
 rust-version = "1.89"
 license = "Apache-2.0"
@@ -13,11 +13,11 @@ repository = "https://github.com/hyperlight-dev/hyperlight-wasm"
 readme = "README.md"
 
 [workspace.dependencies]
-hyperlight-common = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "c9a1a4cefce6a085af92e375121e9f1b1c8deeec", default-features = false }
-hyperlight-component-macro = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "c9a1a4cefce6a085af92e375121e9f1b1c8deeec" }
-hyperlight-component-util = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "c9a1a4cefce6a085af92e375121e9f1b1c8deeec" }
-hyperlight-guest = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "c9a1a4cefce6a085af92e375121e9f1b1c8deeec" }
-hyperlight-guest-bin = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "c9a1a4cefce6a085af92e375121e9f1b1c8deeec", features = [ "printf" ] }
-hyperlight-host = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "c9a1a4cefce6a085af92e375121e9f1b1c8deeec", default-features = false, features = ["executable_heap"] }
-hyperlight-wasm-macro = { version = "0.13.0", path = "src/hyperlight_wasm_macro" }
-hyperlight-wasm-runtime = { version = "0.13.0", path = "src/hyperlight_wasm_runtime" }
+hyperlight-common = { version = "0.13.1", default-features = false }
+hyperlight-component-macro = { version = "0.13.1" }
+hyperlight-component-util = { version = "0.13.1" }
+hyperlight-guest = { version = "0.13.1" }
+hyperlight-guest-bin = { version = "0.13.1", features = [ "printf" ] }
+hyperlight-host = { version = "0.13.1", default-features = false, features = ["executable_heap"] }
+hyperlight-wasm-macro = { version = "0.13.1", path = "src/hyperlight_wasm_macro" }
+hyperlight-wasm-runtime = { version = "0.13.1", path = "src/hyperlight_wasm_runtime" }

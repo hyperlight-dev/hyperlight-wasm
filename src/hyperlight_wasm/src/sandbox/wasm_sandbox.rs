@@ -87,7 +87,7 @@ impl WasmSandbox {
             .as_mut()
             .ok_or_else(|| new_error!("WasmSandbox is None"))?;
 
-        if let Ok(len) = inner.map_file_cow(file.as_ref(), MAPPED_BINARY_VA) {
+        if let Ok(len) = inner.map_file_cow(file.as_ref(), MAPPED_BINARY_VA, None) {
             inner.call::<()>("LoadWasmModulePhys", (MAPPED_BINARY_VA, len))?;
         } else {
             let wasm_bytes = std::fs::read(file)?;

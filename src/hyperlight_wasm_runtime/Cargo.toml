@@ -7,6 +7,9 @@ homepage.workspace = true
 repository.workspace = true
 readme.workspace = true
 edition = "2021"
+description = """
+hyperlight-wasm-runtime is a rust binary crate that provides the WebAssembly runtime binary for hyperlight-wasm.
+"""
 
 [lib]
 test = false

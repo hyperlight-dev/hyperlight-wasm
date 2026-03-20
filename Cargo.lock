@@ -1485,8 +1485,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-common"
-version = "0.13.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=c9a1a4cefce6a085af92e375121e9f1b1c8deeec#c9a1a4cefce6a085af92e375121e9f1b1c8deeec"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4187a7affab21aa49e498781595648437ac22cfdf94753c3200eddf89f7ab98c"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -1499,8 +1500,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-component-macro"
-version = "0.13.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=c9a1a4cefce6a085af92e375121e9f1b1c8deeec#c9a1a4cefce6a085af92e375121e9f1b1c8deeec"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f814ad0745e14be12779361222d63a82928c0c6ce27612c0c89ed925d8957433"
 dependencies = [
  "env_logger",
  "hyperlight-component-util",
@@ -1514,8 +1516,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-component-util"
-version = "0.13.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=c9a1a4cefce6a085af92e375121e9f1b1c8deeec#c9a1a4cefce6a085af92e375121e9f1b1c8deeec"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7dbaeeecb5097a74d57193aae73701af724295375b681177025e9ce278ed4798"
 dependencies = [
  "itertools 0.14.0",
  "prettyplease",
@@ -1528,8 +1531,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest"
-version = "0.13.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=c9a1a4cefce6a085af92e375121e9f1b1c8deeec#c9a1a4cefce6a085af92e375121e9f1b1c8deeec"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45e6132c20b413ba14ad6967c3c941702276773d3bc749569e746e3d1df3dff3"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -1541,8 +1545,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest-bin"
-version = "0.13.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=c9a1a4cefce6a085af92e375121e9f1b1c8deeec#c9a1a4cefce6a085af92e375121e9f1b1c8deeec"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b84470d8d2f9647a02f6bf5287f4083937df6452cacac028cd772f3796c6e2f3"
 dependencies = [
  "buddy_system_allocator",
  "cc",
@@ -1561,8 +1566,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest-macro"
-version = "0.13.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=c9a1a4cefce6a085af92e375121e9f1b1c8deeec#c9a1a4cefce6a085af92e375121e9f1b1c8deeec"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "440596a4204f3c60da9e11da838bcd280bf350b2087361a0ebf69c088bb76423"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -1572,8 +1578,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest-tracing"
-version = "0.13.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=c9a1a4cefce6a085af92e375121e9f1b1c8deeec#c9a1a4cefce6a085af92e375121e9f1b1c8deeec"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f2c1db4d357e8ff0e0f9e26432b38e079d7d7949daa063effeb25bbdce50212"
 dependencies = [
  "hyperlight-common",
  "spin",
@@ -1583,8 +1590,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-host"
-version = "0.13.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?rev=c9a1a4cefce6a085af92e375121e9f1b1c8deeec#c9a1a4cefce6a085af92e375121e9f1b1c8deeec"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05a62d79d2871137b0feea8db77e222289594766e2d6902ef0bdb0d65d8edda6"
 dependencies = [
  "anyhow",
  "bitflags 2.11.0",
@@ -1630,7 +1638,7 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-wasm"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "anyhow",
  "blake3",
@@ -1675,7 +1683,7 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-wasm-aot"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "cargo-util-schemas",
  "cargo_metadata",
@@ -1686,7 +1694,7 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-wasm-macro"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "hyperlight-component-util",
  "itertools 0.14.0",
@@ -1697,7 +1705,7 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-wasm-runtime"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "cargo_metadata",
  "cc",
