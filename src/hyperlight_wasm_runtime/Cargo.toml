@@ -47,7 +47,7 @@ default = ["wasmtime_latest"]
 wasmtime_latest = ["dep:wasmtime"]
 wasmtime_lts = ["dep:wasmtime_lts"]
 gdb = ["wasmtime?/debug-builtins", "wasmtime_lts?/debug-builtins"]
-pulley = ["wasmtime?/pulley"]
+pulley = ["wasmtime?/pulley", "wasmtime_lts?/pulley"]
 trace_guest = ["hyperlight-common/trace_guest", "hyperlight-guest/trace_guest", "hyperlight-guest-bin/trace_guest"]
 
 [lints.rust]
