@@ -29,13 +29,32 @@ fn main() {
     let mut cfg = cc::Build::new();
 
     // get the version of the wasmtime crate
-
+    // When wasmtime_lts feature is enabled, find the wasmtime version matching 36.x (LTS);
+    // otherwise find the latest version.
     let metadata = MetadataCommand::new().exec().unwrap();
-    let wasmtime_package: Option<&Package> =
-        metadata.packages.iter().find(|p| *p.name == "wasmtime");
-    let version_number = match wasmtime_package {
-        Some(pkg) => pkg.version.clone(),
-        None => panic!("wasmtime dependency not found"),
+    let wasmtime_packages: Vec<&Package> = metadata
+        .packages
+        .iter()
+        .filter(|p| *p.name == "wasmtime")
+        .collect();
+
+    let use_lts = env::var("CARGO_FEATURE_WASMTIME_LTS").is_ok();
+    let version_number = if wasmtime_packages.len() == 1 {
+        wasmtime_packages[0].version.clone()
+    } else {
+        // Multiple wasmtime versions present; pick based on feature
+        wasmtime_packages
+            .iter()
+            .find(|p| {
+                if use_lts {
+                    p.version.major <= 36
+                } else {
+                    p.version.major > 36
+                }
+            })
+            .unwrap_or_else(|| panic!("wasmtime dependency not found for lts={}", use_lts))
+            .version
+            .clone()
     };
 
     // Write the version number to the metadata.rs file so that it is included in the binary

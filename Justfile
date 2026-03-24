@@ -42,28 +42,28 @@ build-wasm-examples target=default-target features="": (compile-wit)
 build-rust-wasm-examples target=default-target features="": (mkdir-redist target)
     rustup target add wasm32-unknown-unknown
     cd ./src/tests/rust_guests/rust_wasm_samples && cargo build --target wasm32-unknown-unknown --profile={{ if target == "debug" {"dev"} else { target } }}
-    cargo run {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--features " + features } }} -p hyperlight-wasm-aot compile {{ if features =~ "gdb" {"--debug"} else {""} }} ./src/tests/rust_guests/rust_wasm_samples/target/wasm32-unknown-unknown/{{ target }}/rust_wasm_samples.wasm ./x64/{{ target }}/rust_wasm_samples.aot
+    cargo run -p hyperlight-wasm-aot compile {{ if features =~ "gdb" {"--debug"} else {""} }} {{ if features =~ "wasmtime_lts" {"--lts"} else {""} }} ./src/tests/rust_guests/rust_wasm_samples/target/wasm32-unknown-unknown/{{ target }}/rust_wasm_samples.wasm ./x64/{{ target }}/rust_wasm_samples.aot
 
 build-pulley-rust-wasm-examples target=default-target features="": (mkdir-redist target)
     rustup target add wasm32-unknown-unknown
     cd ./src/tests/rust_guests/rust_wasm_samples && cargo build --target wasm32-unknown-unknown --profile={{ if target == "debug" {"dev"} else { target } }}
-    cargo run {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--features " + features } }} -p hyperlight-wasm-aot compile --pulley {{ if features =~ "gdb" {"--debug"} else {""} }} ./src/tests/rust_guests/rust_wasm_samples/target/wasm32-unknown-unknown/{{ target }}/rust_wasm_samples.wasm ./x64/{{ target }}/rust_wasm_samples.aot
+    cargo run -p hyperlight-wasm-aot compile --pulley {{ if features =~ "gdb" {"--debug"} else {""} }} {{ if features =~ "wasmtime_lts" {"--lts"} else {""} }} ./src/tests/rust_guests/rust_wasm_samples/target/wasm32-unknown-unknown/{{ target }}/rust_wasm_samples.wasm ./x64/{{ target }}/rust_wasm_samples.aot
 
 build-rust-component-examples target=default-target features="": (compile-wit)
     # use cargo component so we don't get all the wasi imports https://github.com/bytecodealliance/cargo-component?tab=readme-ov-file#relationship-with-wasm32-wasip2
     # we also explicitly target wasm32-unknown-unknown since cargo component might try to pull in wasi imports https://github.com/bytecodealliance/cargo-component/issues/290
     rustup target add wasm32-unknown-unknown
     cd ./src/tests/rust_guests/component_sample && cargo component build --target wasm32-unknown-unknown --profile={{ if target == "debug" {"dev"} else { target } }}
-    cargo run {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--features " + features } }} -p hyperlight-wasm-aot compile {{ if features =~ "gdb" {"--debug"} else {""} }} --component ./src/tests/rust_guests/component_sample/target/wasm32-unknown-unknown/{{ target }}/component_sample.wasm ./x64/{{ target }}/component_sample.aot
+    cargo run -p hyperlight-wasm-aot compile {{ if features =~ "gdb" {"--debug"} else {""} }} {{ if features =~ "wasmtime_lts" {"--lts"} else {""} }} --component ./src/tests/rust_guests/component_sample/target/wasm32-unknown-unknown/{{ target }}/component_sample.wasm ./x64/{{ target }}/component_sample.aot
     cd ./src/tests/rust_guests/greeter_sample && cargo component build --target wasm32-unknown-unknown --profile={{ if target == "debug" {"dev"} else { target } }}
-    cargo run {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--features " + features } }} -p hyperlight-wasm-aot compile {{ if features =~ "gdb" {"--debug"} else {""} }} --component ./src/tests/rust_guests/greeter_sample/target/wasm32-unknown-unknown/{{ target }}/greeter_sample.wasm ./x64/{{ target }}/greeter_sample.aot
+    cargo run -p hyperlight-wasm-aot compile {{ if features =~ "gdb" {"--debug"} else {""} }} {{ if features =~ "wasmtime_lts" {"--lts"} else {""} }} --component ./src/tests/rust_guests/greeter_sample/target/wasm32-unknown-unknown/{{ target }}/greeter_sample.wasm ./x64/{{ target }}/greeter_sample.aot
 
 build-pulley-rust-component-examples target=default-target features="": (compile-wit)
     # use cargo component so we don't get all the wasi imports https://github.com/bytecodealliance/cargo-component?tab=readme-ov-file#relationship-with-wasm32-wasip2
     # we also explicitly target wasm32-unknown-unknown since cargo component might try to pull in wasi imports https://github.com/bytecodealliance/cargo-component/issues/290
     rustup target add wasm32-unknown-unknown
     cd ./src/tests/rust_guests/component_sample && cargo component build --target wasm32-unknown-unknown --profile={{ if target == "debug" {"dev"} else { target } }}
-    cargo run {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--features " + features } }} -p hyperlight-wasm-aot compile --pulley {{ if features =~ "gdb" {"--debug"} else {""} }} --component ./src/tests/rust_guests/component_sample/target/wasm32-unknown-unknown/{{ target }}/component_sample.wasm ./x64/{{ target }}/component_sample.aot
+    cargo run -p hyperlight-wasm-aot compile --pulley {{ if features =~ "gdb" {"--debug"} else {""} }} {{ if features =~ "wasmtime_lts" {"--lts"} else {""} }} --component ./src/tests/rust_guests/component_sample/target/wasm32-unknown-unknown/{{ target }}/component_sample.wasm ./x64/{{ target }}/component_sample.aot
 
 check target=default-target:
     cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
@@ -95,7 +95,9 @@ clippy target=default-target: (check target)
     cd src/tests/rust_guests/rust_wasm_samples &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/tests/rust_guests/component_sample &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/tests/rust_guests/greeter_sample &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
-    cd src/hyperlight_wasm_runtime && cargo hyperlight clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
+    # hyperlight_wasm_runtime has mutually exclusive wasmtime features, so we run clippy for each separately with all other features
+    cd src/hyperlight_wasm_runtime && cargo hyperlight clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --features wasmtime_latest,gdb,trace_guest,pulley -- -D warnings
+    cd src/hyperlight_wasm_runtime && cargo hyperlight clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --no-default-features --features wasmtime_lts,gdb,trace_guest -- -D warnings
     cd src/hyperlight_wasm_macro && cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
 
 # TESTING
@@ -103,11 +105,12 @@ clippy target=default-target: (check target)
 # There may be tests that we really want to ignore so we cant just use --ignored and run then we have to
 # specify the test name of the ignored tests that we want to run
 # Additionally, we have to run the tests with the function_call_metrics feature enabled separately
+# We exclude hyperlight-wasm-aot because it has both wasmtime versions as dependencies and no tests so we don't need to build both versions for testing
 test target=default-target features="":
-    cargo test {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }}
-    cargo test test_metrics {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored 
+    cargo test --workspace --exclude hyperlight-wasm-aot {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }}
+    cargo test --workspace --exclude hyperlight-wasm-aot test_metrics {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored 
 
-examples-modules target=default-target features="": (build-rust-wasm-examples target)
+examples-modules target=default-target features="": (build-wasm-examples target features) (build-rust-wasm-examples target features)
     cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example helloworld
     cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example hostfuncs
     cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example rust_wasm_examples
@@ -117,13 +120,13 @@ examples-modules target=default-target features="": (build-rust-wasm-examples ta
 
 examples-ci target=default-target features="": (examples-modules target features) (examples-components target features) (examples-pulley target features)
 
-examples-components target=default-target features="": (build-rust-component-examples target) 
+examples-components target=default-target features="": (build-rust-component-examples target features) 
     {{ wit-world }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_example
     {{ wit-world-c }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example c-component
     {{ wit-world }} {{ wit-world-name-greeter }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_greeter_example
 
 # Test a component and a module compiled with pulley
-examples-pulley target=default-target features="": (build-pulley-rust-component-examples target) (build-pulley-rust-wasm-examples target)
+examples-pulley target=default-target features="": (build-pulley-rust-component-examples target features) (build-pulley-rust-wasm-examples target features)
     {{ wit-world }} cargo run {{ if features =="" {'-F pulley'} else {"--no-default-features -F kvm,pulley -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_example
     cargo run {{ if features =="" {'-F pulley'} else {"--no-default-features -F pulley -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example rust_wasm_examples
 
