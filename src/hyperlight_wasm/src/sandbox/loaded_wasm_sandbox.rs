@@ -112,11 +112,14 @@ impl LoadedWasmSandbox {
         }
     }
 
-    /// Unload the wasm module and return a `WasmSandbox` that can be used to load another module.
+    /// Unload the wasm module and return a `WasmSandbox` that can be
+    /// used to load another module.
     ///
-    /// This method internally calls [`restore()`](Self::restore) to reset the sandbox to its
-    /// pre-module state, which also clears any poisoned state. This means `unload_module()`
-    /// can be called on a poisoned sandbox to recover it.
+    /// This method defers calling [`restore()`](Self::restore) to
+    /// reset the sandbox to its pre-module state until a new module
+    /// is loaded. However, the sandbox will always be restored when a
+    /// new module is loaded, so a poisoned sandbox can be recovered
+    /// by unloading and reloading a module.
     pub fn unload_module(mut self) -> Result<WasmSandbox> {
         let sandbox = self
             .inner
