@@ -41,6 +41,7 @@ pub struct WasmSandbox {
     // Snapshot of state of an initial WasmSandbox (runtime loaded, but no guest module code loaded).
     // Used for LoadedWasmSandbox to be able restore state back to WasmSandbox
     snapshot: Option<Arc<Snapshot>>,
+    needs_restore: bool,
 }
 
 const MAPPED_BINARY_VA: u64 = 0x1_0000_0000u64;
@@ -56,6 +57,7 @@ impl WasmSandbox {
         Ok(WasmSandbox {
             inner: Some(inner),
             snapshot: Some(snapshot),
+            needs_restore: false,
         })
     }
 
@@ -64,16 +66,32 @@ impl WasmSandbox {
     /// the snapshot has already been created in that case.
     /// Expects a snapshot of the state where wasm runtime is loaded, but no guest module code is loaded.
     pub(super) fn new_from_loaded(
-        mut loaded: MultiUseSandbox,
+        loaded: MultiUseSandbox,
         snapshot: Arc<Snapshot>,
     ) -> Result<Self> {
-        loaded.restore(snapshot.clone())?;
         metrics::gauge!(METRIC_ACTIVE_WASM_SANDBOXES).increment(1);
         metrics::counter!(METRIC_TOTAL_WASM_SANDBOXES).increment(1);
         Ok(WasmSandbox {
             inner: Some(loaded),
             snapshot: Some(snapshot),
+            needs_restore: true,
         })
+    }
+
+    fn restore_if_needed(&mut self) -> Result<()> {
+        if self.needs_restore {
+            self.inner
+                .as_mut()
+                .ok_or(new_error!("WasmSandbox is none"))?
+                .restore(
+                    self.snapshot
+                        .as_ref()
+                        .ok_or(new_error!("Snapshot is none"))?
+                        .clone(),
+                )?;
+            self.needs_restore = false;
+        }
+        Ok(())
     }
 
     /// Load a Wasm module at the given path into the sandbox and return a `LoadedWasmSandbox`
@@ -82,6 +100,7 @@ impl WasmSandbox {
     /// Before you can call guest functions in the sandbox, you must call
     /// this function and use the returned value to call guest functions.
     pub fn load_module(mut self, file: impl AsRef<Path>) -> Result<LoadedWasmSandbox> {
+        self.restore_if_needed()?;
         let inner = self
             .inner
             .as_mut()
@@ -93,6 +112,18 @@ impl WasmSandbox {
             let wasm_bytes = std::fs::read(file)?;
             load_wasm_module_from_bytes(inner, wasm_bytes)?;
         }
+
+        self.finalize_module_load()
+    }
+
+    /// Load a Wasm module by restoring a Hyperlight snapshot taken
+    /// from a `LoadedWasmSandbox`.
+    pub fn load_from_snapshot(mut self, snapshot: Arc<Snapshot>) -> Result<LoadedWasmSandbox> {
+        let sb = self
+            .inner
+            .as_mut()
+            .ok_or_else(|| new_error!("WasmSandbox is None"))?;
+        sb.restore(snapshot)?;
 
         self.finalize_module_load()
     }
@@ -114,6 +145,7 @@ impl WasmSandbox {
         base: *mut libc::c_void,
         len: usize,
     ) -> Result<LoadedWasmSandbox> {
+        self.restore_if_needed()?;
         let inner = self
             .inner
             .as_mut()
@@ -142,6 +174,7 @@ impl WasmSandbox {
     /// Before you can call guest functions in the sandbox, you must call
     /// this function and use the returned value to call guest functions.
     pub fn load_module_from_buffer(mut self, buffer: &[u8]) -> Result<LoadedWasmSandbox> {
+        self.restore_if_needed()?;
         let inner = self
             .inner
             .as_mut()
@@ -471,6 +504,46 @@ mod tests {
             // TODO: Validate the output from the Wasm Modules.
             println!("({name}) Result {:?}", result);
         }
+    }
+
+    #[test]
+    fn test_load_from_snapshot() {
+        let mut sandbox = SandboxBuilder::new().build().unwrap();
+        sandbox
+            .register(
+                "GetTimeSinceBootMicrosecond",
+                get_time_since_boot_microsecond,
+            )
+            .unwrap();
+        let sb = sandbox.load_runtime().unwrap();
+
+        let helloworld_wasm = get_test_file_path("HelloWorld.aot").unwrap();
+        let runwasm_wasm = get_test_file_path("RunWasm.aot").unwrap();
+
+        // load one module, and make sure that a function in it
+        // can be called
+        let mut lb1 = sb.load_module(helloworld_wasm).unwrap();
+        let result: i32 = lb1
+            .call_guest_function("HelloWorld", "Message from Rust Test".to_string())
+            .unwrap();
+        assert_eq!(result, 0);
+        let snapshot = lb1.snapshot().unwrap();
+
+        // load another module, and make sure that a function in
+        // it can be called
+        let sb = lb1.unload_module().unwrap();
+        let mut lb2 = sb.load_module(runwasm_wasm).unwrap();
+        let result: i32 = lb2.call_guest_function("CalcFib", 10i32).unwrap();
+        assert_eq!(result, 55);
+
+        // reload the first module via snapshot, and make sure the
+        // original function can be called again
+        let sb = lb2.unload_module().unwrap();
+        let mut lb3 = sb.load_from_snapshot(snapshot).unwrap();
+        let result: i32 = lb3
+            .call_guest_function("HelloWorld", "Message from Rust Test".to_string())
+            .unwrap();
+        assert_eq!(result, 0);
     }
 
     #[test]
