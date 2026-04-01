@@ -42,10 +42,14 @@ jobs:
           config: [debug, release]
   
     runs-on: ${{ fromJson(
-        format('["self-hosted", "{0}", "X64", "1ES.Pool=hld-{1}-{2}"]', 
+        format('["self-hosted", "{0}", "X64", "1ES.Pool=hld-{1}-{2}", "JobId=build-{3}-{4}-{5}-{6}"]', 
           matrix.hypervisor == 'hyperv' && 'Windows' || 'Linux', 
           matrix.hypervisor == 'hyperv' && 'win2025' || matrix.hypervisor == 'mshv3' && 'azlinux3-mshv' || matrix.hypervisor, 
-          matrix.cpu)) }} 
+          matrix.cpu,
+          matrix.config,
+          github.run_id,
+          github.run_number,
+          github.run_attempt)) }} 
     steps:
       - uses: actions/checkout@v5
 

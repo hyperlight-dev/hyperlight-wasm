@@ -11,7 +11,7 @@ on:
 
 jobs:
   publish-hyperlight-wasm:
-    runs-on: [self-hosted, Linux, X64, "1ES.Pool=HL-Ubuntu-22.04-KVM"]
+    runs-on: [self-hosted, Linux, X64, "1ES.Pool=HL-Ubuntu-22.04-KVM", "JobId=publish-hyperlight-wasm-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]
     steps:
 
       - uses: actions/checkout@v5
