@@ -255,9 +255,9 @@ dependencies = [
 
 [[package]]
 name = "buddy_system_allocator"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b672b945a3e4f4f40bfd4cd5ee07df9e796a42254ce7cd6d2599ad969244c44a"
+checksum = "c1af5a01adeeade54c9f5060300227a8ee64c05b6376f28e9b8ee3b72dd2056f"
 dependencies = [
  "spin",
 ]
@@ -1145,23 +1145,23 @@ dependencies = [
 
 [[package]]
 name = "gdbstub"
-version = "0.7.9"
+version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bf845b08f7c2ef3b5ad19f80779d43ae20d278652b91bb80adda65baf2d8ed6"
+checksum = "5bafc7e33650ab9f05dcc16325f05d56b8d10393114e31a19a353b86fa60cfe7"
 dependencies = [
  "bitflags 2.11.0",
  "cfg-if",
  "log",
  "managed",
  "num-traits",
- "paste",
+ "pastey",
 ]
 
 [[package]]
 name = "gdbstub_arch"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22dde0e1b68787036ccedd0b1ff6f953527a0e807e571fbe898975203027278f"
+checksum = "6c02bfe7bd65f42bcda751456869dfa1eb2bd1c36e309b9ec27f4888d41cf258"
 dependencies = [
  "gdbstub",
  "num-traits",
@@ -1330,12 +1330,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
-name = "hex"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
-
-[[package]]
 name = "http"
 version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1461,9 +1455,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-common"
-version = "0.13.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4187a7affab21aa49e498781595648437ac22cfdf94753c3200eddf89f7ab98c"
+checksum = "be2d385987047c64fdb5c95e05ef3b6bd9431001a8fe694abb29b29e99913167"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -1481,28 +1475,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fa7ae5cd7c8e5f5b925b07bce45be853ac0be0e6d4e8b2afd17ad8c16aa135c4"
 dependencies = [
  "env_logger",
- "hyperlight-component-util 0.14.0",
+ "hyperlight-component-util",
  "itertools 0.14.0",
  "prettyplease",
  "proc-macro2",
  "quote",
  "syn",
  "wasmparser 0.246.2",
-]
-
-[[package]]
-name = "hyperlight-component-util"
-version = "0.13.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dbaeeecb5097a74d57193aae73701af724295375b681177025e9ce278ed4798"
-dependencies = [
- "itertools 0.14.0",
- "prettyplease",
- "proc-macro2",
- "quote",
- "syn",
- "tracing",
- "wasmparser 0.245.1",
 ]
 
 [[package]]
@@ -1522,9 +1501,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest"
-version = "0.13.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45e6132c20b413ba14ad6967c3c941702276773d3bc749569e746e3d1df3dff3"
+checksum = "6ee2682d284171d2bd9e80e3e543de310356c1d8ec65e88028b3e08048d15d3d"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -1536,9 +1515,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest-bin"
-version = "0.13.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b84470d8d2f9647a02f6bf5287f4083937df6452cacac028cd772f3796c6e2f3"
+checksum = "3740817f3be98d18edb50eec985461baca0eba5b1f73d0f475b7a539d812e750"
 dependencies = [
  "buddy_system_allocator",
  "cc",
@@ -1557,9 +1536,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest-macro"
-version = "0.13.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "440596a4204f3c60da9e11da838bcd280bf350b2087361a0ebf69c088bb76423"
+checksum = "a4f88cbcde1ca986e4f14a85ea0a436659edcb6eb63e8a9d14413ca5cdc8ea86"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -1569,9 +1548,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-guest-tracing"
-version = "0.13.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f2c1db4d357e8ff0e0f9e26432b38e079d7d7949daa063effeb25bbdce50212"
+checksum = "d14e9c34c508ecfba1283a552c3eb118d8ee82d863e2e91377a6059f06cf84dd"
 dependencies = [
  "hyperlight-common",
  "spin",
@@ -1581,9 +1560,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-host"
-version = "0.13.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05a62d79d2871137b0feea8db77e222289594766e2d6902ef0bdb0d65d8edda6"
+checksum = "65c2f9b5a13324c5dd786bf77a7531216207684da1cefc19fb9b697d08346ac0"
 dependencies = [
  "anyhow",
  "bitflags 2.11.0",
@@ -1612,7 +1591,6 @@ dependencies = [
  "rand 0.10.0",
  "rust-embed",
  "serde_json",
- "sha256",
  "termcolor",
  "thiserror 2.0.18",
  "tracing",
@@ -1687,7 +1665,7 @@ dependencies = [
 name = "hyperlight-wasm-macro"
 version = "0.13.1"
 dependencies = [
- "hyperlight-component-util 0.13.1",
+ "hyperlight-component-util",
  "itertools 0.14.0",
  "prettyplease",
  "proc-macro2",
@@ -2493,10 +2471,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "paste"
-version = "1.0.15"
+name = "pastey"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
+checksum = "b867cad97c0791bbd3aaa6472142568c6c9e8f71937e98379f584cfb0cf35bec"
 
 [[package]]
 name = "percent-encoding"
@@ -3288,19 +3266,6 @@ dependencies = [
  "cfg-if",
  "cpufeatures 0.2.17",
  "digest",
-]
-
-[[package]]
-name = "sha256"
-version = "1.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f880fc8562bdeb709793f00eb42a2ad0e672c4f883bbe59122b926eca935c8f6"
-dependencies = [
- "async-trait",
- "bytes",
- "hex",
- "sha2",
- "tokio",
 ]
 
 [[package]]
@@ -4109,19 +4074,6 @@ dependencies = [
  "hashbrown 0.15.5",
  "indexmap",
  "semver",
-]
-
-[[package]]
-name = "wasmparser"
-version = "0.245.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f08c9adee0428b7bddf3890fc27e015ac4b761cc608c822667102b8bfd6995e"
-dependencies = [
- "bitflags 2.11.0",
- "hashbrown 0.16.1",
- "indexmap",
- "semver",
- "serde",
 ]
 
 [[package]]
