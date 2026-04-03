@@ -112,7 +112,8 @@ mod backing_sandbox {
 
     #[cfg(test)]
     mod tests {
-        use super::{*, super::tests::*};
+        use super::super::tests::*;
+        use super::*;
         #[test]
         fn test_backing_sandbox_use_marks_dirty() -> Result<()> {
             let mut sb = SandboxBuilder::new().build()?;
