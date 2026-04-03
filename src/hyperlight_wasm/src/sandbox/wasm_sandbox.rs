@@ -27,6 +27,137 @@ use crate::sandbox::metrics::{
     METRIC_ACTIVE_WASM_SANDBOXES, METRIC_SANDBOX_LOADS, METRIC_TOTAL_WASM_SANDBOXES,
 };
 
+// All the logic around when to restore is nicely encapsulated here,
+// so that it would be harder for a `WasmSandbox` to end up in an
+// un-restored state.
+mod backing_sandbox {
+    use super::*;
+    #[derive(Debug)]
+    pub(super) enum BackingSandbox {
+        /// A sandbox which has a clean copy of the runtime in it
+        Clean(MultiUseSandbox),
+        /// A sandbox which has had a wasm component/module loaded into
+        /// it, but has not yet run any code from that
+        Loaded(MultiUseSandbox),
+        /// A sandbox which came from a `LoadedWasmSandbox`, and
+        /// therefore presumably has run user code
+        Dirty(MultiUseSandbox),
+        /// A non-existent sandbox, used as an internal implementation
+        /// detail of a few methods.
+        Missing,
+    }
+    impl BackingSandbox {
+        pub(super) fn clean(&mut self, snapshot: Arc<Snapshot>) -> Result<()> {
+            *self = match std::mem::replace(self, BackingSandbox::Missing) {
+                BackingSandbox::Clean(x) => BackingSandbox::Clean(x),
+                BackingSandbox::Loaded(_) => {
+                    return Err(new_error!(
+                        "internal invariant violation: cleaning loaded backing sandbox"
+                    ));
+                }
+                BackingSandbox::Dirty(mut x) => {
+                    x.restore(snapshot)?;
+                    BackingSandbox::Clean(x)
+                }
+                BackingSandbox::Missing => {
+                    return Err(new_error!(
+                        "internal invariant violation: cleaning missing backing sandbox"
+                    ));
+                }
+            };
+            Ok(())
+        }
+        pub(super) fn load_via_restore(&mut self, snapshot: Arc<Snapshot>) -> Result<()> {
+            *self = match std::mem::replace(self, BackingSandbox::Missing) {
+                BackingSandbox::Clean(mut x) | BackingSandbox::Dirty(mut x) => {
+                    x.restore(snapshot)?;
+                    BackingSandbox::Loaded(x)
+                }
+                BackingSandbox::Loaded(_) => {
+                    return Err(new_error!(
+                        "internal invariant violation: loading loaded backing sandbox"
+                    ));
+                }
+                BackingSandbox::Missing => {
+                    return Err(new_error!(
+                        "internal invariant violation: loading missing backing sandbox"
+                    ));
+                }
+            };
+            Ok(())
+        }
+        pub(super) fn load_via_fn(&mut self, load: impl FnOnce(&mut MultiUseSandbox) -> Result<()>) -> Result<()> {
+            *self = match std::mem::replace(self, BackingSandbox::Missing) {
+                BackingSandbox::Clean(mut x) => {
+                    load(&mut x)?;
+                    BackingSandbox::Loaded(x)
+                }
+                _ => {
+                    return Err(new_error!(
+                        "internal invariant violation: loading non-clean backing sandbox"
+                    ));
+                }
+            };
+            Ok(())
+        }
+        pub(super) fn get_loaded(&mut self) -> Result<MultiUseSandbox> {
+            match std::mem::replace(self, BackingSandbox::Missing) {
+                BackingSandbox::Loaded(x) => Ok(x),
+                _ => Err(new_error!(
+                    "internal invariant violation: encountered non-loaded backing sandbox"
+                )),
+            }
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::{*, super::tests::*};
+        #[test]
+        fn test_backing_sandbox_use_marks_dirty() -> Result<()> {
+            let mut sb = SandboxBuilder::new().build()?;
+            sb.register(
+                "GetTimeSinceBootMicrosecond",
+                get_time_since_boot_microsecond,
+            )?;
+            let sb = sb.load_runtime()?;
+            let lb = sb.load_module(get_test_file_path("RunWasm.aot")?)?;
+            let sb = lb.unload_module()?;
+            assert!(matches!(sb.inner, super::BackingSandbox::Dirty(_)));
+            Ok(())
+        }
+
+        #[test]
+        fn test_dirty_backing_sandbox_cannot_be_loaded_via_fn() -> Result<()> {
+            let mut sb = SandboxBuilder::new().build()?;
+            sb.register(
+                "GetTimeSinceBootMicrosecond",
+                get_time_since_boot_microsecond,
+            )?;
+            let sb = sb.load_runtime()?;
+            let lb = sb.load_module(get_test_file_path("RunWasm.aot")?)?;
+            let mut sb = lb.unload_module()?;
+            assert!(sb.inner.load_via_fn(|_| Ok(())).is_err());
+            Ok(())
+        }
+
+        #[test]
+        fn test_dirty_backing_sandbox_cannot_be_gotten_as_loaded() -> Result<()> {
+            let mut sb = SandboxBuilder::new().build()?;
+            sb.register(
+                "GetTimeSinceBootMicrosecond",
+                get_time_since_boot_microsecond,
+            )?;
+            let sb = sb.load_runtime()?;
+            let lb = sb.load_module(get_test_file_path("RunWasm.aot")?)?;
+            let mut sb = lb.unload_module()?;
+            assert!(sb.inner.get_loaded().is_err());
+            Ok(())
+        }
+    }
+}
+use backing_sandbox::*;
+
 /// A sandbox with just the Wasm engine loaded into memory. `WasmSandbox`es
 /// are not yet ready to execute guest functions.
 ///
@@ -37,11 +168,10 @@ pub struct WasmSandbox {
     // inner is an Option<MultiUseSandbox> as we need to take ownership of it
     // We implement drop on the WasmSandbox to decrement the count of Sandboxes when it is dropped
     // because of this we cannot implement drop without making inner an Option (alternatively we could make MultiUseSandbox Copy but that would introduce other issues)
-    inner: Option<MultiUseSandbox>,
+    inner: BackingSandbox,
     // Snapshot of state of an initial WasmSandbox (runtime loaded, but no guest module code loaded).
     // Used for LoadedWasmSandbox to be able restore state back to WasmSandbox
     snapshot: Option<Arc<Snapshot>>,
-    needs_restore: bool,
 }
 
 const MAPPED_BINARY_VA: u64 = 0x1_0000_0000u64;
@@ -55,9 +185,8 @@ impl WasmSandbox {
         metrics::gauge!(METRIC_ACTIVE_WASM_SANDBOXES).increment(1);
         metrics::counter!(METRIC_TOTAL_WASM_SANDBOXES).increment(1);
         Ok(WasmSandbox {
-            inner: Some(inner),
+            inner: BackingSandbox::Clean(inner),
             snapshot: Some(snapshot),
-            needs_restore: false,
         })
     }
 
@@ -72,26 +201,16 @@ impl WasmSandbox {
         metrics::gauge!(METRIC_ACTIVE_WASM_SANDBOXES).increment(1);
         metrics::counter!(METRIC_TOTAL_WASM_SANDBOXES).increment(1);
         Ok(WasmSandbox {
-            inner: Some(loaded),
+            inner: BackingSandbox::Dirty(loaded),
             snapshot: Some(snapshot),
-            needs_restore: true,
         })
     }
 
-    fn restore_if_needed(&mut self) -> Result<()> {
-        if self.needs_restore {
-            self.inner
-                .as_mut()
-                .ok_or(new_error!("WasmSandbox is none"))?
-                .restore(
-                    self.snapshot
-                        .as_ref()
-                        .ok_or(new_error!("Snapshot is none"))?
-                        .clone(),
-                )?;
-            self.needs_restore = false;
-        }
-        Ok(())
+    fn clean_inner(&mut self) -> Result<()> {
+        let snapshot = self.snapshot.as_ref().ok_or(new_error!(
+            "internal invariant violation: Snapshot is missing"
+        ))?;
+        self.inner.clean(snapshot.clone())
     }
 
     /// Load a Wasm module at the given path into the sandbox and return a `LoadedWasmSandbox`
@@ -100,18 +219,17 @@ impl WasmSandbox {
     /// Before you can call guest functions in the sandbox, you must call
     /// this function and use the returned value to call guest functions.
     pub fn load_module(mut self, file: impl AsRef<Path>) -> Result<LoadedWasmSandbox> {
-        self.restore_if_needed()?;
-        let inner = self
-            .inner
-            .as_mut()
-            .ok_or_else(|| new_error!("WasmSandbox is None"))?;
+        self.clean_inner()?;
 
-        if let Ok(len) = inner.map_file_cow(file.as_ref(), MAPPED_BINARY_VA, None) {
-            inner.call::<()>("LoadWasmModulePhys", (MAPPED_BINARY_VA, len))?;
-        } else {
-            let wasm_bytes = std::fs::read(file)?;
-            load_wasm_module_from_bytes(inner, wasm_bytes)?;
-        }
+        self.inner.load_via_fn(|inner| {
+            if let Ok(len) = inner.map_file_cow(file.as_ref(), MAPPED_BINARY_VA, None) {
+                inner.call::<()>("LoadWasmModulePhys", (MAPPED_BINARY_VA, len))?;
+            } else {
+                let wasm_bytes = std::fs::read(file)?;
+                load_wasm_module_from_bytes(inner, wasm_bytes)?;
+            }
+            Ok(())
+        })?;
 
         self.finalize_module_load()
     }
@@ -119,11 +237,7 @@ impl WasmSandbox {
     /// Load a Wasm module by restoring a Hyperlight snapshot taken
     /// from a `LoadedWasmSandbox`.
     pub fn load_from_snapshot(mut self, snapshot: Arc<Snapshot>) -> Result<LoadedWasmSandbox> {
-        let sb = self
-            .inner
-            .as_mut()
-            .ok_or_else(|| new_error!("WasmSandbox is None"))?;
-        sb.restore(snapshot)?;
+        self.inner.load_via_restore(snapshot)?;
 
         self.finalize_module_load()
     }
@@ -145,25 +259,25 @@ impl WasmSandbox {
         base: *mut libc::c_void,
         len: usize,
     ) -> Result<LoadedWasmSandbox> {
-        self.restore_if_needed()?;
-        let inner = self
-            .inner
-            .as_mut()
-            .ok_or_else(|| new_error!("WasmSandbox is None"))?;
+        self.clean_inner()?;
 
-        let guest_base: usize = MAPPED_BINARY_VA as usize;
-        let rgn = MemoryRegion {
-            host_region: base as usize..base.wrapping_add(len) as usize,
-            guest_region: guest_base..guest_base + len,
-            flags: MemoryRegionFlags::READ | MemoryRegionFlags::EXECUTE,
-            region_type: MemoryRegionType::Heap,
-        };
-        if let Ok(()) = unsafe { inner.map_region(&rgn) } {
-            inner.call::<()>("LoadWasmModulePhys", (MAPPED_BINARY_VA, len as u64))?;
-        } else {
-            let wasm_bytes = unsafe { std::slice::from_raw_parts(base as *const u8, len).to_vec() };
-            load_wasm_module_from_bytes(inner, wasm_bytes)?;
-        }
+        self.inner.load_via_fn(|inner| {
+            let guest_base: usize = MAPPED_BINARY_VA as usize;
+            let rgn = MemoryRegion {
+                host_region: base as usize..base.wrapping_add(len) as usize,
+                guest_region: guest_base..guest_base + len,
+                flags: MemoryRegionFlags::READ | MemoryRegionFlags::EXECUTE,
+                region_type: MemoryRegionType::Heap,
+            };
+            if let Ok(()) = unsafe { inner.map_region(&rgn) } {
+                inner.call::<()>("LoadWasmModulePhys", (MAPPED_BINARY_VA, len as u64))?;
+            } else {
+                let wasm_bytes =
+                    unsafe { std::slice::from_raw_parts(base as *const u8, len).to_vec() };
+                load_wasm_module_from_bytes(inner, wasm_bytes)?;
+            }
+            Ok(())
+        })?;
 
         self.finalize_module_load()
     }
@@ -174,14 +288,11 @@ impl WasmSandbox {
     /// Before you can call guest functions in the sandbox, you must call
     /// this function and use the returned value to call guest functions.
     pub fn load_module_from_buffer(mut self, buffer: &[u8]) -> Result<LoadedWasmSandbox> {
-        self.restore_if_needed()?;
-        let inner = self
-            .inner
-            .as_mut()
-            .ok_or_else(|| new_error!("WasmSandbox is None"))?;
+        self.clean_inner()?;
 
         // TODO: get rid of this clone
-        load_wasm_module_from_bytes(inner, buffer.to_vec())?;
+        self.inner
+            .load_via_fn(|inner| load_wasm_module_from_bytes(inner, buffer.to_vec()))?;
 
         self.finalize_module_load()
     }
@@ -189,12 +300,14 @@ impl WasmSandbox {
     /// Helper function to finalize module loading and create LoadedWasmSandbox
     fn finalize_module_load(mut self) -> Result<LoadedWasmSandbox> {
         metrics::counter!(METRIC_SANDBOX_LOADS).increment(1);
-        match (self.inner.take(), self.snapshot.take()) {
-            (Some(sandbox), Some(snapshot)) => LoadedWasmSandbox::new(sandbox, snapshot),
-            _ => Err(new_error!(
-                "WasmSandbox/snapshot is None, cannot load module"
-            )),
-        }
+
+        let sandbox = self.inner.get_loaded()?;
+
+        let snapshot = self.snapshot.take().ok_or(new_error!(
+            "internal invariant violation: Snapshot is missing"
+        ))?;
+
+        LoadedWasmSandbox::new(sandbox, snapshot)
     }
 }
 
@@ -232,7 +345,7 @@ mod tests {
     use hyperlight_host::{HyperlightError, is_hypervisor_present};
 
     use super::*;
-    use crate::sandbox::sandbox_builder::SandboxBuilder;
+    pub(super) use crate::sandbox::sandbox_builder::SandboxBuilder;
 
     #[test]
     fn test_new_sandbox() -> Result<()> {
@@ -240,7 +353,7 @@ mod tests {
         Ok(())
     }
 
-    fn get_time_since_boot_microsecond() -> Result<i64> {
+    pub(super) fn get_time_since_boot_microsecond() -> Result<i64> {
         let res = std::time::SystemTime::now()
             .duration_since(std::time::SystemTime::UNIX_EPOCH)?
             .as_micros();
@@ -569,7 +682,7 @@ mod tests {
         }
     }
 
-    fn get_test_file_path(filename: &str) -> Result<String> {
+    pub(super) fn get_test_file_path(filename: &str) -> Result<String> {
         #[cfg(debug_assertions)]
         let config = "debug";
         #[cfg(not(debug_assertions))]
