@@ -86,7 +86,10 @@ mod backing_sandbox {
             };
             Ok(())
         }
-        pub(super) fn load_via_fn(&mut self, load: impl FnOnce(&mut MultiUseSandbox) -> Result<()>) -> Result<()> {
+        pub(super) fn load_via_fn(
+            &mut self,
+            load: impl FnOnce(&mut MultiUseSandbox) -> Result<()>,
+        ) -> Result<()> {
             *self = match std::mem::replace(self, BackingSandbox::Missing) {
                 BackingSandbox::Clean(mut x) => {
                     load(&mut x)?;
