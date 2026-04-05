@@ -172,32 +172,128 @@ pub extern "C" fn wasmtime_init_traps(handler: wasmtime_trap_handler_t) -> i32 {
     0
 }
 
-// The wasmtime_memory_image APIs are not yet supported.
+// Copy a VA range to a new VA. Old and new VA, and len, must be
+// page-aligned.
+fn copy_va_mapping(base: *const u8, len: usize, to_va: *mut u8, remap_original: bool) {
+    debug_assert!((base as usize).is_multiple_of(vmem::PAGE_SIZE));
+    debug_assert!(len.is_multiple_of(vmem::PAGE_SIZE));
+    // TODO: all this barrier code is amd64 specific. It should be
+    // refactored to use some better architecture-independent APIs.
+    //
+    // On amd64, "upgrades" including the first time that a a valid
+    // translation exists for a VA, only need a light (serialising
+    // instruction) barrier.  Since invlpg is also a barrier, we don't
+    // even need that, if we did do a downgrade remap just before.
+    let mut needs_first_valid_exposure_barrier = false;
+
+    // TODO: make this more efficient by directly exposing the ability
+    // to traverse an entire VA range in
+    // hyperlight_guest_bin::paging::virt_to_phys, and coalescing
+    // continuous ranges there.
+    let base_u = base as u64;
+    let va_page_bases = (base_u..(base_u + len as u64)).step_by(vmem::PAGE_SIZE);
+    let mappings = va_page_bases.flat_map(paging::virt_to_phys);
+    for mapping in mappings {
+        // TODO: Deduplicate with identical logic in hyperlight_host snapshot.
+        let (new_kind, was_writable) = match mapping.kind {
+            // Skip unmapped pages, since they will be unmapped in
+            // both the original and the new copy
+            vmem::MappingKind::Unmapped => continue,
+            vmem::MappingKind::Basic(bm) if bm.writable => (
+                vmem::MappingKind::Cow(vmem::CowMapping {
+                    readable: bm.readable,
+                    executable: bm.executable,
+                }),
+                true,
+            ),
+            vmem::MappingKind::Basic(bm) => (
+                vmem::MappingKind::Basic(vmem::BasicMapping {
+                    readable: bm.readable,
+                    writable: false,
+                    executable: bm.executable,
+                }),
+                false,
+            ),
+            vmem::MappingKind::Cow(cm) => (vmem::MappingKind::Cow(cm), false),
+        };
+        let do_downgrade = remap_original && was_writable;
+        if do_downgrade {
+            // If necessary, remap the original page as Cow, instead
+            // of whatever it is now, to ensure that any more writes to
+            // that region do not change the image base.
+            //
+            // TODO: could the table traversal needed for this be fused
+            // with the table traversal that got the original mapping,
+            // above?
+            unsafe {
+                paging::map_region(
+                    mapping.phys_base,
+                    mapping.virt_base as *mut u8,
+                    vmem::PAGE_SIZE as u64,
+                    new_kind,
+                );
+            }
+        }
+        // map the same pages to the new VA
+        unsafe {
+            paging::map_region(
+                mapping.phys_base,
+                to_va.wrapping_add((mapping.virt_base - base_u) as usize),
+                vmem::PAGE_SIZE as u64,
+                new_kind,
+            );
+        }
+        if do_downgrade {
+            // Since we have downgraded a page from writable to CoW we
+            // need to do an invlpg on it. Because invlpg is a
+            // serialising instruction, we don't need the other
+            // barrier for the new mapping.
+            unsafe {
+                core::arch::asm!("invlpg [{}]", in(reg) mapping.virt_base, options(readonly, nostack, preserves_flags));
+            }
+            needs_first_valid_exposure_barrier = false;
+        } else {
+            needs_first_valid_exposure_barrier = true;
+        }
+    }
+    if needs_first_valid_exposure_barrier {
+        paging::barrier::first_valid_same_ctx();
+    }
+}
+
+// Create a copy-on-write memory image from some existing VA range.
+// `ptr` and `len` must be page-aligned (which is guaranteed by the
+// wasmtime-platform.h interface).
 #[no_mangle]
 pub extern "C" fn wasmtime_memory_image_new(
-    _ptr: *const u8,
-    _len: usize,
+    ptr: *const u8,
+    len: usize,
     ret: &mut *mut c_void,
 ) -> i32 {
-    *ret = core::ptr::null_mut();
+    // Choose an arbitrary VA, which we will use as the memory image
+    // identifier. We will construct the image by mapping a copy of
+    // the original VA range here, making the original copy CoW as we
+    // go.
+    let new_virt = FIRST_VADDR.fetch_add(0x100_0000_0000, Ordering::Relaxed) as *mut u8;
+    copy_va_mapping(ptr, len, new_virt, true);
+    *ret = new_virt as *mut c_void;
     0
 }
 
 #[no_mangle]
 pub extern "C" fn wasmtime_memory_image_map_at(
-    _image: *mut c_void,
-    _addr: *mut u8,
-    _len: usize,
+    image: *mut c_void,
+    addr: *mut u8,
+    len: usize,
 ) -> i32 {
-    /* This should never be called because wasmtime_memory_image_new
-     * returns NULL */
-    panic!("wasmtime_memory_image_map_at");
+    copy_va_mapping(image as *mut u8, len, addr, false);
+    0
 }
 
 #[no_mangle]
 pub extern "C" fn wasmtime_memory_image_free(_image: *mut c_void) {
-    /* This should never be called because wasmtime_memory_image_new
-     * returns NULL */
+    /* This should never be called in practice, because we simply
+     * restore the snapshot rather than actually unload/destroy instances */
     panic!("wasmtime_memory_image_free");
 }
 
