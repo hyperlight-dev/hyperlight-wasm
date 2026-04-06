@@ -14,7 +14,7 @@ readme = "README.md"
 
 [workspace.dependencies]
 hyperlight-common = { version = "0.13.1", default-features = false }
-hyperlight-component-macro = { version = "0.13.1" }
+hyperlight-component-macro = { version = "0.14.0" }
 hyperlight-component-util = { version = "0.13.1" }
 hyperlight-guest = { version = "0.13.1" }
 hyperlight-guest-bin = { version = "0.13.1", features = [ "printf" ] }
