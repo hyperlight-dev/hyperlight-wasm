@@ -4,7 +4,7 @@ exclude = [ "src/tests/rust_guests/rust_wasm_samples", "src/tests/rust_guests/co
 resolver = "2"
 
 [workspace.package]
-version = "0.13.1"
+version = "0.14.0"
 edition = "2024"
 rust-version = "1.89"
 license = "Apache-2.0"
@@ -19,5 +19,5 @@ hyperlight-component-util = { version = "0.14.0" }
 hyperlight-guest = { version = "0.14.0" }
 hyperlight-guest-bin = { version = "0.14.0", features = [ "printf" ] }
 hyperlight-host = { version = "0.14.0", default-features = false, features = ["executable_heap"] }
-hyperlight-wasm-macro = { version = "0.13.1", path = "src/hyperlight_wasm_macro" }
-hyperlight-wasm-runtime = { version = "0.13.1", path = "src/hyperlight_wasm_runtime" }
+hyperlight-wasm-macro = { version = "0.14.0", path = "src/hyperlight_wasm_macro" }
+hyperlight-wasm-runtime = { version = "0.14.0", path = "src/hyperlight_wasm_runtime" }

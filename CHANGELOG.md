@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - Added support for selecting a specific world from WIT files with multiple worlds using the `WIT_WORLD_NAME` environment variable (#202)
+- Added WasmSandbox::load_from_snapshot() to create a loaded sandbox by restoring a snapshot taken from a LoadedWasmSandbox. (#437)
+- Implement Wasmtime memory image APIs by copying VA mappings and converting writable pages to CoW mappings. (#437)
 
 ## [v0.12.0] - 2025-12
 
