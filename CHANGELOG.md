@@ -5,14 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Prerelease] - Unreleased
 
+## [v0.14.0] - 2026-04
+
 ### Changed
 
 - **BREAKING CHANGE:** Removed `SandboxBuilder::with_function_definition_size`. Host function definitions are now pushed to the guest at runtime load time instead of using a separate memory region. (#388)
 
 ### Added
 - Added support for selecting a specific world from WIT files with multiple worlds using the `WIT_WORLD_NAME` environment variable (#202)
-- Added WasmSandbox::load_from_snapshot() to create a loaded sandbox by restoring a snapshot taken from a LoadedWasmSandbox. (#437)
-- Implement Wasmtime memory image APIs by copying VA mappings and converting writable pages to CoW mappings. (#437)
+- Added `WasmSandbox::load_from_snapshot()` to create a loaded sandbox by restoring a snapshot taken from a `LoadedWasmSandbox`. (#437)
+- Implemented Wasmtime memory image APIs by copying VA mappings and converting writable pages to CoW mappings. (#437)
 
 ## [v0.12.0] - 2025-12
 
