@@ -1145,23 +1145,23 @@ dependencies = [
 
 [[package]]
 name = "gdbstub"
-version = "0.7.9"
+version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bf845b08f7c2ef3b5ad19f80779d43ae20d278652b91bb80adda65baf2d8ed6"
+checksum = "5bafc7e33650ab9f05dcc16325f05d56b8d10393114e31a19a353b86fa60cfe7"
 dependencies = [
  "bitflags 2.11.0",
  "cfg-if",
  "log",
  "managed",
  "num-traits",
- "paste",
+ "pastey",
 ]
 
 [[package]]
 name = "gdbstub_arch"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22dde0e1b68787036ccedd0b1ff6f953527a0e807e571fbe898975203027278f"
+checksum = "6c02bfe7bd65f42bcda751456869dfa1eb2bd1c36e309b9ec27f4888d41cf258"
 dependencies = [
  "gdbstub",
  "num-traits",
@@ -1330,12 +1330,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
-name = "hex"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
-
-[[package]]
 name = "http"
 version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1470,6 +1464,20 @@ dependencies = [
  "log",
  "spin",
  "thiserror 2.0.18",
+ "tracing-core",
+]
+
+[[package]]
+name = "hyperlight-common"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be2d385987047c64fdb5c95e05ef3b6bd9431001a8fe694abb29b29e99913167"
+dependencies = [
+ "anyhow",
+ "flatbuffers",
+ "log",
+ "spin",
+ "thiserror 2.0.18",
  "tracing",
  "tracing-core",
 ]
@@ -1513,8 +1521,8 @@ checksum = "45e6132c20b413ba14ad6967c3c941702276773d3bc749569e746e3d1df3dff3"
 dependencies = [
  "anyhow",
  "flatbuffers",
- "hyperlight-common",
- "hyperlight-guest-tracing",
+ "hyperlight-common 0.13.1",
+ "hyperlight-guest-tracing 0.13.1",
  "serde_json",
  "tracing",
 ]
@@ -1530,10 +1538,10 @@ dependencies = [
  "cfg-if",
  "flatbuffers",
  "glob",
- "hyperlight-common",
+ "hyperlight-common 0.13.1",
  "hyperlight-guest",
  "hyperlight-guest-macro",
- "hyperlight-guest-tracing",
+ "hyperlight-guest-tracing 0.13.1",
  "linkme",
  "log",
  "spin",
@@ -1558,7 +1566,19 @@ version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f2c1db4d357e8ff0e0f9e26432b38e079d7d7949daa063effeb25bbdce50212"
 dependencies = [
- "hyperlight-common",
+ "hyperlight-common 0.13.1",
+ "spin",
+ "tracing",
+ "tracing-core",
+]
+
+[[package]]
+name = "hyperlight-guest-tracing"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d14e9c34c508ecfba1283a552c3eb118d8ee82d863e2e91377a6059f06cf84dd"
+dependencies = [
+ "hyperlight-common 0.14.0",
  "spin",
  "tracing",
  "tracing-core",
@@ -1566,9 +1586,9 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-host"
-version = "0.13.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05a62d79d2871137b0feea8db77e222289594766e2d6902ef0bdb0d65d8edda6"
+checksum = "65c2f9b5a13324c5dd786bf77a7531216207684da1cefc19fb9b697d08346ac0"
 dependencies = [
  "anyhow",
  "bitflags 2.11.0",
@@ -1582,8 +1602,8 @@ dependencies = [
  "gdbstub",
  "gdbstub_arch",
  "goblin",
- "hyperlight-common",
- "hyperlight-guest-tracing",
+ "hyperlight-common 0.14.0",
+ "hyperlight-guest-tracing 0.14.0",
  "kvm-bindings",
  "kvm-ioctls",
  "lazy_static",
@@ -1597,7 +1617,6 @@ dependencies = [
  "rand 0.10.0",
  "rust-embed",
  "serde_json",
- "sha256",
  "termcolor",
  "thiserror 2.0.18",
  "tracing",
@@ -1628,7 +1647,7 @@ dependencies = [
  "env_logger",
  "examples_common",
  "goblin",
- "hyperlight-common",
+ "hyperlight-common 0.13.1",
  "hyperlight-component-macro",
  "hyperlight-host",
  "hyperlight-wasm-runtime",
@@ -1687,7 +1706,7 @@ dependencies = [
  "cc",
  "cfg-if",
  "cfg_aliases",
- "hyperlight-common",
+ "hyperlight-common 0.13.1",
  "hyperlight-guest",
  "hyperlight-guest-bin",
  "hyperlight-wasm-macro",
@@ -2478,10 +2497,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "paste"
-version = "1.0.15"
+name = "pastey"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
+checksum = "b867cad97c0791bbd3aaa6472142568c6c9e8f71937e98379f584cfb0cf35bec"
 
 [[package]]
 name = "percent-encoding"
@@ -3273,19 +3292,6 @@ dependencies = [
  "cfg-if",
  "cpufeatures 0.2.17",
  "digest",
-]
-
-[[package]]
-name = "sha256"
-version = "1.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f880fc8562bdeb709793f00eb42a2ad0e672c4f883bbe59122b926eca935c8f6"
-dependencies = [
- "async-trait",
- "bytes",
- "hex",
- "sha2",
- "tokio",
 ]
 
 [[package]]
