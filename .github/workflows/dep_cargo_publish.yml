@@ -79,6 +79,7 @@ jobs:
               -r local=./target/package/tmp-registry \
               -- \
               cargo publish --dry-run --allow-dirty \
+                  -p hyperlight-wasm-aot \
                   -p hyperlight-wasm-macro \
                   -p hyperlight-wasm-runtime \
                   -p hyperlight-wasm
