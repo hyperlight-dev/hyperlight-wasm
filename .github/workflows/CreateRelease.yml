@@ -39,10 +39,6 @@ jobs:
       uses: hyperlight-dev/ci-setup-workflow@v1.8.0
       with:
           rust-toolchain: "1.89"
-    - name: Package hyperlight-wasm crate
-      if: ${{ contains(github.ref, 'refs/heads/release/') }}
-      run: cargo package -p hyperlight-wasm
-      shell: bash
     - name: Set HYPERLIGHTWASM_VERSION
       run: |
         git fetch --tags
