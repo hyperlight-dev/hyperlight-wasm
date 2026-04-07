@@ -62,9 +62,23 @@ jobs:
         # allow-dirty is needed in the publish below because we are using the --no-git-commit option above to cover the case 
         # where no changes are made by cargo ws version because the version is already correct
 
-        # Run cargo package to perform publishing validation if this workflow
-        # is triggered by a pull-request
+        # Run cargo publish --dry-run to perform publishing validation if this workflow
+        # is triggered by a pull-request. Uses cargo-overlay-registry to resolve
+        # interdependencies between workspace crates that aren't on crates.io yet.
+      - name: Install cargo-overlay-registry
+        if: ${{ inputs.event_name == 'pull_request' }}
+        run: cargo install cargo-overlay-registry
+
       - name: Package hyperlight-wasm (dry-run)
         if: ${{ inputs.event_name == 'pull_request' }}
-        working-directory: src/hyperlight_wasm
-        run: cargo package --manifest-path ./Cargo.toml --allow-dirty
+        run: |
+          set -euxo pipefail
+          rm -Rf ./target/package/tmp-registry
+          cargo overlay-registry \
+              -r crates-io \
+              -r local=./target/package/tmp-registry \
+              -- \
+              cargo publish --dry-run --allow-dirty \
+                  -p hyperlight-wasm-macro \
+                  -p hyperlight-wasm-runtime \
+                  -p hyperlight-wasm
