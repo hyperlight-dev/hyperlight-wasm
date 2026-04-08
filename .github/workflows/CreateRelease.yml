@@ -94,21 +94,6 @@ jobs:
       if: ${{ contains(github.ref, 'refs/heads/release/') }}
       run: cargo install cargo-overlay-registry
       shell: bash
-    - name: Publish dry-run
-      if: ${{ contains(github.ref, 'refs/heads/release/') }}
-      run: |
-        set -euxo pipefail
-        rm -Rf ./target/package/tmp-registry
-        cargo overlay-registry \
-            -r crates-io \
-            -r local=./target/package/tmp-registry \
-            -- \
-            cargo +1.92 publish --dry-run \
-                -p hyperlight-wasm-aot \
-                -p hyperlight-wasm-macro \
-                -p hyperlight-wasm-runtime \
-                -p hyperlight-wasm
-      shell: bash
     - name: Publish to crates.io
       if: ${{ contains(github.ref, 'refs/heads/release/') }}
       run: |
