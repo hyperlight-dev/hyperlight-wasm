@@ -90,24 +90,29 @@ jobs:
       if: ${{ contains(github.ref, 'refs/heads/release/') }}
       uses: rust-lang/crates-io-auth-action@v1
       id: crates-io-auth
-    - name: Install cargo-overlay-registry
-      if: ${{ contains(github.ref, 'refs/heads/release/') }}
-      run: cargo install cargo-overlay-registry
-      shell: bash
+
     - name: Publish to crates.io
       if: ${{ contains(github.ref, 'refs/heads/release/') }}
       run: |
         set -euxo pipefail
-        rm -Rf ./target/package/tmp-registry
-        cargo overlay-registry \
-            -r crates-io \
-            -r local=./target/package/tmp-registry \
-            -- \
-            cargo +1.92 publish \
-                -p hyperlight-wasm-aot \
-                -p hyperlight-wasm-macro \
-                -p hyperlight-wasm-runtime \
-                -p hyperlight-wasm
+
+        publish_if_needed() {
+          local crate=$1
+          local version=$HYPERLIGHTWASM_VERSION
+          local status_code
+          status_code=$(curl -s -o /dev/null -w "%{http_code}" "https://crates.io/api/v1/crates/$crate/$version")
+          if [ "$status_code" = "200" ]; then
+            echo "✅ $crate@$version already published, skipping."
+          else
+            echo "🚀 Publishing $crate@$version"
+            cargo +1.92 publish -p "$crate"
+          fi
+        }
+
+        publish_if_needed hyperlight-wasm-macro
+        publish_if_needed hyperlight-wasm-runtime
+        publish_if_needed hyperlight-wasm-aot
+        publish_if_needed hyperlight-wasm
       env:
         CARGO_REGISTRY_TOKEN: ${{ steps.crates-io-auth.outputs.token }}
       shell: bash
