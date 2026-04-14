@@ -59,7 +59,7 @@ test = true
 [dependencies]
 hyperlight-host.workspace = true
 hyperlight-common.workspace = true
-libc = "0.2.183"
+libc = "0.2.185"
 once_cell = "1.21.4"
 tracing = "0.1.44"
 log = "0.4"
