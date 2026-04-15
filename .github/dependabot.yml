@@ -19,28 +19,9 @@ updates:
     ignore:
       - dependency-name: "wasmtime"
         update-types: ["version-update:semver-minor", "version-update:semver-major"]
-  # Add entries for excluded workspace members
-  - package-ecosystem: "cargo"
-    directory: "/src/hyperlight_wasm_runtime"
-    schedule:
-      interval: "daily"
-      time: "03:00"
-    target-branch: "main"
-    labels:
-      - "kind/dependencies"
-    ignore:
-      - dependency-name: "wasmtime"
-        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+  # Add entries for excluded workspace members (these are standalone projects not covered by the root "/" entry)
   - package-ecosystem: "cargo"
     directory: "/src/tests/rust_guests/rust_wasm_samples"
-    schedule:
-      interval: "daily"
-      time: "03:00"
-    target-branch: "main"
-    labels:
-      - "kind/dependencies"
-  - package-ecosystem: "cargo"
-    directory: "/src/hyperlight_wasm_macro"
     schedule:
       interval: "daily"
       time: "03:00"
