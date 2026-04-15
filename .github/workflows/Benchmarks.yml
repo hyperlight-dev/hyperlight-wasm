@@ -5,6 +5,10 @@ name: Benchmarks
 on:
   workflow_call: # this is called from CreateRelease.yml
 
+permissions:
+  contents: read
+  packages: read
+
 # The reason for default shell bash is because on our self-hosted windows runners,
 # the default shell is powershell, which doesn't work correctly together with `just` commands.
 # Even if a command inside a just-recipe fails, github reports the step as successful.
