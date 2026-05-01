@@ -298,17 +298,18 @@ dependencies = [
 
 [[package]]
 name = "cargo-util-schemas"
-version = "0.10.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "549c00f5bb23fdaf26135d747d7530563402a101f1887a5a1916afe2c09cf229"
+checksum = "73d08f8ffc65abe86dffd3497839adee21cbe3f3b19c17987aa5267998adcf77"
 dependencies = [
+ "jiff",
  "semver",
  "serde",
  "serde-untagged",
  "serde-value",
  "thiserror",
  "toml 0.9.12+spec-1.1.0",
- "unicode-xid",
+ "unicode-ident",
  "url",
 ]
 
