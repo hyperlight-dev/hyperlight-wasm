@@ -1295,6 +1295,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashbrown"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f467dd6dccf739c208452f8014c75c18bb8301b050ad1cfb27153803edb0f51"
+dependencies = [
+ "foldhash 0.2.0",
+ "serde",
+ "serde_core",
+]
+
+[[package]]
 name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1442,7 +1453,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fa7ae5cd7c8e5f5b925b07bce45be853ac0be0e6d4e8b2afd17ad8c16aa135c4"
 dependencies = [
  "env_logger",
- "hyperlight-component-util",
+ "hyperlight-component-util 0.14.0",
  "itertools 0.14.0",
  "prettyplease",
  "proc-macro2",
@@ -1464,6 +1475,21 @@ dependencies = [
  "syn",
  "tracing",
  "wasmparser 0.246.2",
+]
+
+[[package]]
+name = "hyperlight-component-util"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4066c05c73d5eecdcd7d31e106df789f7f74d6a5cfde5b4df7d54dd66e8ae442"
+dependencies = [
+ "itertools 0.14.0",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "tracing",
+ "wasmparser 0.248.0",
 ]
 
 [[package]]
@@ -1632,7 +1658,7 @@ dependencies = [
 name = "hyperlight-wasm-macro"
 version = "0.14.0"
 dependencies = [
- "hyperlight-component-util",
+ "hyperlight-component-util 0.15.0",
  "itertools 0.14.0",
  "prettyplease",
  "proc-macro2",
@@ -1791,12 +1817,12 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.13.1"
+version = "2.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45a8a2b9cb3e0b0c1803dbb0758ffac5de2f425b23c28f518faabd9d805342ff"
+checksum = "d466e9454f08e4a911e14806c24e16fba1b4c121d1ea474396f396069cf949d9"
 dependencies = [
  "equivalent",
- "hashbrown 0.16.1",
+ "hashbrown 0.17.0",
  "serde",
  "serde_core",
 ]
@@ -3992,6 +4018,19 @@ checksum = "71cde4757396defafd25417cfb36aa3161027d06d865b0c24baaae229aac005d"
 dependencies = [
  "bitflags 2.11.0",
  "hashbrown 0.16.1",
+ "indexmap",
+ "semver",
+ "serde",
+]
+
+[[package]]
+name = "wasmparser"
+version = "0.248.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa4439c5eee9df71ee0c6efb37f63b1fcb1fec38f85f5142c54e7ed05d33091a"
+dependencies = [
+ "bitflags 2.11.0",
+ "hashbrown 0.17.0",
  "indexmap",
  "semver",
  "serde",
