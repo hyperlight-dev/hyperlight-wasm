@@ -1445,6 +1445,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "hyperlight-common"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a29190c35e3883c3e0944007f47a0997f8ebcf784a2a3f35c0311e513b019416"
+dependencies = [
+ "anyhow",
+ "flatbuffers",
+ "log",
+ "spin",
+ "thiserror",
+ "tracing-core",
+]
+
+[[package]]
 name = "hyperlight-component-macro"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1483,8 +1497,22 @@ checksum = "6ee2682d284171d2bd9e80e3e543de310356c1d8ec65e88028b3e08048d15d3d"
 dependencies = [
  "anyhow",
  "flatbuffers",
- "hyperlight-common",
- "hyperlight-guest-tracing",
+ "hyperlight-common 0.14.0",
+ "hyperlight-guest-tracing 0.14.0",
+ "serde_json",
+ "tracing",
+]
+
+[[package]]
+name = "hyperlight-guest"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82a676e88a6640b5cf621171c67f609d1e662713624562597518be6fdb0e0b30"
+dependencies = [
+ "anyhow",
+ "flatbuffers",
+ "hyperlight-common 0.15.0",
+ "hyperlight-guest-tracing 0.15.0",
  "serde_json",
  "tracing",
 ]
@@ -1500,10 +1528,10 @@ dependencies = [
  "cfg-if",
  "flatbuffers",
  "glob",
- "hyperlight-common",
- "hyperlight-guest",
+ "hyperlight-common 0.14.0",
+ "hyperlight-guest 0.14.0",
  "hyperlight-guest-macro",
- "hyperlight-guest-tracing",
+ "hyperlight-guest-tracing 0.14.0",
  "linkme",
  "log",
  "spin",
@@ -1528,7 +1556,19 @@ version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d14e9c34c508ecfba1283a552c3eb118d8ee82d863e2e91377a6059f06cf84dd"
 dependencies = [
- "hyperlight-common",
+ "hyperlight-common 0.14.0",
+ "spin",
+ "tracing",
+ "tracing-core",
+]
+
+[[package]]
+name = "hyperlight-guest-tracing"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca03b1ccd29c0c277555d8bd737257d0598554004f9667bb196227d5ed8b5b7e"
+dependencies = [
+ "hyperlight-common 0.15.0",
  "spin",
  "tracing",
  "tracing-core",
@@ -1552,8 +1592,8 @@ dependencies = [
  "gdbstub",
  "gdbstub_arch",
  "goblin",
- "hyperlight-common",
- "hyperlight-guest-tracing",
+ "hyperlight-common 0.14.0",
+ "hyperlight-guest-tracing 0.14.0",
  "kvm-bindings",
  "kvm-ioctls",
  "lazy_static",
@@ -1597,7 +1637,7 @@ dependencies = [
  "env_logger",
  "examples_common",
  "goblin",
- "hyperlight-common",
+ "hyperlight-common 0.14.0",
  "hyperlight-component-macro",
  "hyperlight-host",
  "hyperlight-wasm-runtime",
@@ -1656,8 +1696,8 @@ dependencies = [
  "cc",
  "cfg-if",
  "cfg_aliases",
- "hyperlight-common",
- "hyperlight-guest",
+ "hyperlight-common 0.14.0",
+ "hyperlight-guest 0.15.0",
  "hyperlight-guest-bin",
  "hyperlight-wasm-macro",
  "spin",
