@@ -25,7 +25,7 @@ bench = false
 
 [target.'cfg(hyperlight)'.dependencies]
 hyperlight-common = { workspace = true, default-features = false }
-hyperlight-guest-bin = { workspace = true, features = [ "printf" ] }
+hyperlight-guest-bin.workspace = true
 hyperlight-guest.workspace = true
 hyperlight-wasm-macro.workspace = true
 wasmtime = { version = "36.0.9", default-features = false, features = [ "runtime", "custom-virtual-memory", "custom-native-signals", "component-model" ] }
