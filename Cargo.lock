@@ -246,7 +246,7 @@ version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1af5a01adeeade54c9f5060300227a8ee64c05b6376f28e9b8ee3b72dd2056f"
 dependencies = [
- "spin",
+ "spin 0.10.0",
 ]
 
 [[package]]
@@ -1478,7 +1478,7 @@ dependencies = [
  "anyhow",
  "flatbuffers",
  "log",
- "spin",
+ "spin 0.10.0",
  "thiserror",
  "tracing",
  "tracing-core",
@@ -1544,7 +1544,7 @@ dependencies = [
  "hyperlight-libc",
  "linkme",
  "log",
- "spin",
+ "spin 0.10.0",
  "tracing",
 ]
 
@@ -1567,7 +1567,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca03b1ccd29c0c277555d8bd737257d0598554004f9667bb196227d5ed8b5b7e"
 dependencies = [
  "hyperlight-common",
- "spin",
+ "spin 0.10.0",
  "tracing",
  "tracing-core",
 ]
@@ -1710,7 +1710,7 @@ dependencies = [
  "hyperlight-guest",
  "hyperlight-guest-bin",
  "hyperlight-wasm-macro",
- "spin",
+ "spin 0.12.0",
  "tracing",
  "wasmtime",
 ]
@@ -3365,6 +3365,15 @@ name = "spin"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d5fe4ccb98d9c292d56fec89a5e07da7fc4cf0dc11e156b41793132775d3e591"
+dependencies = [
+ "lock_api",
+]
+
+[[package]]
+name = "spin"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1527984ca054dfca79333baec451042863f485fbee01b7bf6d911de915cac865"
 dependencies = [
  "lock_api",
 ]
