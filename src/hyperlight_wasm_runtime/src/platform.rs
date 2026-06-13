@@ -65,7 +65,10 @@ pub(crate) fn register_page_fault_handler() {
     // See AMD64 Architecture Programmer's Manual, Volume 2
     //    §8.2 Vectors, p. 245
     //      Table 8-1: Interrupt Vector Source and Cause
-    arch::HANDLERS[14].store(page_fault_handler as usize as u64, Ordering::Release);
+    arch::HANDLERS[14].store(
+        page_fault_handler as *const () as usize as u64,
+        Ordering::Release,
+    );
 }
 
 // Wasmtime Embedding Interface
@@ -161,7 +164,10 @@ pub extern "C" fn wasmtime_init_traps(handler: wasmtime_trap_handler_t) -> i32 {
     // See AMD64 Architecture Programmer's Manual, Volume 2
     //    §8.2 Vectors, p. 245
     //      Table 8-1: Interrupt Vector Source and Cause
-    arch::HANDLERS[6].store(wasmtime_trap_handler as usize as u64, Ordering::Release);
+    arch::HANDLERS[6].store(
+        wasmtime_trap_handler as *const () as usize as u64,
+        Ordering::Release,
+    );
     // TODO: Add handlers for any other traps that wasmtime needs,
     //       probably including at least some floating-point
     //       exceptions

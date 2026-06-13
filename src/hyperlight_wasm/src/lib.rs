@@ -125,11 +125,17 @@ mod tests {
             std::fs::read_to_string(cargo_toml_path).expect("Failed to read Cargo.toml");
         let cargo_toml: toml::Value =
             toml::from_str(&cargo_toml_content).expect("Failed to parse Cargo.toml");
+        // LTS is the default; wasmtime_latest opts into the latest dependency.
+        let dep_key = if cfg!(feature = "wasmtime_latest") {
+            "wasmtime"
+        } else {
+            "wasmtime_lts"
+        };
         let wasmtime_version_from_toml = cargo_toml
             .get("target")
             .and_then(|deps| deps.get("cfg(hyperlight)"))
             .and_then(|cfg| cfg.get("dependencies"))
-            .and_then(|deps| deps.get("wasmtime"))
+            .and_then(|deps| deps.get(dep_key))
             .and_then(|wasmtime| wasmtime.get("version"))
             .and_then(|version| version.as_str())
             .expect("Failed to find wasmtime version in Cargo.toml");

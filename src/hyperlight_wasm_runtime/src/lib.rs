@@ -19,6 +19,31 @@ limitations under the License.
 
 extern crate alloc;
 
+use alloc::string::ToString;
+
+use hyperlight_common::flatbuffer_wrappers::guest_error::ErrorCode;
+use hyperlight_guest::error::HyperlightGuestError;
+
+// Re-export wasmtime based on expected version
+#[cfg(all(feature = "wasmtime_latest", feature = "wasmtime_lts"))]
+compile_error!(
+    "Features 'wasmtime_latest' and 'wasmtime_lts' are mutually exclusive. Please enable only one."
+);
+
+#[cfg(not(any(feature = "wasmtime_latest", feature = "wasmtime_lts")))]
+compile_error!("Either 'wasmtime_latest' or 'wasmtime_lts' feature must be enabled.");
+
+#[cfg(not(feature = "wasmtime_lts"))]
+extern crate wasmtime;
+#[cfg(feature = "wasmtime_lts")]
+extern crate wasmtime_lts as wasmtime;
+
+// Keep this conversion local: HyperlightGuestError is owned by hyperlight-guest,
+// so this crate cannot implement From<wasmtime::Error> for it.
+pub(crate) fn map_wasmtime_error(error: wasmtime::Error) -> HyperlightGuestError {
+    HyperlightGuestError::new(ErrorCode::GuestError, error.to_string())
+}
+
 mod platform;
 
 #[cfg(not(component))]

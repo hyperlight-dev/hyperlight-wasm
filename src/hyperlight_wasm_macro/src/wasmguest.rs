@@ -214,17 +214,28 @@ fn emit_wasm_function_call(
     let rwt = match result {
         None => {
             quote! {
-                let func = instance.get_typed_func::<(#(#pwts,)*), ()>(&mut *store, func_idx)?;
-                func.call(&mut *store, (#(#pus,)*))?;
-                func.post_return(&mut *store)?;
+                let func = instance
+                    .get_typed_func::<(#(#pwts,)*), ()>(&mut *store, func_idx)
+                    .map_err(crate::map_wasmtime_error)?;
+                func.call(&mut *store, (#(#pus,)*))
+                    .map_err(crate::map_wasmtime_error)?;
+                #[cfg(feature = "wasmtime_lts")]
+                func.post_return(&mut *store)
+                    .map_err(crate::map_wasmtime_error)?;
             }
         }
         _ => {
             let r = rtypes::emit_func_result(s, result);
             quote! {
-                let func = instance.get_typed_func::<(#(#pwts,)*), ((#r,))>(&mut *store, func_idx)?;
-                let #ret = func.call(&mut *store, (#(#pus,)*))?.0;
-                func.post_return(&mut *store)?;
+                let func = instance
+                    .get_typed_func::<(#(#pwts,)*), ((#r,))>(&mut *store, func_idx)
+                    .map_err(crate::map_wasmtime_error)?;
+                let #ret = func.call(&mut *store, (#(#pus,)*))
+                    .map_err(crate::map_wasmtime_error)?
+                    .0;
+                #[cfg(feature = "wasmtime_lts")]
+                func.post_return(&mut *store)
+                    .map_err(crate::map_wasmtime_error)?;
             }
         }
     };

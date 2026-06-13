@@ -143,6 +143,14 @@ fn build_wasm_runtime() -> PathBuf {
         .arg("--locked")
         .env_clear_cargo();
 
+    // LTS is the runtime default; wasmtime_latest opts into the latest version.
+    if std::env::var("CARGO_FEATURE_WASMTIME_LATEST").is_ok() {
+        cmd = cmd
+            .arg("--no-default-features")
+            .arg("--features")
+            .arg("wasmtime_latest");
+    }
+
     // Add --features gdb if the gdb feature is enabled for this build script
     if std::env::var("CARGO_FEATURE_GDB").is_ok() {
         cmd = cmd.arg("--features").arg("gdb");

@@ -33,7 +33,7 @@ use spin::Mutex;
 use tracing::instrument;
 use wasmtime::{Config, Engine, Linker, Module, Store, Val};
 
-use crate::{hostfuncs, marshal, platform, wasip1};
+use crate::{hostfuncs, map_wasmtime_error, marshal, platform, wasip1};
 
 // Set by transition to WasmSandbox (by init_wasm_runtime)
 static CUR_ENGINE: Mutex<Option<Engine>> = Mutex::new(None);
@@ -86,7 +86,8 @@ pub fn guest_dispatch_function(function_call: FunctionCall) -> Result<Vec<u8>> {
     let is_void = ReturnType::Void == function_call.expected_return_type;
     let n_results = if is_void { 0 } else { 1 };
     let mut results = vec![Val::I32(0); n_results];
-    func.call(&mut *store, &w_params, &mut results)?;
+    func.call(&mut *store, &w_params, &mut results)
+        .map_err(map_wasmtime_error)?;
     marshal::val_to_hl_result(
         &mut *store,
         |ctx, name| instance.get_export(ctx, name),
@@ -98,6 +99,17 @@ pub fn guest_dispatch_function(function_call: FunctionCall) -> Result<Vec<u8>> {
 #[instrument(skip_all, level = "Info")]
 fn init_wasm_runtime(function_call: FunctionCall) -> Result<Vec<u8>> {
     let mut config = Config::new();
+    // Enable x86_float_abi_ok only for the latest Wasmtime version.
+    // Safety:
+    // We are using hyperlight cargo to build the guest which
+    // sets the Rust target to be compiled with the hard-float ABI manually via
+    // `-Zbuild-std` and a custom target JSON configuration
+    // See https://github.com/bytecodealliance/wasmtime/pull/11553
+    #[cfg(not(feature = "wasmtime_lts"))]
+    unsafe {
+        config.x86_float_abi_ok(true)
+    };
+
     config.with_custom_code_memory(Some(alloc::sync::Arc::new(platform::WasmtimeCodeMemory {})));
     #[cfg(gdb)]
     config.debug_info(true);
@@ -108,7 +120,7 @@ fn init_wasm_runtime(function_call: FunctionCall) -> Result<Vec<u8>> {
             "Failed to set wasmtime target: pulley64".to_string(),
         )
     })?;
-    let engine = Engine::new(&config)?;
+    let engine = Engine::new(&config).map_err(map_wasmtime_error)?;
     let mut linker = Linker::new(&engine);
     wasip1::register_handlers(&mut linker)?;
 
@@ -146,15 +158,17 @@ fn init_wasm_runtime(function_call: FunctionCall) -> Result<Vec<u8>> {
 
     for hostfunc in hostfuncs.iter() {
         let captured = hostfunc.clone();
-        linker.func_new(
-            "env",
-            &hostfunc.function_name,
-            hostfuncs::hostfunc_type(hostfunc, &engine)?,
-            move |c, ps, rs| {
-                hostfuncs::call(&captured, c, ps, rs)
-                    .map_err(|e| wasmtime::Error::msg(format!("{:?}", e)))
-            },
-        )?;
+        linker
+            .func_new(
+                "env",
+                &hostfunc.function_name,
+                hostfuncs::hostfunc_type(hostfunc, &engine)?,
+                move |c, ps, rs| {
+                    hostfuncs::call(&captured, c, ps, rs)
+                        .map_err(|e| wasmtime::Error::msg(format!("{:?}", e)))
+                },
+            )
+            .map_err(map_wasmtime_error)?;
     }
 
     *CUR_ENGINE.lock() = Some(engine);
@@ -179,9 +193,12 @@ fn load_wasm_module(function_call: FunctionCall) -> Result<Vec<u8>> {
             "impossible: wasm runtime has no valid linker".to_string(),
         ))?;
 
-        let module = unsafe { Module::deserialize(engine, wasm_bytes)? };
+        let module =
+            unsafe { Module::deserialize(engine, wasm_bytes).map_err(map_wasmtime_error)? };
         let mut store = Store::new(engine, ());
-        let instance = linker.instantiate(&mut store, &module)?;
+        let instance = linker
+            .instantiate(&mut store, &module)
+            .map_err(map_wasmtime_error)?;
 
         *CUR_MODULE.lock() = Some(module);
         *CUR_STORE.lock() = Some(store);
@@ -208,9 +225,14 @@ fn load_wasm_module_phys(function_call: FunctionCall) -> Result<Vec<u8>> {
             "impossible: wasm runtime has no valid linker".to_string(),
         ))?;
 
-        let module = unsafe { Module::deserialize_raw(engine, platform::map_buffer(*phys, *len))? };
+        let module = unsafe {
+            Module::deserialize_raw(engine, platform::map_buffer(*phys, *len))
+                .map_err(map_wasmtime_error)?
+        };
         let mut store = Store::new(engine, ());
-        let instance = linker.instantiate(&mut store, &module)?;
+        let instance = linker
+            .instantiate(&mut store, &module)
+            .map_err(map_wasmtime_error)?;
 
         *CUR_MODULE.lock() = Some(module);
         *CUR_STORE.lock() = Some(store);
