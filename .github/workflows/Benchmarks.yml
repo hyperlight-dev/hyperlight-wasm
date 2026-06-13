@@ -47,16 +47,16 @@ jobs:
 
     - uses: hyperlight-dev/ci-setup-workflow@v1.8.0
       with:
-        rust-toolchain: "1.89"
+        rust-toolchain: "1.93"
 
-    - uses: dtolnay/rust-toolchain@1.89
+    - uses: dtolnay/rust-toolchain@1.93
       with:
         components: clippy, rustfmt
 
     - name: Download Wasm Modules
       uses: actions/download-artifact@v5
       with:
-        name: guest-modules
+        name: guest-modules-lts
         path: ./x64/${{ matrix.config }}
 
     ### Benchmarks ###

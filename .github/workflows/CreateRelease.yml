@@ -38,7 +38,7 @@ jobs:
     - name: Hyperlight setup
       uses: hyperlight-dev/ci-setup-workflow@v1.8.0
       with:
-          rust-toolchain: "1.89"
+          rust-toolchain: "1.93"
     - name: Set HYPERLIGHTWASM_VERSION
       run: |
         git fetch --tags
@@ -50,7 +50,7 @@ jobs:
     - name: Download Wasm Modules
       uses: actions/download-artifact@v5
       with:
-        name: guest-modules
+        name: guest-modules-lts
         path: ${{ env.PLATFORM }}/${{ env.CONFIG }}
     - name: Build rust wasm modules
       run: just build-rust-wasm-examples ${{ env.CONFIG }}
@@ -105,7 +105,7 @@ jobs:
             echo "✅ $crate@$version already published, skipping."
           else
             echo "🚀 Publishing $crate@$version"
-            cargo +1.92 publish -p "$crate"
+            cargo +1.93 publish -p "$crate"
           fi
         }
 
