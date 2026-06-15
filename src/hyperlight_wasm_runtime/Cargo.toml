@@ -30,8 +30,8 @@ hyperlight-guest.workspace = true
 hyperlight-wasm-macro.workspace = true
 # Default to the LTS wasmtime version; use wasmtime_latest to opt into latest.
 # These are marked optional to avoid pulling them both in. They should be mutually exclusive.
-wasmtime = { version = "45.0.1", default-features = false, features = [ "runtime", "custom-virtual-memory", "custom-native-signals", "component-model" ], optional = true }
-wasmtime_lts = { package = "wasmtime", version = "36.0.10", default-features = false, features = [ "runtime", "custom-virtual-memory", "custom-native-signals", "component-model" ], optional = true }
+wasmtime = { version = "45.0.2", default-features = false, features = [ "runtime", "custom-virtual-memory", "custom-native-signals", "component-model" ], optional = true }
+wasmtime_lts = { package = "wasmtime", version = "36.0.11", default-features = false, features = [ "runtime", "custom-virtual-memory", "custom-native-signals", "component-model" ], optional = true }
 spin = "0.12.0"
 tracing = { version = "0.1.44", default-features = false, features = ["attributes", "log"] }
 
