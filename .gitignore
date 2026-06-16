@@ -479,5 +479,6 @@ target/
 
 # Build-generated binaries
 *.wasm
+!src/hyperlight_wasm/examples/js-component/wit/hello-world.wasm
 *.aot
 *.o
