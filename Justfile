@@ -108,7 +108,7 @@ clippy target=default-target: (check target)
 # We exclude hyperlight-wasm-aot because it has both wasmtime versions as dependencies and no tests so we don't need to build both versions for testing
 test target=default-target features="":
     cargo test --workspace --exclude hyperlight-wasm-aot {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }}
-    cargo test --workspace --exclude hyperlight-wasm-aot test_metrics {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored 
+    cargo test --workspace --exclude hyperlight-wasm-aot test_metrics {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features -F function_call_metrics" } else {"--no-default-features -F function_call_metrics," + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored 
 
 examples-modules target=default-target features="": (build-wasm-examples target features) (build-rust-wasm-examples target features)
     cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example helloworld
