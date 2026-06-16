@@ -219,6 +219,9 @@ fn emit_wasm_function_call(
                     .map_err(crate::map_wasmtime_error)?;
                 func.call(&mut *store, (#(#pus,)*))
                     .map_err(crate::map_wasmtime_error)?;
+                // Explicit post_return is only needed for Wasmtime 36 LTS; Wasmtime 45
+                // calls post-return from TypedFunc::call and makes post_return a no-op.
+                // https://github.com/bytecodealliance/wasmtime/pull/12498
                 #[cfg(feature = "wasmtime_lts")]
                 func.post_return(&mut *store)
                     .map_err(crate::map_wasmtime_error)?;
@@ -233,6 +236,9 @@ fn emit_wasm_function_call(
                 let #ret = func.call(&mut *store, (#(#pus,)*))
                     .map_err(crate::map_wasmtime_error)?
                     .0;
+                // Explicit post_return is only needed for Wasmtime 36 LTS; Wasmtime 45
+                // calls post-return from TypedFunc::call and makes post_return a no-op.
+                // https://github.com/bytecodealliance/wasmtime/pull/12498
                 #[cfg(feature = "wasmtime_lts")]
                 func.post_return(&mut *store)
                     .map_err(crate::map_wasmtime_error)?;
