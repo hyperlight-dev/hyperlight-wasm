@@ -40,6 +40,11 @@ jobs:
           hypervisor: [hyperv, mshv3, kvm] # hyperv is windows, mshv and kvm are linux
           cpu: [amd, intel]
           config: [debug, release]
+          wasmtime: [latest, lts]
+          exclude:
+            # Latest testing: skip debug builds to reduce CI load
+            - wasmtime: latest
+              config: debug
   
     runs-on: ${{ fromJson(
         format('["self-hosted", "{0}", "X64", "1ES.Pool=hld-{1}-{2}", "JobId=build-{3}-{4}-{5}-{6}"]', 
@@ -50,13 +55,20 @@ jobs:
           github.run_id,
           github.run_number,
           github.run_attempt)) }} 
+    env:
+      # Features to pass to cargo. 
+      # On Windows LTS builds, do not pass any features.
+      # On Windows latest builds, only add wasmtime_latest.
+      # On Linux, always pass the hypervisor feature (kvm/mshv3).
+      # On Linux latest builds, also add wasmtime_latest.
+      FEATURES: ${{ matrix.hypervisor != 'hyperv' && format('{0}{1}', matrix.hypervisor, matrix.wasmtime == 'latest' && ',wasmtime_latest' || '') || (matrix.wasmtime == 'latest' && 'wasmtime_latest' || '') }}
     steps:
       - uses: actions/checkout@v5
 
       - name: Hyperlight setup
         uses: hyperlight-dev/ci-setup-workflow@v1.8.0
         with:
-          rust-toolchain: "1.89"
+          rust-toolchain: "1.93"
 
       - name: Add Nightly Rust
         run: |
@@ -74,7 +86,7 @@ jobs:
       - name: Download Wasm Modules
         uses: actions/download-artifact@v5
         with:
-          name: guest-modules
+          name: guest-modules-${{ matrix.wasmtime }}
           path: ./x64/${{ matrix.config }}
 
       - name: Build Rust component model examples
@@ -83,7 +95,7 @@ jobs:
           # because the component model example depends on the wasm component built here
           just ensure-tools
           just compile-wit
-          just build-rust-component-examples ${{ matrix.config }}
+          just build-rust-component-examples ${{ matrix.config }} ${{ env.FEATURES }}
       
       - name: Fmt
         run: just fmt-check
@@ -92,15 +104,15 @@ jobs:
         run: just clippy ${{ matrix.config }}
 
       - name: Build
-        run:  just build ${{ matrix.config }}
+        run:  just build ${{ matrix.config }} ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm
 
       - name: Build Rust Wasm examples
-        run:  just build-rust-wasm-examples ${{ matrix.config }}
+        run:  just build-rust-wasm-examples ${{ matrix.config }} ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm
 
       - name: Test
-        run:  just test ${{ matrix.config }}
+        run:  just test ${{ matrix.config }} ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm
 
       - name: Install github-cli (Windows)
@@ -118,7 +130,7 @@ jobs:
         shell: pwsh
 
       - name: Test Examples
-        run: just examples-ci ${{ matrix.config }}
+        run: just examples-ci ${{ matrix.config }} ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm
         env:
           # required for gh cli when downloading
@@ -137,6 +149,6 @@ jobs:
 
       - name: Run benchmarks
         run: |
-          just bench-ci dev ${{ matrix.config }}
+          just bench-ci dev ${{ matrix.config }} ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm
         if: ${{ matrix.config == 'release' }}

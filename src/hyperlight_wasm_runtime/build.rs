@@ -17,7 +17,7 @@ limitations under the License.
 use std::path::Path;
 use std::{env, fs};
 
-use cargo_metadata::{MetadataCommand, Package};
+use cargo_metadata::{CargoOpt, MetadataCommand};
 
 fn main() {
     if env::var_os("CARGO_CFG_HYPERLIGHT").is_none() {
@@ -29,14 +29,37 @@ fn main() {
     let mut cfg = cc::Build::new();
 
     // get the version of the wasmtime crate
-
-    let metadata = MetadataCommand::new().exec().unwrap();
-    let wasmtime_package: Option<&Package> =
-        metadata.packages.iter().find(|p| *p.name == "wasmtime");
-    let version_number = match wasmtime_package {
-        Some(pkg) => pkg.version.clone(),
-        None => panic!("wasmtime dependency not found"),
-    };
+    // The LTS wasmtime version is the default; wasmtime_latest opts into the latest version.
+    let use_lts = env::var("CARGO_FEATURE_WASMTIME_LATEST").is_err();
+    let wasmtime_dep_name = if use_lts { "wasmtime_lts" } else { "wasmtime" };
+    let mut metadata_cmd = MetadataCommand::new();
+    if !use_lts {
+        metadata_cmd
+            .features(CargoOpt::NoDefaultFeatures)
+            .features(CargoOpt::SomeFeatures(vec!["wasmtime_latest".to_string()]));
+    }
+    let metadata = metadata_cmd.exec().unwrap();
+    let runtime_package = metadata
+        .packages
+        .iter()
+        .find(|p| *p.name == "hyperlight-wasm-runtime")
+        .expect("hyperlight-wasm-runtime package not found in cargo metadata");
+    let resolve = metadata
+        .resolve
+        .as_ref()
+        .expect("cargo metadata did not include dependency resolution");
+    let runtime_node = resolve
+        .nodes
+        .iter()
+        .find(|node| node.id == runtime_package.id)
+        .expect("hyperlight-wasm-runtime dependency node not found in cargo metadata");
+    let wasmtime_package_id = &runtime_node
+        .deps
+        .iter()
+        .find(|dep| dep.name == wasmtime_dep_name)
+        .unwrap_or_else(|| panic!("{wasmtime_dep_name} dependency not found in cargo metadata"))
+        .pkg;
+    let version_number = metadata[wasmtime_package_id].version.clone();
 
     // Write the version number to the metadata.rs file so that it is included in the binary
 

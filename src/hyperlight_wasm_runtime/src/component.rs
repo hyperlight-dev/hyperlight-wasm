@@ -34,7 +34,7 @@ use tracing::instrument;
 use wasmtime::component::{Component, Instance, Linker};
 use wasmtime::{Config, Engine, Store};
 
-use crate::platform;
+use crate::{map_wasmtime_error, platform};
 
 static CUR_ENGINE: Mutex<Option<Engine>> = Mutex::new(None);
 static CUR_LINKER: Mutex<Option<Linker<()>>> = Mutex::new(None);
@@ -55,7 +55,8 @@ fn load_component_common(engine: &Engine, component: Component) -> Result<()> {
     let instance = (*CUR_LINKER.lock())
         .as_ref()
         .unwrap()
-        .instantiate(&mut store, &component)?;
+        .instantiate(&mut store, &component)
+        .map_err(map_wasmtime_error)?;
     *CUR_STORE.lock() = Some(store);
     *CUR_INSTANCE.lock() = Some(instance);
     Ok(())
@@ -72,7 +73,8 @@ fn load_wasm_module(function_call: FunctionCall) -> Result<Vec<u8>> {
         &function_call.parameters.as_ref().unwrap()[1],
         &*CUR_ENGINE.lock(),
     ) {
-        let component = unsafe { Component::deserialize(engine, wasm_bytes)? };
+        let component =
+            unsafe { Component::deserialize(engine, wasm_bytes).map_err(map_wasmtime_error)? };
         load_component_common(engine, component)?;
         Ok(get_flatbuffer_result::<i32>(0))
     } else {
@@ -90,8 +92,10 @@ fn load_wasm_module_phys(function_call: FunctionCall) -> Result<Vec<u8>> {
         &function_call.parameters.as_ref().unwrap()[1],
         &*CUR_ENGINE.lock(),
     ) {
-        let component =
-            unsafe { Component::deserialize_raw(engine, platform::map_buffer(*phys, *len))? };
+        let component = unsafe {
+            Component::deserialize_raw(engine, platform::map_buffer(*phys, *len))
+                .map_err(map_wasmtime_error)?
+        };
         load_component_common(engine, component)?;
         Ok(get_flatbuffer_result::<()>(()))
     } else {
@@ -108,6 +112,16 @@ pub extern "C" fn hyperlight_main() {
     platform::register_page_fault_handler();
 
     let mut config = Config::new();
+    // Enable x86_float_abi_ok only for the latest Wasmtime native x86 target.
+    // Safety:
+    // We are using hyperlight cargo to build the guest which
+    // sets the Rust target to be compiled with the hard-float ABI manually via
+    // `-Zbuild-std` and a custom target JSON configuration
+    // See https://github.com/bytecodealliance/wasmtime/pull/11553
+    #[cfg(all(not(feature = "wasmtime_lts"), not(pulley)))]
+    unsafe {
+        config.x86_float_abi_ok(true)
+    };
     config.with_custom_code_memory(Some(alloc::sync::Arc::new(platform::WasmtimeCodeMemory {})));
     #[cfg(gdb)]
     config.debug_info(true);

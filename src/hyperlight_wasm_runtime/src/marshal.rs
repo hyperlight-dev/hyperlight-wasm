@@ -60,6 +60,8 @@ use spin::Mutex;
 use tracing::instrument;
 use wasmtime::{AsContextMut, Extern, Val};
 
+use crate::map_wasmtime_error;
+
 // Global tracking for return value allocations that need to be freed on next VM entry
 static RETURN_VALUE_ALLOCATIONS: Mutex<Vec<i32>> = Mutex::new(Vec::new());
 
@@ -95,8 +97,10 @@ fn malloc<C: AsContextMut>(
             "malloc function not exported".to_string(),
         ))?;
     let addr = malloc
-        .typed::<i32, i32>(&mut *ctx)?
-        .call(&mut *ctx, len as i32)?;
+        .typed::<i32, i32>(&mut *ctx)
+        .map_err(map_wasmtime_error)?
+        .call(&mut *ctx, len as i32)
+        .map_err(map_wasmtime_error)?;
     Ok(addr)
 }
 
@@ -112,7 +116,10 @@ fn free<C: AsContextMut>(
             ErrorCode::GuestError,
             "free function not exported".to_string(),
         ))?;
-    free.typed::<i32, ()>(&mut *ctx)?.call(&mut *ctx, addr)?;
+    free.typed::<i32, ()>(&mut *ctx)
+        .map_err(map_wasmtime_error)?
+        .call(&mut *ctx, addr)
+        .map_err(map_wasmtime_error)?;
     Ok(())
 }
 
