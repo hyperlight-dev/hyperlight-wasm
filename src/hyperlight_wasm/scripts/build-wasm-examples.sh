@@ -11,8 +11,8 @@ FEATURES="${2:-""}"
 mkdir -p ${OUTPUT_DIR}
 OUTPUT_DIR=$(realpath $OUTPUT_DIR)
 
-# Set stripping flags based on whether features are enabled
-if [ -n "$FEATURES" ]; then
+# Set compile flags based on the build type
+if [[ "$BUILD_TYPE" == "debug" ]]; then
     STRIP_FLAGS=""
     DEBUG_FLAGS="-g"
     OPT_FLAGS="-O0"
@@ -22,12 +22,12 @@ else
     OPT_FLAGS="-O3"
 fi
 
+AOT_FEATURES=""
+AOT_DEBUG_FLAGS=""
+
 if [[ "$FEATURES" == *"gdb"* ]]; then
     AOT_FEATURES="--features gdb"
     AOT_DEBUG_FLAGS="--debug"
-else
-    AOT_FEATURES=""
-    AOT_DEBUG_FLAGS=""
 fi
 
 if [[ "$FEATURES" == *"wasmtime_latest"* ]]; then
