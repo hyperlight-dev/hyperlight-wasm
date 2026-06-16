@@ -42,11 +42,7 @@ jobs:
           config: [debug, release]
           wasmtime: [latest, lts]
           exclude:
-            # Latest testing: skip Windows, Intel, and debug builds to reduce CI load
-            - wasmtime: latest
-              hypervisor: hyperv
-            - wasmtime: latest
-              cpu: intel
+            # Latest testing: skip debug builds to reduce CI load
             - wasmtime: latest
               config: debug
   
