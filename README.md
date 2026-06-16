@@ -58,11 +58,11 @@ You should also add your user to the kvm group: `sudo adduser $USER kvm`
 
 ## Building
 
-NOTE: Ensure that you use version 1.93 of rust toolchain.
+NOTE: Ensure that you use version 1.94 of rust toolchain.
 
 ```Console
-rustup install 1.93
-rustup default 1.93
+rustup install 1.94
+rustup default 1.94
 ```
 
 Now you can build the Rust Wasm library:
