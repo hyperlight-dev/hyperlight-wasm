@@ -38,7 +38,7 @@ jobs:
     - name: Hyperlight setup
       uses: hyperlight-dev/ci-setup-workflow@v1.8.0
       with:
-          rust-toolchain: "1.93"
+          rust-toolchain: "1.94"
     - name: Set HYPERLIGHTWASM_VERSION
       run: |
         git fetch --tags
@@ -105,7 +105,7 @@ jobs:
             echo "✅ $crate@$version already published, skipping."
           else
             echo "🚀 Publishing $crate@$version"
-            cargo +1.93 publish -p "$crate"
+            cargo +1.94 publish -p "$crate"
           fi
         }
 

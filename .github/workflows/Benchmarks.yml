@@ -47,9 +47,9 @@ jobs:
 
     - uses: hyperlight-dev/ci-setup-workflow@v1.8.0
       with:
-        rust-toolchain: "1.93"
+        rust-toolchain: "1.94"
 
-    - uses: dtolnay/rust-toolchain@1.93
+    - uses: dtolnay/rust-toolchain@1.94
       with:
         components: clippy, rustfmt
 
