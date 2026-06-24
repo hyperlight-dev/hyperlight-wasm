@@ -1,0 +1,3 @@
+[env]
+WIT_WORLD = { value = "wit/hello-world.wasm", relative = true }
+WIT_WORLD_NAME = "hello"
