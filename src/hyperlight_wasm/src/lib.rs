@@ -57,6 +57,11 @@ pub use hyperlight_host::is_hypervisor_present;
 pub use hyperlight_host::new_error;
 /// A snapshot of the memory of a sandbox at a given point in time.
 pub use hyperlight_host::sandbox::snapshot::Snapshot;
+/// OCI Image Layout reference types used by [`Snapshot::save`] /
+/// [`Snapshot::load`] to identify snapshots inside an OCI Image Layout
+/// directory. Re-exported here so downstream crates do not need a
+/// direct dependency on `hyperlight-host`.
+pub use hyperlight_host::sandbox::snapshot::{OciDigest, OciReference, OciTag};
 
 /// Get the build information for this version of hyperlight-wasm
 pub fn get_build_info() -> BuildInfo {
