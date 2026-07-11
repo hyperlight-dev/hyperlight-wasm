@@ -226,7 +226,7 @@ impl WasmSandbox {
         self.clean_inner()?;
 
         self.inner.load_via_fn(|inner| {
-            if let Ok(len) = inner.map_file_cow(file.as_ref(), MAPPED_BINARY_VA, None) {
+            if let Ok(len) = inner.map_file_cow(file.as_ref(), MAPPED_BINARY_VA) {
                 inner.call::<()>("LoadWasmModulePhys", (MAPPED_BINARY_VA, len))?;
             } else {
                 let wasm_bytes = std::fs::read(file)?;
