@@ -1997,6 +1997,7 @@ dependencies = [
  "opentelemetry-semantic-conventions",
  "opentelemetry_sdk",
  "page_size",
+ "semver",
  "serde",
  "serde_json",
  "tar",

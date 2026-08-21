@@ -136,7 +136,7 @@ mod tests {
         } else {
             "wasmtime_lts"
         };
-        let wasmtime_version_from_toml = cargo_toml
+        let wasmtime_version_requirement = cargo_toml
             .get("target")
             .and_then(|deps| deps.get("cfg(hyperlight)"))
             .and_then(|cfg| cfg.get("dependencies"))
@@ -144,6 +144,13 @@ mod tests {
             .and_then(|wasmtime| wasmtime.get("version"))
             .and_then(|version| version.as_str())
             .expect("Failed to find wasmtime version in Cargo.toml");
-        assert_eq!(wasmtime_version, wasmtime_version_from_toml);
+        let wasmtime_version =
+            semver::Version::parse(wasmtime_version).expect("Failed to parse Wasmtime version");
+        let wasmtime_version_requirement = semver::VersionReq::parse(wasmtime_version_requirement)
+            .expect("Failed to parse Wasmtime version requirement");
+        assert!(
+            wasmtime_version_requirement.matches(&wasmtime_version),
+            "Wasmtime version {wasmtime_version} does not satisfy manifest requirement {wasmtime_version_requirement}"
+        );
     }
 }
