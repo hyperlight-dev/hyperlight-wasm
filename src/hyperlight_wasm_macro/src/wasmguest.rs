@@ -305,14 +305,13 @@ fn emit_component<'b>(s: &mut State<'_, 'b>, wn: WitName, ct: &Component<'b>) ->
     let r#trait = kebab_to_type(wn.name);
     let import_trait = format_ident!("{}Imports", r#trait);
     let export_trait = format_ident!("{}Exports", r#trait);
-    s.import_param_var = Some(format_ident!("I"));
-    s.self_param_var = Some(quote! { S });
+    s.positivity_param = Some(quote! { ::hyperlight_common::component::Positive });
 
     resource::emit_tables(
         &mut s,
         format_ident!("{}Resources", kebab_to_type(wn.name)),
-        quote! { #ns::#import_trait + ::core::marker::Send + 'static },
-        Some(quote! { #ns::#export_trait<I> }),
+        quote! { #ns::#import_trait<::hyperlight_common::component::Negative> + ::core::marker::Send + 'static },
+        Some(quote! { #ns::#export_trait<::hyperlight_common::component::Positive, I> }),
         true,
     );
     s.root_mod
