@@ -1821,7 +1821,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-common"
 version = "0.16.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?branch=main#cfa020441d880d599cc516a050e6cf10236ca5c4"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=cfa020441d880d599cc516a050e6cf10236ca5c4#cfa020441d880d599cc516a050e6cf10236ca5c4"
 dependencies = [
  "anyhow",
  "bitflags 2.13.1",
@@ -1840,7 +1840,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-component-macro"
 version = "0.16.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?branch=main#cfa020441d880d599cc516a050e6cf10236ca5c4"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=cfa020441d880d599cc516a050e6cf10236ca5c4#cfa020441d880d599cc516a050e6cf10236ca5c4"
 dependencies = [
  "env_logger",
  "hyperlight-component-util",
@@ -1854,7 +1854,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-component-util"
 version = "0.16.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?branch=main#cfa020441d880d599cc516a050e6cf10236ca5c4"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=cfa020441d880d599cc516a050e6cf10236ca5c4#cfa020441d880d599cc516a050e6cf10236ca5c4"
 dependencies = [
  "itertools 0.15.0",
  "prettyplease 0.3.0",
@@ -1871,7 +1871,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest"
 version = "0.16.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?branch=main#cfa020441d880d599cc516a050e6cf10236ca5c4"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=cfa020441d880d599cc516a050e6cf10236ca5c4#cfa020441d880d599cc516a050e6cf10236ca5c4"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -1884,7 +1884,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest-bin"
 version = "0.16.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?branch=main#cfa020441d880d599cc516a050e6cf10236ca5c4"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=cfa020441d880d599cc516a050e6cf10236ca5c4#cfa020441d880d599cc516a050e6cf10236ca5c4"
 dependencies = [
  "buddy_system_allocator",
  "flatbuffers",
@@ -1902,7 +1902,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest-macro"
 version = "0.16.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?branch=main#cfa020441d880d599cc516a050e6cf10236ca5c4"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=cfa020441d880d599cc516a050e6cf10236ca5c4#cfa020441d880d599cc516a050e6cf10236ca5c4"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -1913,7 +1913,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest-tracing"
 version = "0.16.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?branch=main#cfa020441d880d599cc516a050e6cf10236ca5c4"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=cfa020441d880d599cc516a050e6cf10236ca5c4#cfa020441d880d599cc516a050e6cf10236ca5c4"
 dependencies = [
  "hyperlight-common",
  "spin 0.12.3",
@@ -1924,7 +1924,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-host"
 version = "0.16.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?branch=main#cfa020441d880d599cc516a050e6cf10236ca5c4"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=cfa020441d880d599cc516a050e6cf10236ca5c4#cfa020441d880d599cc516a050e6cf10236ca5c4"
 dependencies = [
  "anyhow",
  "bindgen",
@@ -1978,7 +1978,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-libc"
 version = "0.16.0"
-source = "git+https://github.com/hyperlight-dev/hyperlight?branch=main#cfa020441d880d599cc516a050e6cf10236ca5c4"
+source = "git+https://github.com/hyperlight-dev/hyperlight?rev=cfa020441d880d599cc516a050e6cf10236ca5c4#cfa020441d880d599cc516a050e6cf10236ca5c4"
 dependencies = [
  "anyhow",
  "bindgen",
