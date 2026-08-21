@@ -19,8 +19,8 @@ use std::sync::Arc;
 
 use hyperlight_host::func::{ParameterTuple, SupportedReturnType};
 use hyperlight_host::hypervisor::InterruptHandle;
-use hyperlight_host::sandbox::Callable;
 use hyperlight_host::sandbox::snapshot::Snapshot;
+use hyperlight_host::sandbox::{Callable, SandboxStatus};
 use hyperlight_host::{MultiUseSandbox, Result, log_then_return, new_error};
 
 use super::metrics::METRIC_TOTAL_LOADED_WASM_SANDBOXES;
@@ -160,6 +160,18 @@ impl LoadedWasmSandbox {
         }
     }
 
+    /// Get the current lifecycle state of the sandbox.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the sandbox is in an invalid state.
+    pub fn status(&self) -> Result<SandboxStatus> {
+        match &self.inner {
+            Some(inner) => Ok(inner.status()),
+            None => log_then_return!("No inner MultiUseSandbox to check status"),
+        }
+    }
+
     /// Check if the sandbox is in a poisoned state.
     ///
     /// A sandbox becomes poisoned when guest execution does not complete normally,
@@ -183,11 +195,9 @@ impl LoadedWasmSandbox {
     /// - `Ok(true)` if the sandbox is poisoned and needs recovery
     /// - `Ok(false)` if the sandbox is healthy and can execute guest functions
     /// - `Err` if the sandbox is in an invalid state
+    #[deprecated(since = "0.14.0", note = "use status().is_poisoned() instead")]
     pub fn is_poisoned(&self) -> Result<bool> {
-        match &self.inner {
-            Some(inner) => Ok(inner.status().is_poisoned()),
-            None => log_then_return!("No inner MultiUseSandbox to check poisoned state"),
-        }
+        Ok(self.status()?.is_poisoned())
     }
 }
 
