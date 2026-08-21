@@ -185,7 +185,7 @@ impl LoadedWasmSandbox {
     /// - `Err` if the sandbox is in an invalid state
     pub fn is_poisoned(&self) -> Result<bool> {
         match &self.inner {
-            Some(inner) => Ok(inner.poisoned()),
+            Some(inner) => Ok(inner.status().is_poisoned()),
             None => log_then_return!("No inner MultiUseSandbox to check poisoned state"),
         }
     }

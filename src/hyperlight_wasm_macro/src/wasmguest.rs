@@ -306,7 +306,7 @@ fn emit_component<'b>(s: &mut State<'_, 'b>, wn: WitName, ct: &Component<'b>) ->
     let import_trait = format_ident!("{}Imports", r#trait);
     let export_trait = format_ident!("{}Exports", r#trait);
     s.import_param_var = Some(format_ident!("I"));
-    s.self_param_var = Some(format_ident!("S"));
+    s.self_param_var = Some(quote! { S });
 
     resource::emit_tables(
         &mut s,

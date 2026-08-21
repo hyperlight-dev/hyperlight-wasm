@@ -45,6 +45,6 @@ pub fn wasm_guest_bindgen(_: proc_macro::TokenStream) -> proc_macro::TokenStream
         // stream directly and emitting an include!() pointing at a
         // temporary file, depending on whether the user has requested
         // a debug temporary file be created.
-        util::emit_decls(decls).into()
+        util::emit_decls(decls, &kebab_name).into()
     })
 }
