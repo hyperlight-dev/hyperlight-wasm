@@ -25,7 +25,7 @@ impl Default for State {
     }
 }
 
-impl bindings::component_sample::example::Host for State {
+impl bindings::component_sample::example::Host<hyperlight_common::component::Negative> for State {
     fn r#print(&mut self, message: alloc::string::String) {
         assert_eq!("42", message);
         println!("Logged from component: {message}");
@@ -37,7 +37,9 @@ impl bindings::component_sample::example::Host for State {
 }
 
 #[allow(refining_impl_trait)]
-impl bindings::component_sample::example::ExampleImports for State {
+impl bindings::component_sample::example::ExampleImports<hyperlight_common::component::Negative>
+    for State
+{
     type Host = State;
 
     fn r#host(&mut self) -> &mut Self {
@@ -53,7 +55,7 @@ fn main() {
         .with_guest_scratch_size(100 * 1024 * 1024)
         .build()
         .unwrap();
-    let rt = bindings::register_host_functions(&mut sb, state);
+    let rt = bindings::register_host_functions(&mut sb, state).unwrap();
 
     let sb = sb.load_runtime().unwrap();
 
@@ -63,15 +65,15 @@ fn main() {
     let mut wrapped = bindings::ExampleSandbox { sb, rt };
 
     let instance = bindings::component_sample::example::ExampleExports::adder(&mut wrapped);
-    let result = instance.add(1, 2);
+    let result = instance.add(1, 2).unwrap();
     assert_eq!(3, result);
     println!("Add result is {result}");
-    let result = instance.add(4, 3);
+    let result = instance.add(4, 3).unwrap();
     assert_eq!(7, result);
     println!("Add result is {result}");
-    instance.do_something(42);
+    instance.do_something(42).unwrap();
 
-    let result = instance.call_host("Hello".to_string());
+    let result = instance.call_host("Hello".to_string()).unwrap();
     assert_eq!("Hello from component and the host!", result);
     print!("Host Component interaction: {result}")
 }

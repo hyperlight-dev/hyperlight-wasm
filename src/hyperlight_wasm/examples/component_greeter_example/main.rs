@@ -30,7 +30,7 @@ impl State {
 }
 
 // Same Host trait as component_example — shared interface across worlds
-impl bindings::component_sample::example::Host for State {
+impl bindings::component_sample::example::Host<hyperlight_common::component::Negative> for State {
     fn r#print(&mut self, message: alloc::string::String) {
         println!("[log] {message}");
     }
@@ -45,7 +45,10 @@ impl bindings::component_sample::example::Host for State {
 }
 
 #[allow(refining_impl_trait)]
-impl bindings::component_sample::example::GreeterWorldImports for State {
+impl
+    bindings::component_sample::example::GreeterWorldImports<hyperlight_common::component::Negative>
+    for State
+{
     type Host = State;
 
     fn r#host(&mut self) -> &mut Self {
@@ -61,7 +64,7 @@ fn main() {
         .with_guest_scratch_size(100 * 1024 * 1024)
         .build()
         .unwrap();
-    let rt = bindings::register_host_functions(&mut sb, state);
+    let rt = bindings::register_host_functions(&mut sb, state).unwrap();
 
     let sb = sb.load_runtime().unwrap();
 
@@ -72,11 +75,11 @@ fn main() {
 
     let instance = bindings::component_sample::example::GreeterWorldExports::greeter(&mut wrapped);
 
-    let result = instance.greet("World".to_string());
+    let result = instance.greet("World".to_string()).unwrap();
     assert_eq!("Hello World!", result);
     println!("Greet result: {result}");
 
-    let result = instance.greet("Hyperlight".to_string());
+    let result = instance.greet("Hyperlight".to_string()).unwrap();
     assert_eq!("Hello Hyperlight!", result);
     println!("Greet result: {result}");
 }
