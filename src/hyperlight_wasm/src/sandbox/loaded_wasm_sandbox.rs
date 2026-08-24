@@ -195,7 +195,7 @@ impl LoadedWasmSandbox {
     /// - `Ok(true)` if the sandbox is poisoned and needs recovery
     /// - `Ok(false)` if the sandbox is healthy and can execute guest functions
     /// - `Err` if the sandbox is in an invalid state
-    #[deprecated(since = "0.14.0", note = "use status().is_poisoned() instead")]
+    #[deprecated(since = "0.15.0", note = "use status().is_poisoned() instead")]
     pub fn is_poisoned(&self) -> Result<bool> {
         Ok(self.status()?.is_poisoned())
     }
