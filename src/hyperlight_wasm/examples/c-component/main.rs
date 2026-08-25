@@ -23,7 +23,7 @@ impl Default for State {
     }
 }
 
-impl bindings::example::runcomponent::Host for State {
+impl bindings::example::runcomponent::Host<hyperlight_common::component::Negative> for State {
     fn r#get_time_since_boot_microsecond(&mut self) -> i64 {
         let res = std::time::SystemTime::now()
             .duration_since(std::time::SystemTime::UNIX_EPOCH)
@@ -33,7 +33,9 @@ impl bindings::example::runcomponent::Host for State {
     }
 }
 
-impl bindings::example::runcomponent::RuncomponentImports for State {
+impl bindings::example::runcomponent::RuncomponentImports<hyperlight_common::component::Negative>
+    for State
+{
     type Host = State;
 
     fn r#host(&mut self) -> impl ::core::borrow::BorrowMut<Self::Host> {
@@ -47,7 +49,7 @@ fn main() {
         //.with_debugging_enabled(8080)
         .build()
         .unwrap();
-    let rt = bindings::register_host_functions(&mut sandbox, state);
+    let rt = bindings::register_host_functions(&mut sandbox, state).unwrap();
 
     let sb = sandbox.load_runtime().unwrap();
 
@@ -56,10 +58,10 @@ fn main() {
 
     let mut wrapped = bindings::RuncomponentSandbox { sb, rt };
     let instance = bindings::example::runcomponent::RuncomponentExports::guest(&mut wrapped);
-    let echo = instance.echo("Hello World!".to_string());
+    let echo = instance.echo("Hello World!".to_string()).unwrap();
     println!("{}", echo);
 
-    let result = instance.round_to_nearest_int(1.331, 24.0);
+    let result = instance.round_to_nearest_int(1.331, 24.0).unwrap();
     println!("rounded result {}", result);
     assert_eq!(result, 32);
 }

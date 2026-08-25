@@ -48,8 +48,8 @@ fn main() -> Result<()> {
     let mut loaded = wasm_sandbox.load_module(mod_path)?;
 
     println!("1. Sandbox created and module loaded");
-    assert!(!loaded.is_poisoned()?);
-    println!("   is_poisoned: {}", loaded.is_poisoned()?);
+    assert!(!loaded.status()?.is_poisoned());
+    println!("   is_poisoned: {}", loaded.status()?.is_poisoned());
 
     // Take a snapshot before we do anything
     let snapshot = loaded.snapshot()?;
@@ -81,7 +81,7 @@ fn main() -> Result<()> {
     }
 
     println!("\n5. Checking sandbox state after interruption:");
-    println!("   is_poisoned: {}", loaded.is_poisoned()?);
+    println!("   is_poisoned: {}", loaded.status()?.is_poisoned());
 
     // Demonstrate that calling a poisoned sandbox fails
     println!("\n6. Attempting to call guest function on poisoned sandbox...");
@@ -98,8 +98,11 @@ fn main() -> Result<()> {
     // Recovery option 1: Use restore() to recover the sandbox
     println!("\n7. Recovering sandbox using restore()...");
     loaded.restore(snapshot.clone())?;
-    assert!(!loaded.is_poisoned()?);
-    println!("   is_poisoned after restore: {}", loaded.is_poisoned()?);
+    assert!(!loaded.status()?.is_poisoned());
+    println!(
+        "   is_poisoned after restore: {}",
+        loaded.status()?.is_poisoned()
+    );
 
     // Now we can call guest functions again
     println!("\n8. Calling guest function after recovery...");
@@ -117,8 +120,11 @@ fn main() -> Result<()> {
     });
     let _ = loaded.call_guest_function::<i32>("KeepCPUBusy", 100000i32);
 
-    assert!(loaded.is_poisoned()?);
-    println!("   Sandbox poisoned again {}", loaded.is_poisoned()?);
+    assert!(loaded.status()?.is_poisoned());
+    println!(
+        "   Sandbox poisoned again {}",
+        loaded.status()?.is_poisoned()
+    );
 
     // unload_module() will recover the sandbox
     let wasm_sandbox = loaded.unload_module()?;
@@ -127,10 +133,10 @@ fn main() -> Result<()> {
     // Load a different module and continue
     let hello_path = get_wasm_module_path("HelloWorld.aot")?;
     let mut new_loaded = wasm_sandbox.load_module(hello_path)?;
-    assert!(!new_loaded.is_poisoned()?);
+    assert!(!new_loaded.status()?.is_poisoned());
     println!(
         "   New module loaded, is_poisoned: {}",
-        new_loaded.is_poisoned()?
+        new_loaded.status()?.is_poisoned()
     );
 
     let result: i32 =

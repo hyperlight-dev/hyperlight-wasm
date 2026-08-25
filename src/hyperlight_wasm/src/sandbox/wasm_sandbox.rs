@@ -398,7 +398,7 @@ mod tests {
 
         // Verify sandbox is poisoned after interruption
         assert!(
-            loaded.is_poisoned()?,
+            loaded.status()?.is_poisoned(),
             "Sandbox should be poisoned after interruption"
         );
 
@@ -420,7 +420,7 @@ mod tests {
 
         // Verify sandbox is not poisoned initially
         assert!(
-            !loaded.is_poisoned()?,
+            !loaded.status()?.is_poisoned(),
             "Sandbox should not be poisoned initially"
         );
 
@@ -436,7 +436,7 @@ mod tests {
 
         // Verify sandbox is now poisoned
         assert!(
-            loaded.is_poisoned()?,
+            loaded.status()?.is_poisoned(),
             "Sandbox should be poisoned after interruption"
         );
 
@@ -543,13 +543,13 @@ mod tests {
         // Call will be interrupted, poisoning the sandbox
         let _ = loaded.call_guest_function::<i32>("KeepCPUBusy", 100000i32);
 
-        assert!(loaded.is_poisoned()?, "Sandbox should be poisoned");
+        assert!(loaded.status()?.is_poisoned(), "Sandbox should be poisoned");
 
         // Restore should recover the sandbox
         loaded.restore(snapshot)?;
 
         assert!(
-            !loaded.is_poisoned()?,
+            !loaded.status()?.is_poisoned(),
             "Sandbox should not be poisoned after restore"
         );
 
@@ -583,7 +583,7 @@ mod tests {
         // Call will be interrupted, poisoning the sandbox
         let _ = loaded.call_guest_function::<i32>("KeepCPUBusy", 100000i32);
 
-        assert!(loaded.is_poisoned()?, "Sandbox should be poisoned");
+        assert!(loaded.status()?.is_poisoned(), "Sandbox should be poisoned");
 
         // unload_module should recover the sandbox (it calls restore internally)
         let wasm_sandbox = loaded.unload_module()?;
@@ -593,7 +593,7 @@ mod tests {
         let mut new_loaded = wasm_sandbox.load_module(helloworld_wasm)?;
 
         assert!(
-            !new_loaded.is_poisoned()?,
+            !new_loaded.status()?.is_poisoned(),
             "New sandbox should not be poisoned"
         );
 

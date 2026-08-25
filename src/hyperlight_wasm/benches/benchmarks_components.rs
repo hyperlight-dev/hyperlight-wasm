@@ -25,7 +25,7 @@ impl Default for State {
     }
 }
 
-impl bindings::example::runcomponent::Host for State {
+impl bindings::example::runcomponent::Host<hyperlight_common::component::Negative> for State {
     fn r#get_time_since_boot_microsecond(&mut self) -> i64 {
         let res = std::time::SystemTime::now()
             .duration_since(std::time::SystemTime::UNIX_EPOCH)
@@ -35,7 +35,9 @@ impl bindings::example::runcomponent::Host for State {
     }
 }
 
-impl bindings::example::runcomponent::RuncomponentImports for State {
+impl bindings::example::runcomponent::RuncomponentImports<hyperlight_common::component::Negative>
+    for State
+{
     type Host = State;
 
     fn r#host(&mut self) -> impl ::core::borrow::BorrowMut<Self::Host> {
@@ -52,7 +54,7 @@ fn wasm_component_guest_call_benchmark(c: &mut Criterion) {
         let instance = bindings::example::runcomponent::RuncomponentExports::guest(&mut wrapped);
 
         b.iter(|| {
-            instance.echo("Hello World!".to_string());
+            instance.echo("Hello World!".to_string()).unwrap();
         });
     };
 
@@ -86,7 +88,7 @@ fn get_loaded_wasm_sandbox() -> (
 ) {
     let state = State::new();
     let mut sandbox = SandboxBuilder::new().build().unwrap();
-    let rt = bindings::register_host_functions(&mut sandbox, state);
+    let rt = bindings::register_host_functions(&mut sandbox, state).unwrap();
 
     let sb = sandbox.load_runtime().unwrap();
 

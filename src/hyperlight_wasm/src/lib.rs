@@ -55,6 +55,8 @@ pub use hyperlight_host::hypervisor::InterruptHandle;
 pub use hyperlight_host::is_hypervisor_present;
 /// Create a generic HyperlightError
 pub use hyperlight_host::new_error;
+/// The lifecycle state of a sandbox.
+pub use hyperlight_host::sandbox::SandboxStatus;
 /// A snapshot of the memory of a sandbox at a given point in time.
 pub use hyperlight_host::sandbox::snapshot::Snapshot;
 /// OCI Image Layout reference types used by [`Snapshot::save`] /
