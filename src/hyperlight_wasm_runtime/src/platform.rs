@@ -19,6 +19,7 @@ use core::ptr::NonNull;
 use core::sync::atomic::{AtomicPtr, AtomicU64, Ordering};
 
 use hyperlight_common::vmem;
+#[cfg(target_arch = "x86_64")]
 use hyperlight_guest_bin::exception::arch;
 use hyperlight_guest_bin::paging;
 
@@ -27,6 +28,18 @@ use hyperlight_guest_bin::paging;
 // we start at
 // 0x100_0000_0000 and go up from there
 static FIRST_VADDR: AtomicU64 = AtomicU64::new(0x100_0000_0000u64);
+
+#[cfg(all(target_arch = "aarch64", not(pulley)))]
+pub(crate) fn configure_engine(config: &mut wasmtime::Config) {
+    config
+        .signals_based_traps(false)
+        .memory_reservation(0)
+        .memory_guard_size(0);
+}
+#[cfg(any(target_arch = "x86_64", pulley))]
+pub(crate) fn configure_engine(_config: &mut wasmtime::Config) {}
+
+#[cfg(target_arch = "x86_64")]
 fn page_fault_handler(
     _exception_number: u64,
     info: *mut arch::ExceptionInfo,
@@ -60,6 +73,7 @@ fn page_fault_handler(
     }
     false
 }
+#[cfg(target_arch = "x86_64")]
 pub(crate) fn register_page_fault_handler() {
     // On amd64, vector 14 is #PF
     // See AMD64 Architecture Programmer's Manual, Volume 2
@@ -69,6 +83,45 @@ pub(crate) fn register_page_fault_handler() {
         page_fault_handler as *const () as usize as u64,
         Ordering::Release,
     );
+}
+#[cfg(target_arch = "aarch64")]
+pub(crate) fn register_page_fault_handler() {}
+
+#[cfg(target_arch = "aarch64")]
+fn map_missing_pages(addr: *mut u8, size: usize) {
+    if size == 0 {
+        return;
+    }
+
+    let page_size = unsafe { hyperlight_guest_bin::OS_PAGE_SIZE as usize };
+    assert!((addr as usize).is_multiple_of(page_size));
+    assert!(size.is_multiple_of(page_size));
+
+    for offset in (0..size).step_by(page_size) {
+        let page = unsafe { addr.add(offset) };
+        let is_unmapped = paging::virt_to_phys(page as u64)
+            .next()
+            .is_none_or(|mapping| mapping.kind == vmem::MappingKind::Unmapped);
+        if is_unmapped {
+            unsafe {
+                let phys_page = hyperlight_guest::prim_alloc::alloc_phys_pages(
+                    (page_size / hyperlight_common::vmem::PAGE_SIZE) as u64,
+                );
+                paging::map_region(
+                    phys_page,
+                    page,
+                    page_size as u64,
+                    vmem::MappingKind::Basic(vmem::BasicMapping {
+                        readable: true,
+                        writable: true,
+                        executable: true,
+                    }),
+                );
+                paging::barrier::first_valid_same_ctx();
+                page.write_bytes(0, page_size);
+            }
+        }
+    }
 }
 
 // Wasmtime Embedding Interface
@@ -84,6 +137,8 @@ pub extern "C" fn wasmtime_mmap_new(_size: usize, _prot_flags: u32, ret: &mut *m
         panic!("wasmtime_mmap_{:x} {:x}", _size, _prot_flags);
     }
     *ret = FIRST_VADDR.fetch_add(0x100_0000_0000, Ordering::Relaxed) as *mut u8;
+    #[cfg(target_arch = "aarch64")]
+    map_missing_pages(*ret, _size);
     0
 }
 
@@ -99,6 +154,8 @@ pub extern "C" fn wasmtime_mmap_remap(addr: *mut u8, size: usize, prot_flags: u3
             addr as usize, size, prot_flags
         );
     }
+    #[cfg(target_arch = "aarch64")]
+    map_missing_pages(addr, size);
     0
 }
 
@@ -126,7 +183,9 @@ pub extern "C" fn wasmtime_page_size() -> usize {
 #[allow(non_camel_case_types)] // we didn't choose the name!
 type wasmtime_trap_handler_t =
     extern "C" fn(ip: usize, fp: usize, has_faulting_addr: bool, faulting_addr: usize);
+#[cfg(target_arch = "x86_64")]
 static WASMTIME_REQUESTED_TRAP_HANDLER: AtomicU64 = AtomicU64::new(0);
+#[cfg(target_arch = "x86_64")]
 fn wasmtime_trap_handler(
     exception_number: u64,
     info: *mut arch::ExceptionInfo,
@@ -157,6 +216,7 @@ fn wasmtime_trap_handler(
     false
 }
 
+#[cfg(target_arch = "x86_64")]
 #[no_mangle]
 pub extern "C" fn wasmtime_init_traps(handler: wasmtime_trap_handler_t) -> i32 {
     WASMTIME_REQUESTED_TRAP_HANDLER.store(handler as usize as u64, Ordering::Relaxed);
@@ -177,19 +237,21 @@ pub extern "C" fn wasmtime_init_traps(handler: wasmtime_trap_handler_t) -> i32 {
     //       takes over the exception.
     0
 }
+#[cfg(target_arch = "aarch64")]
+#[no_mangle]
+pub extern "C" fn wasmtime_init_traps(_handler: wasmtime_trap_handler_t) -> i32 {
+    0
+}
 
 // Copy a VA range to a new VA. Old and new VA, and len, must be
 // page-aligned.
 fn copy_va_mapping(base: *const u8, len: usize, to_va: *mut u8, remap_original: bool) {
     debug_assert!((base as usize).is_multiple_of(vmem::PAGE_SIZE));
     debug_assert!(len.is_multiple_of(vmem::PAGE_SIZE));
-    // TODO: all this barrier code is amd64 specific. It should be
-    // refactored to use some better architecture-independent APIs.
-    //
-    // On amd64, "upgrades" including the first time that a a valid
-    // translation exists for a VA, only need a light (serialising
-    // instruction) barrier.  Since invlpg is also a barrier, we don't
-    // even need that, if we did do a downgrade remap just before.
+    // On amd64, first-valid mappings need only a serialising barrier.
+    // Aarch64 mappings may replace pages eagerly installed by mmap_new,
+    // so both destination replacements and source downgrades need TLBI.
+    #[cfg(target_arch = "x86_64")]
     let mut needs_first_valid_exposure_barrier = false;
 
     // TODO: make this more efficient by directly exposing the ability
@@ -249,21 +311,51 @@ fn copy_va_mapping(base: *const u8, len: usize, to_va: *mut u8, remap_original: 
                 new_kind,
             );
         }
+        #[cfg(target_arch = "aarch64")]
+        invalidate_page(to_va.wrapping_add((mapping.virt_base - base_u) as usize) as u64);
         if do_downgrade {
             // Since we have downgraded a page from writable to CoW we
             // need to do an invlpg on it. Because invlpg is a
             // serialising instruction, we don't need the other
             // barrier for the new mapping.
+            #[cfg(target_arch = "x86_64")]
             unsafe {
                 core::arch::asm!("invlpg [{}]", in(reg) mapping.virt_base, options(readonly, nostack, preserves_flags));
             }
-            needs_first_valid_exposure_barrier = false;
+            #[cfg(target_arch = "aarch64")]
+            invalidate_page(mapping.virt_base);
+            #[cfg(target_arch = "x86_64")]
+            {
+                needs_first_valid_exposure_barrier = false;
+            }
         } else {
-            needs_first_valid_exposure_barrier = true;
+            #[cfg(target_arch = "x86_64")]
+            {
+                needs_first_valid_exposure_barrier = true;
+            }
         }
     }
-    if needs_first_valid_exposure_barrier {
-        paging::barrier::first_valid_same_ctx();
+    #[cfg(target_arch = "x86_64")]
+    {
+        if needs_first_valid_exposure_barrier {
+            paging::barrier::first_valid_same_ctx();
+        }
+    }
+}
+
+#[cfg(target_arch = "aarch64")]
+fn invalidate_page(virt: u64) {
+    unsafe {
+        core::arch::asm!(
+            "
+            dsb ish
+            tlbi vae1is, {page}
+            dsb ish
+            isb
+            ",
+            page = in(reg) (virt >> 12),
+            options(readonly, nostack, preserves_flags)
+        );
     }
 }
 
@@ -326,6 +418,8 @@ impl wasmtime::CustomCodeMemory for WasmtimeCodeMemory {
         _ptr: *const u8,
         _len: usize,
     ) -> core::result::Result<(), wasmtime::Error> {
+        #[cfg(target_arch = "aarch64")]
+        sync_instruction_cache(_ptr, _len);
         Ok(())
     }
     fn unpublish_executable(
@@ -334,6 +428,58 @@ impl wasmtime::CustomCodeMemory for WasmtimeCodeMemory {
         _len: usize,
     ) -> core::result::Result<(), wasmtime::Error> {
         Ok(())
+    }
+}
+
+#[cfg(target_arch = "aarch64")]
+fn sync_instruction_cache(base: *const u8, len: usize) {
+    unsafe {
+        let ctr_el0: u64;
+        core::arch::asm!("mrs {}, ctr_el0", out(reg) ctr_el0);
+        let iminline = 4 * (1 << (ctr_el0 & 0xf));
+        let dminline = 4 * (1 << ((ctr_el0 >> 16) & 0xf));
+        // The loads and branches let Hyperlight's KVM path emulate trapped
+        // cache-maintenance instructions and resume at the correct loop point.
+        core::arch::asm!(
+            "
+            ldr xzr, [{addr}]
+            msr nzcv, xzr
+            b 2f
+
+        0:  ldr xzr, [{tmp}]
+            msr nzcv, xzr
+            b 3f
+        1:  ldr xzr, [{tmp}]
+            msr nzcv, xzr
+            b 4f
+
+        2:  mov {tmp}, {addr}
+
+        3:  dc cvau, {tmp}
+            b.eq 0b
+            add {tmp}, {tmp}, {dminline:x}
+            cmp {tmp}, {max}
+            b.lt 3b
+
+            dsb ish
+
+            mov {tmp}, {addr}
+
+        4:  ic ivau, {tmp}
+            b.eq 1b
+            add {tmp}, {tmp}, {iminline:x}
+            cmp {tmp}, {max}
+            b.lt 4b
+
+            dsb ish
+            isb
+            ",
+            iminline = in(reg) iminline,
+            dminline = in(reg) dminline,
+            addr = in(reg) base as usize,
+            max = in(reg) base as usize + len,
+            tmp = out(reg) _
+        );
     }
 }
 

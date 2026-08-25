@@ -83,7 +83,11 @@ fn main() {
     cfg.include("src/include");
     cfg.file("src/platform.c");
     if cfg!(windows) {
-        env::set_var("AR_x86_64_unknown_none", "llvm-ar");
+        match env::var("CARGO_CFG_TARGET_ARCH").as_deref() {
+            Ok("x86_64") => env::set_var("AR_x86_64_unknown_none", "llvm-ar"),
+            Ok("aarch64") => env::set_var("AR_aarch64_unknown_none", "llvm-ar"),
+            _ => {}
+        }
     }
     cfg.compile("wasmtime-hyperlight-platform");
 

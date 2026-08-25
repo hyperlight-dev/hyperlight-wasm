@@ -105,10 +105,11 @@ fn init_wasm_runtime(function_call: FunctionCall) -> Result<Vec<u8>> {
     // sets the Rust target to be compiled with the hard-float ABI manually via
     // `-Zbuild-std` and a custom target JSON configuration
     // See https://github.com/bytecodealliance/wasmtime/pull/11553
-    #[cfg(all(not(feature = "wasmtime_lts"), not(pulley)))]
+    #[cfg(all(not(feature = "wasmtime_lts"), not(pulley), target_arch = "x86_64"))]
     unsafe {
         config.x86_float_abi_ok(true)
     };
+    platform::configure_engine(&mut config);
 
     config.with_custom_code_memory(Some(alloc::sync::Arc::new(platform::WasmtimeCodeMemory {})));
     #[cfg(gdb)]

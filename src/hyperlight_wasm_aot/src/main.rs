@@ -27,6 +27,7 @@ use wasmtime::{Config, Engine, Module, OptLevel, Precompiled};
 #[derive(Debug)]
 enum SupportedTarget {
     X86_64UnknownNone,
+    Aarch64UnknownNone,
     WasmtimePulley64,
 }
 
@@ -34,8 +35,17 @@ impl Display for SupportedTarget {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             SupportedTarget::X86_64UnknownNone => write!(f, "x86_64-unknown-none"),
+            SupportedTarget::Aarch64UnknownNone => write!(f, "aarch64-unknown-none"),
             SupportedTarget::WasmtimePulley64 => write!(f, "pulley64"),
         }
+    }
+}
+
+fn native_target() -> SupportedTarget {
+    if cfg!(target_arch = "aarch64") {
+        SupportedTarget::Aarch64UnknownNone
+    } else {
+        SupportedTarget::X86_64UnknownNone
     }
 }
 
@@ -105,15 +115,11 @@ fn precompile_bytes_lts(
     bytes: &[u8],
     debug: bool,
     minimal: bool,
-    pulley: bool,
+    target: &SupportedTarget,
     is_component: bool,
 ) -> Vec<u8> {
     let mut config = wasmtime_lts::Config::new();
-    if pulley {
-        config.target("pulley64").unwrap();
-    } else {
-        config.target("x86_64-unknown-none").unwrap();
-    }
+    configure_lts(&mut config, target);
     if debug {
         config.debug_info(true);
         config.cranelift_opt_level(wasmtime_lts::OptLevel::None);
@@ -133,7 +139,8 @@ fn precompile_bytes_lts(
 /// Detect and deserialize using the LTS wasmtime version
 fn detect_and_deserialize_lts(bytes: &[u8], debug: bool, file: &str) {
     let mut config = wasmtime_lts::Config::new();
-    config.target("x86_64-unknown-none").unwrap();
+    let target = get_aot_target(bytes).unwrap_or_else(|error| panic!("{error}"));
+    configure_lts(&mut config, &target);
     if debug {
         config.debug_info(true);
         config.cranelift_opt_level(wasmtime_lts::OptLevel::None);
@@ -189,7 +196,7 @@ fn main() {
                     let target = if pulley {
                         SupportedTarget::WasmtimePulley64
                     } else {
-                        SupportedTarget::X86_64UnknownNone
+                        native_target()
                     };
                     if debug {
                         println!(
@@ -213,25 +220,25 @@ fn main() {
                     std::fs::write(outfile, serialized).unwrap();
                 }
                 WasmtimeVersion::Lts => {
-                    let target_name = if pulley {
-                        "pulley64"
+                    let target = if pulley {
+                        SupportedTarget::WasmtimePulley64
                     } else {
-                        "x86_64-unknown-none"
+                        native_target()
                     };
                     if debug {
                         println!(
                             "Aot Compiling {} to [{}]: {} with debug info and optimizations off (LTS wasmtime)",
-                            input, target_name, outfile
+                            input, target, outfile
                         );
                     } else {
                         println!(
                             "Aot Compiling {} to [{}]: {} (LTS wasmtime)",
-                            input, target_name, outfile
+                            input, target, outfile
                         );
                     }
                     let bytes = std::fs::read(&input).unwrap();
                     let serialized =
-                        precompile_bytes_lts(&bytes, debug, minimal, pulley, component);
+                        precompile_bytes_lts(&bytes, debug, minimal, &target, component);
                     std::fs::write(outfile, serialized).unwrap();
                 }
             }
@@ -343,6 +350,7 @@ fn main() {
 /// Returns a new `Config` for the Wasmtime engine with additional settings for AOT compilation.
 fn get_config(debug: bool, minimal: bool, target: &SupportedTarget) -> Config {
     let mut config = Config::new();
+    configure_native_memory(&mut config, target);
 
     // Compile for the pulley64 target if specified
     match target {
@@ -355,6 +363,9 @@ fn get_config(debug: bool, minimal: bool, target: &SupportedTarget) -> Config {
             // `-Zbuild-std` and a custom target JSON configuration
             // See https://github.com/bytecodealliance/wasmtime/pull/11553
             unsafe { config.x86_float_abi_ok(true) };
+        }
+        SupportedTarget::Aarch64UnknownNone => {
+            config.target("aarch64-unknown-none").unwrap();
         }
         SupportedTarget::WasmtimePulley64 => {
             config.target("pulley64").unwrap();
@@ -375,6 +386,25 @@ fn get_config(debug: bool, minimal: bool, target: &SupportedTarget) -> Config {
     config
 }
 
+fn configure_native_memory(config: &mut Config, target: &SupportedTarget) {
+    if matches!(target, SupportedTarget::Aarch64UnknownNone) {
+        config
+            .signals_based_traps(false)
+            .memory_reservation(0)
+            .memory_guard_size(0);
+    }
+}
+
+fn configure_lts(config: &mut wasmtime_lts::Config, target: &SupportedTarget) {
+    if matches!(target, SupportedTarget::Aarch64UnknownNone) {
+        config
+            .signals_based_traps(false)
+            .memory_reservation(0)
+            .memory_guard_size(0);
+    }
+    config.target(&target.to_string()).unwrap();
+}
+
 /// Parses the AOT compiled file as an ELF file and extracts the target triple
 /// NOTE: These flag bits must match Wasmtime's EF_WASMTIME_PULLEY{64,32} values
 /// used when emitting RISC-V ELF object files. If Wasmtime changes these values,
@@ -390,9 +420,7 @@ fn get_aot_target(bytes: &[u8]) -> Result<SupportedTarget, String> {
     if let Ok(elf) = ElfFile64::<Endianness>::parse(bytes) {
         match elf.architecture() {
             Architecture::X86_64 => Ok(SupportedTarget::X86_64UnknownNone),
-            Architecture::Aarch64 => {
-                Err("Unsupported architecture Aarch64 in AOT compiled file".to_string())
-            }
+            Architecture::Aarch64 => Ok(SupportedTarget::Aarch64UnknownNone),
             Architecture::S390x => {
                 Err("Unsupported architecture S390x in AOT compiled file".to_string())
             }
