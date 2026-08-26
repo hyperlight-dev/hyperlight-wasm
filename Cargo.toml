@@ -13,11 +13,11 @@ repository = "https://github.com/hyperlight-dev/hyperlight-wasm"
 readme = "README.md"
 
 [workspace.dependencies]
-hyperlight-common = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "cfa020441d880d599cc516a050e6cf10236ca5c4", default-features = false }
-hyperlight-component-macro = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "cfa020441d880d599cc516a050e6cf10236ca5c4" }
-hyperlight-component-util = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "cfa020441d880d599cc516a050e6cf10236ca5c4" }
-hyperlight-guest = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "cfa020441d880d599cc516a050e6cf10236ca5c4" }
-hyperlight-guest-bin = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "cfa020441d880d599cc516a050e6cf10236ca5c4" }
-hyperlight-host = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "cfa020441d880d599cc516a050e6cf10236ca5c4", default-features = false }
+hyperlight-common = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "90e7221d2c4ebe4c5bca2e036fea3fad96c6dfdd", default-features = false }
+hyperlight-component-macro = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "90e7221d2c4ebe4c5bca2e036fea3fad96c6dfdd" }
+hyperlight-component-util = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "90e7221d2c4ebe4c5bca2e036fea3fad96c6dfdd" }
+hyperlight-guest = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "90e7221d2c4ebe4c5bca2e036fea3fad96c6dfdd" }
+hyperlight-guest-bin = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "90e7221d2c4ebe4c5bca2e036fea3fad96c6dfdd" }
+hyperlight-host = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "90e7221d2c4ebe4c5bca2e036fea3fad96c6dfdd", default-features = false }
 hyperlight-wasm-macro = { version = "0.14.0", path = "src/hyperlight_wasm_macro" }
 hyperlight-wasm-runtime = { version = "0.14.0", path = "src/hyperlight_wasm_runtime" }

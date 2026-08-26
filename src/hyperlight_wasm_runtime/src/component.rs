@@ -122,7 +122,6 @@ pub extern "C" fn hyperlight_main() {
     unsafe {
         config.x86_float_abi_ok(true)
     };
-    platform::configure_engine(&mut config);
     config.with_custom_code_memory(Some(alloc::sync::Arc::new(platform::WasmtimeCodeMemory {})));
     #[cfg(gdb)]
     config.debug_info(true);

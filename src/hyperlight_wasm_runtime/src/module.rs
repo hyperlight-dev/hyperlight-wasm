@@ -109,7 +109,6 @@ fn init_wasm_runtime(function_call: FunctionCall) -> Result<Vec<u8>> {
     unsafe {
         config.x86_float_abi_ok(true)
     };
-    platform::configure_engine(&mut config);
 
     config.with_custom_code_memory(Some(alloc::sync::Arc::new(platform::WasmtimeCodeMemory {})));
     #[cfg(gdb)]

@@ -18,26 +18,23 @@ use core::ffi::c_void;
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicPtr, AtomicU64, Ordering};
 
+#[cfg(target_arch = "aarch64")]
+use hyperlight_common::arch::exn::{DataFault, DataFaultKind, Exception};
 use hyperlight_common::vmem;
-#[cfg(target_arch = "x86_64")]
 use hyperlight_guest_bin::exception::arch;
 use hyperlight_guest_bin::paging;
 
+const FIRST_VADDR_BASE: u64 = 0x100_0000_0000;
+const VADDR_SLOT_SIZE: u64 = 0x100_0000_0000;
 // Extremely stupid virtual address allocator
 // 0x1_0000_0000 is where the module is
 // we start at
 // 0x100_0000_0000 and go up from there
-static FIRST_VADDR: AtomicU64 = AtomicU64::new(0x100_0000_0000u64);
+static FIRST_VADDR: AtomicU64 = AtomicU64::new(FIRST_VADDR_BASE);
 
-#[cfg(all(target_arch = "aarch64", not(pulley)))]
-pub(crate) fn configure_engine(config: &mut wasmtime::Config) {
-    config
-        .signals_based_traps(false)
-        .memory_reservation(0)
-        .memory_guard_size(0);
+fn is_wasmtime_address(address: u64) -> bool {
+    (FIRST_VADDR_BASE..FIRST_VADDR.load(Ordering::Acquire)).contains(&address)
 }
-#[cfg(any(target_arch = "x86_64", pulley))]
-pub(crate) fn configure_engine(_config: &mut wasmtime::Config) {}
 
 #[cfg(target_arch = "x86_64")]
 fn page_fault_handler(
@@ -53,7 +50,7 @@ fn page_fault_handler(
 
     // TODO: replace this with some generic virtual memory area data
     // structure in hyperlight core
-    if (error_code & 0x1) == 0x0 && page_fault_address >= 0x100_0000_0000u64 {
+    if (error_code & 0x1) == 0x0 && is_wasmtime_address(page_fault_address) {
         unsafe {
             let phys_page = hyperlight_guest::prim_alloc::alloc_phys_pages(1);
             let virt_base = (page_fault_address & !0xFFF) as *mut u8;
@@ -73,6 +70,77 @@ fn page_fault_handler(
     }
     false
 }
+
+#[cfg(target_arch = "aarch64")]
+fn redirect_to_wasmtime_trap(
+    far: u64,
+    elr: &mut u64,
+    registers: &mut [u64; 31],
+    has_faulting_addr: bool,
+) -> bool {
+    let requested_handler = WASMTIME_REQUESTED_TRAP_HANDLER.load(Ordering::Relaxed);
+    if requested_handler == 0 {
+        return false;
+    }
+
+    registers[0] = *elr;
+    registers[1] = registers[29];
+    registers[2] = has_faulting_addr as u64;
+    registers[3] = far;
+    *elr = requested_handler;
+    true
+}
+
+#[cfg(target_arch = "aarch64")]
+fn aarch64_exception_handler(
+    exception: Exception,
+    esr: u64,
+    far: u64,
+    elr: &mut u64,
+    registers: &mut [u64; 31],
+) -> bool {
+    if matches!(
+        exception,
+        Exception::DataFault(DataFault {
+            from_lower_el: false,
+            kind: DataFaultKind::TranslationFault(_),
+            ..
+        })
+    ) && is_wasmtime_address(far)
+    {
+        unsafe {
+            let phys_page = hyperlight_guest::prim_alloc::alloc_phys_pages(1);
+            let virt_base = (far & !((vmem::PAGE_SIZE - 1) as u64)) as *mut u8;
+            paging::map_region(
+                phys_page,
+                virt_base,
+                vmem::PAGE_SIZE as u64,
+                vmem::MappingKind::Basic(vmem::BasicMapping {
+                    readable: true,
+                    writable: true,
+                    executable: true,
+                }),
+            );
+            paging::barrier::first_valid_same_ctx();
+            virt_base.write_bytes(0, vmem::PAGE_SIZE);
+        }
+        return true;
+    }
+
+    match exception {
+        // UDF instructions report an unknown-reason exception class.
+        Exception::Other(_) if esr >> 26 == 0 => {
+            let instruction = unsafe { (*elr as *const u32).read_volatile() };
+            if instruction == 0x0000_c11f {
+                redirect_to_wasmtime_trap(far, elr, registers, false)
+            } else {
+                false
+            }
+        }
+        _ => false,
+    }
+}
+
 #[cfg(target_arch = "x86_64")]
 pub(crate) fn register_page_fault_handler() {
     // On amd64, vector 14 is #PF
@@ -85,45 +153,9 @@ pub(crate) fn register_page_fault_handler() {
     );
 }
 #[cfg(target_arch = "aarch64")]
-pub(crate) fn register_page_fault_handler() {}
-
-#[cfg(target_arch = "aarch64")]
-fn map_missing_pages(addr: *mut u8, size: usize) {
-    if size == 0 {
-        return;
-    }
-
-    let page_size = unsafe { hyperlight_guest_bin::OS_PAGE_SIZE as usize };
-    assert!((addr as usize).is_multiple_of(page_size));
-    assert!(size.is_multiple_of(page_size));
-
-    for offset in (0..size).step_by(page_size) {
-        let page = unsafe { addr.add(offset) };
-        let is_unmapped = paging::virt_to_phys(page as u64)
-            .next()
-            .is_none_or(|mapping| mapping.kind == vmem::MappingKind::Unmapped);
-        if is_unmapped {
-            unsafe {
-                let phys_page = hyperlight_guest::prim_alloc::alloc_phys_pages(
-                    (page_size / hyperlight_common::vmem::PAGE_SIZE) as u64,
-                );
-                paging::map_region(
-                    phys_page,
-                    page,
-                    page_size as u64,
-                    vmem::MappingKind::Basic(vmem::BasicMapping {
-                        readable: true,
-                        writable: true,
-                        executable: true,
-                    }),
-                );
-                paging::barrier::first_valid_same_ctx();
-                page.write_bytes(0, page_size);
-            }
-        }
-    }
+pub(crate) fn register_page_fault_handler() {
+    arch::register_exception_handler(aarch64_exception_handler);
 }
-
 // Wasmtime Embedding Interface
 
 /* We don't actually have any sensible virtual memory areas, so
@@ -133,12 +165,10 @@ fn map_missing_pages(addr: *mut u8, size: usize) {
  * (see above) */
 #[no_mangle]
 pub extern "C" fn wasmtime_mmap_new(_size: usize, _prot_flags: u32, ret: &mut *mut u8) -> i32 {
-    if _size > 0x100_0000_0000 {
+    if _size > VADDR_SLOT_SIZE as usize {
         panic!("wasmtime_mmap_{:x} {:x}", _size, _prot_flags);
     }
-    *ret = FIRST_VADDR.fetch_add(0x100_0000_0000, Ordering::Relaxed) as *mut u8;
-    #[cfg(target_arch = "aarch64")]
-    map_missing_pages(*ret, _size);
+    *ret = FIRST_VADDR.fetch_add(VADDR_SLOT_SIZE, Ordering::Relaxed) as *mut u8;
     0
 }
 
@@ -148,14 +178,12 @@ pub extern "C" fn wasmtime_mmap_new(_size: usize, _prot_flags: u32, ret: &mut *m
  * as we don't properly implement permissions at the moment. */
 #[no_mangle]
 pub extern "C" fn wasmtime_mmap_remap(addr: *mut u8, size: usize, prot_flags: u32) -> i32 {
-    if size > 0x100_0000_0000 {
+    if size > VADDR_SLOT_SIZE as usize {
         panic!(
             "wasmtime_mmap_remap {:x} {:x} {:x}",
             addr as usize, size, prot_flags
         );
     }
-    #[cfg(target_arch = "aarch64")]
-    map_missing_pages(addr, size);
     0
 }
 
@@ -183,7 +211,6 @@ pub extern "C" fn wasmtime_page_size() -> usize {
 #[allow(non_camel_case_types)] // we didn't choose the name!
 type wasmtime_trap_handler_t =
     extern "C" fn(ip: usize, fp: usize, has_faulting_addr: bool, faulting_addr: usize);
-#[cfg(target_arch = "x86_64")]
 static WASMTIME_REQUESTED_TRAP_HANDLER: AtomicU64 = AtomicU64::new(0);
 #[cfg(target_arch = "x86_64")]
 fn wasmtime_trap_handler(
@@ -239,18 +266,18 @@ pub extern "C" fn wasmtime_init_traps(handler: wasmtime_trap_handler_t) -> i32 {
 }
 #[cfg(target_arch = "aarch64")]
 #[no_mangle]
-pub extern "C" fn wasmtime_init_traps(_handler: wasmtime_trap_handler_t) -> i32 {
+pub extern "C" fn wasmtime_init_traps(handler: wasmtime_trap_handler_t) -> i32 {
+    WASMTIME_REQUESTED_TRAP_HANDLER.store(handler as usize as u64, Ordering::Relaxed);
     0
 }
-
 // Copy a VA range to a new VA. Old and new VA, and len, must be
 // page-aligned.
 fn copy_va_mapping(base: *const u8, len: usize, to_va: *mut u8, remap_original: bool) {
     debug_assert!((base as usize).is_multiple_of(vmem::PAGE_SIZE));
     debug_assert!(len.is_multiple_of(vmem::PAGE_SIZE));
     // On amd64, first-valid mappings need only a serialising barrier.
-    // Aarch64 mappings may replace pages eagerly installed by mmap_new,
-    // so both destination replacements and source downgrades need TLBI.
+    // On Aarch64, both possible destination replacements and source
+    // downgrades use TLBI.
     #[cfg(target_arch = "x86_64")]
     let mut needs_first_valid_exposure_barrier = false;
 
@@ -372,7 +399,7 @@ pub extern "C" fn wasmtime_memory_image_new(
     // identifier. We will construct the image by mapping a copy of
     // the original VA range here, making the original copy CoW as we
     // go.
-    let new_virt = FIRST_VADDR.fetch_add(0x100_0000_0000, Ordering::Relaxed) as *mut u8;
+    let new_virt = FIRST_VADDR.fetch_add(VADDR_SLOT_SIZE, Ordering::Relaxed) as *mut u8;
     copy_va_mapping(ptr, len, new_virt, true);
     *ret = new_virt as *mut c_void;
     0

@@ -350,7 +350,6 @@ fn main() {
 /// Returns a new `Config` for the Wasmtime engine with additional settings for AOT compilation.
 fn get_config(debug: bool, minimal: bool, target: &SupportedTarget) -> Config {
     let mut config = Config::new();
-    configure_native_memory(&mut config, target);
 
     // Compile for the pulley64 target if specified
     match target {
@@ -386,22 +385,7 @@ fn get_config(debug: bool, minimal: bool, target: &SupportedTarget) -> Config {
     config
 }
 
-fn configure_native_memory(config: &mut Config, target: &SupportedTarget) {
-    if matches!(target, SupportedTarget::Aarch64UnknownNone) {
-        config
-            .signals_based_traps(false)
-            .memory_reservation(0)
-            .memory_guard_size(0);
-    }
-}
-
 fn configure_lts(config: &mut wasmtime_lts::Config, target: &SupportedTarget) {
-    if matches!(target, SupportedTarget::Aarch64UnknownNone) {
-        config
-            .signals_based_traps(false)
-            .memory_reservation(0)
-            .memory_guard_size(0);
-    }
     config.target(&target.to_string()).unwrap();
 }
 
