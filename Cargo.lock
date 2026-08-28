@@ -1997,7 +1997,7 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-wasm"
-version = "0.14.0"
+version = "0.15.0"
 dependencies = [
  "anyhow",
  "blake3",
@@ -2043,7 +2043,7 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-wasm-aot"
-version = "0.14.0"
+version = "0.15.0"
 dependencies = [
  "cargo-util-schemas",
  "cargo_metadata",
@@ -2055,7 +2055,7 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-wasm-macro"
-version = "0.14.0"
+version = "0.15.0"
 dependencies = [
  "hyperlight-component-util",
  "itertools 0.15.0",
@@ -2066,7 +2066,7 @@ dependencies = [
 
 [[package]]
 name = "hyperlight-wasm-runtime"
-version = "0.14.0"
+version = "0.15.0"
 dependencies = [
  "cargo_metadata",
  "cc",
