@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Prerelease] - Unreleased
 
+## [v0.15.0] - 2026-08
+
+### Changed
+
+- Adapted component macro generation to the latest `hyperlight-component-util` APIs. (#520)
+- Replaced the deprecated sandbox poison check with the current sandbox status API. (#520)
+- Added support for selecting either the latest or LTS Wasmtime runtime, defaulting to LTS. (#301)
+
 ## [v0.14.0] - 2026-04
 
 ### Changed
@@ -44,7 +52,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The Initial Hyperlight-wasm Release 🎉 
 
 
-[Prerelease]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.12.0..HEAD>
+[Prerelease]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.15.0...HEAD>
+[v0.15.0]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.14.0...v0.15.0>
+[v0.14.0]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.12.0...v0.14.0>
 [v0.12.0]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.11.0...v0.12.0>
 [v0.11.0]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.10.0...v0.11.0>
 [v0.10.0]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.9.0...v0.10.0>
