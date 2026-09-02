@@ -2059,7 +2059,7 @@ version = "0.14.0"
 dependencies = [
  "hyperlight-component-util",
  "itertools 0.15.0",
- "prettyplease 0.2.37",
+ "prettyplease 0.3.0",
  "proc-macro2",
  "quote",
 ]
