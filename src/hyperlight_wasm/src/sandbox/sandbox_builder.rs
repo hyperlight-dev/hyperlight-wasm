@@ -134,7 +134,7 @@ impl SandboxBuilder {
             return Err(HyperlightError::NoHypervisorFound());
         }
 
-        let guest_binary = GuestBinary::Buffer(&super::WASM_RUNTIME);
+        let guest_binary = GuestBinary::Buffer(super::WASM_RUNTIME.to_vec());
 
         let mut proto_wasm_sandbox = ProtoWasmSandbox::new(Some(self.config), guest_binary)?;
         if let Some(host_print_fn) = self.host_print_fn {

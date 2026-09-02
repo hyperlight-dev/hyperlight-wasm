@@ -13,11 +13,11 @@ repository = "https://github.com/hyperlight-dev/hyperlight-wasm"
 readme = "README.md"
 
 [workspace.dependencies]
-hyperlight-common = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "cfa020441d880d599cc516a050e6cf10236ca5c4", default-features = false }
-hyperlight-component-macro = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "cfa020441d880d599cc516a050e6cf10236ca5c4" }
-hyperlight-component-util = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "cfa020441d880d599cc516a050e6cf10236ca5c4" }
-hyperlight-guest = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "cfa020441d880d599cc516a050e6cf10236ca5c4" }
-hyperlight-guest-bin = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "cfa020441d880d599cc516a050e6cf10236ca5c4" }
-hyperlight-host = { git = "https://github.com/hyperlight-dev/hyperlight", rev = "cfa020441d880d599cc516a050e6cf10236ca5c4", default-features = false }
+hyperlight-common = { version = "0.17.0", default-features = false }
+hyperlight-component-macro = "0.17.0"
+hyperlight-component-util = "0.17.0"
+hyperlight-guest = "0.17.0"
+hyperlight-guest-bin = "0.17.0"
+hyperlight-host = { version = "0.17.0", default-features = false }
 hyperlight-wasm-macro = { version = "0.14.0", path = "src/hyperlight_wasm_macro" }
 hyperlight-wasm-runtime = { version = "0.14.0", path = "src/hyperlight_wasm_runtime" }
