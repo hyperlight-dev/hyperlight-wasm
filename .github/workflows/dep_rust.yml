@@ -62,6 +62,7 @@ jobs:
       # On Linux, always pass the hypervisor feature (kvm/mshv3).
       # On Linux latest builds, also add wasmtime_latest.
       FEATURES: ${{ matrix.hypervisor != 'hyperv' && format('{0}{1}', matrix.hypervisor, matrix.wasmtime == 'latest' && ',wasmtime_latest' || '') || (matrix.wasmtime == 'latest' && 'wasmtime_latest' || '') }}
+      RUN_BENCHMARKS: ${{ matrix.config == 'release' && (matrix.wasmtime == 'lts' || (matrix.hypervisor == 'kvm' && matrix.cpu == 'amd')) }}
     steps:
       - uses: actions/checkout@v5
 
@@ -145,10 +146,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
         working-directory: ./src/hyperlight_wasm
-        if: ${{ matrix.config == 'release' }}
+        if: ${{ env.RUN_BENCHMARKS == 'true' }}
 
       - name: Run benchmarks
         run: |
           just bench-ci dev ${{ matrix.config }} ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm
-        if: ${{ matrix.config == 'release' }}
+        if: ${{ env.RUN_BENCHMARKS == 'true' }}
