@@ -20,5 +20,5 @@ quote = { version = "1.0.45" }
 proc-macro2 = { version = "1.0.106" }
 
 itertools = { version = "0.15.0" }
-prettyplease = { version = "0.2.37" }
+prettyplease = { version = "0.3.0" }
 hyperlight-component-util.workspace = true
