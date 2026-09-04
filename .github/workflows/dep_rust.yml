@@ -35,7 +35,9 @@ jobs:
   build:
     if: ${{ inputs.docs_only == 'false' }}
     strategy:
-        fail-fast: true
+        # Preserve completed shards when an ephemeral runner disconnects so a
+        # failed-job rerun does not need to repeat the entire matrix.
+        fail-fast: false
         matrix:
           hypervisor: [hyperv, mshv3, kvm] # hyperv is windows, mshv and kvm are linux
           cpu: [amd, intel]
@@ -47,11 +49,12 @@ jobs:
               config: debug
   
     runs-on: ${{ fromJson(
-        format('["self-hosted", "{0}", "X64", "1ES.Pool=hld-{1}-{2}", "JobId=build-{3}-{4}-{5}-{6}"]', 
+        format('["self-hosted", "{0}", "X64", "1ES.Pool=hld-{1}-{2}", "JobId=build-{3}-{4}-{5}-{6}-{7}"]',
           matrix.hypervisor == 'hyperv' && 'Windows' || 'Linux', 
           matrix.hypervisor == 'hyperv' && 'win2025' || matrix.hypervisor == 'mshv3' && 'azlinux3-mshv' || matrix.hypervisor, 
           matrix.cpu,
           matrix.config,
+          matrix.wasmtime,
           github.run_id,
           github.run_number,
           github.run_attempt)) }} 
@@ -135,20 +138,55 @@ jobs:
         env:
           # required for gh cli when downloading
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      ### Benchmarks ###
+
+  benchmark:
+    if: ${{ inputs.docs_only == 'false' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        hypervisor: [hyperv, mshv3, kvm]
+        cpu: [amd, intel]
+        wasmtime: [lts]
+        include:
+          - hypervisor: kvm
+            cpu: amd
+            wasmtime: latest
+
+    runs-on: ${{ fromJson(
+        format('["self-hosted", "{0}", "X64", "1ES.Pool=hld-{1}-{2}", "JobId=benchmark-{3}-{4}-{5}-{6}"]',
+          matrix.hypervisor == 'hyperv' && 'Windows' || 'Linux',
+          matrix.hypervisor == 'hyperv' && 'win2025' || matrix.hypervisor == 'mshv3' && 'azlinux3-mshv' || matrix.hypervisor,
+          matrix.cpu,
+          matrix.wasmtime,
+          github.run_id,
+          github.run_number,
+          github.run_attempt)) }}
+    env:
+      FEATURES: ${{ matrix.hypervisor != 'hyperv' && format('{0}{1}', matrix.hypervisor, matrix.wasmtime == 'latest' && ',wasmtime_latest' || '') || (matrix.wasmtime == 'latest' && 'wasmtime_latest' || '') }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Hyperlight setup
+        uses: hyperlight-dev/ci-setup-workflow@v1.8.0
+        with:
+          rust-toolchain: "1.94"
+
+      - name: Download Wasm Modules
+        uses: actions/download-artifact@v5
+        with:
+          name: guest-modules-${{ matrix.wasmtime }}
+          path: ./x64/release
 
       - name: Download benchmarks from "latest"
-        run: |
-          just bench-download ${{ runner.os }} ${{ matrix.hypervisor }} ${{ matrix.cpu }} dev-latest
+        run: just bench-download ${{ runner.os }} ${{ matrix.hypervisor }} ${{ matrix.cpu }} dev-latest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
         working-directory: ./src/hyperlight_wasm
-        if: ${{ matrix.config == 'release' }}
 
       - name: Run benchmarks
         run: |
-          just bench-ci dev ${{ matrix.config }} ${{ env.FEATURES }}
+          just ensure-tools
+          just compile-wit
+          just bench-ci dev release ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm
-        if: ${{ matrix.config == 'release' }}

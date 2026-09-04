@@ -27,7 +27,9 @@ jobs:
     needs:
       - build-wasm-examples
     strategy:
-      fail-fast: true
+      # A lost self-hosted runner should not cancel benchmark artifacts from
+      # otherwise healthy matrix jobs.
+      fail-fast: false
       matrix:
         hypervisor: [hyperv, mshv3, kvm] # hyperv is windows, mshv and kvm are linux
         cpu: [amd, intel]
