@@ -7,8 +7,7 @@ on:
 
 permissions:
   contents: read
-  # dep_build_wasm_examples.yml publishes the shared builder cache to GHCR.
-  packages: write
+  packages: read
 
 # The reason for default shell bash is because on our self-hosted windows runners,
 # the default shell is powershell, which doesn't work correctly together with `just` commands.
