@@ -7,7 +7,8 @@ on:
 
 permissions:
   contents: read
-  packages: read
+  # dep_build_wasm_examples.yml publishes the shared builder cache to GHCR.
+  packages: write
 
 # The reason for default shell bash is because on our self-hosted windows runners,
 # the default shell is powershell, which doesn't work correctly together with `just` commands.
@@ -27,7 +28,9 @@ jobs:
     needs:
       - build-wasm-examples
     strategy:
-      fail-fast: true
+      # A lost self-hosted runner should not cancel benchmark artifacts from
+      # otherwise healthy matrix jobs.
+      fail-fast: false
       matrix:
         hypervisor: [hyperv, mshv3, kvm] # hyperv is windows, mshv and kvm are linux
         cpu: [amd, intel]

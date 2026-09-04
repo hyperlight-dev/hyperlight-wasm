@@ -35,7 +35,9 @@ jobs:
   build:
     if: ${{ inputs.docs_only == 'false' }}
     strategy:
-        fail-fast: true
+        # Preserve completed shards when an ephemeral runner disconnects so a
+        # failed-job rerun does not need to repeat the entire matrix.
+        fail-fast: false
         matrix:
           hypervisor: [hyperv, mshv3, kvm] # hyperv is windows, mshv and kvm are linux
           cpu: [amd, intel]
