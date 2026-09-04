@@ -304,15 +304,30 @@ pub extern "C" fn wasmtime_memory_image_free(_image: *mut c_void) {
 }
 
 /* Because we only have a single thread in the guest at the moment, we
- * don't need real thread-local storage. */
-static FAKE_TLS: AtomicPtr<u8> = AtomicPtr::new(core::ptr::null_mut());
+ * don't need real thread-local storage. Wasmtime 47 introduced indexed
+ * TLS slots, while the LTS release still uses a single implicit slot. */
+static FAKE_TLS: [AtomicPtr<u8>; 2] = [const { AtomicPtr::new(core::ptr::null_mut()) }; 2];
+
+#[cfg(feature = "wasmtime_lts")]
 #[no_mangle]
 pub extern "C" fn wasmtime_tls_get() -> *mut u8 {
-    FAKE_TLS.load(Ordering::Acquire)
+    FAKE_TLS[0].load(Ordering::Acquire)
 }
+#[cfg(feature = "wasmtime_lts")]
 #[no_mangle]
 pub extern "C" fn wasmtime_tls_set(ptr: *mut u8) {
-    FAKE_TLS.store(ptr, Ordering::Release)
+    FAKE_TLS[0].store(ptr, Ordering::Release)
+}
+
+#[cfg(not(feature = "wasmtime_lts"))]
+#[no_mangle]
+pub extern "C" fn wasmtime_tls_get(slot: usize) -> *mut u8 {
+    FAKE_TLS[slot].load(Ordering::Acquire)
+}
+#[cfg(not(feature = "wasmtime_lts"))]
+#[no_mangle]
+pub extern "C" fn wasmtime_tls_set(slot: usize, ptr: *mut u8) {
+    FAKE_TLS[slot].store(ptr, Ordering::Release)
 }
 
 pub struct WasmtimeCodeMemory {}
