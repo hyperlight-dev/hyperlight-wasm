@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: read
-  packages: read
+  packages: write
 
 # The reason for default shell bash is because on our self-hosted windows runners,
 # the default shell is powershell, which doesn't work correctly together with `just` commands.
