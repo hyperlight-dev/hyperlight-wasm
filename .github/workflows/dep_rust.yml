@@ -146,14 +146,11 @@ jobs:
       matrix:
         hypervisor: [hyperv, mshv3, kvm]
         cpu: [amd, intel]
-        wasmtime: [latest, lts]
-        exclude:
-          - wasmtime: latest
-            hypervisor: hyperv
-          - wasmtime: latest
-            hypervisor: mshv3
-          - wasmtime: latest
-            cpu: intel
+        wasmtime: [lts]
+        include:
+          - hypervisor: kvm
+            cpu: amd
+            wasmtime: latest
 
     runs-on: ${{ fromJson(
         format('["self-hosted", "{0}", "X64", "1ES.Pool=hld-{1}-{2}", "JobId=benchmark-{3}-{4}-{5}-{6}"]',
