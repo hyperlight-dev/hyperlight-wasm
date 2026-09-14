@@ -2067,7 +2067,7 @@ dependencies = [
  "cargo-util-schemas",
  "cargo_metadata",
  "clap",
- "object 0.39.1",
+ "object 0.40.0",
  "wasmtime 36.0.14",
  "wasmtime 47.0.4",
 ]
@@ -2786,6 +2786,15 @@ dependencies = [
  "crc32fast",
  "hashbrown 0.17.1",
  "indexmap",
+ "memchr",
+]
+
+[[package]]
+name = "object"
+version = "0.40.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd229a0361b9d0d4396176e02d65897f487eebeab7caa6d443855ee152ca0b9c"
+dependencies = [
  "memchr",
 ]
 
