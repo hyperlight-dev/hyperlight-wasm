@@ -74,9 +74,8 @@ fn get_loaded_wasm_sandbox() -> LoadedWasmSandbox {
 
     let wasm_sandbox = sandbox.load_runtime().unwrap();
 
-    wasm_sandbox
-        .load_module("../../x64/release/RunWasm.aot")
-        .unwrap()
+    let aot_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../x64/release/RunWasm.aot");
+    wasm_sandbox.load_module(aot_path).unwrap()
 }
 
 criterion_group! {
