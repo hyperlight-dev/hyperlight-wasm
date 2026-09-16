@@ -190,9 +190,12 @@ fn build_wasm_runtime() -> PathBuf {
 }
 
 fn main() -> Result<()> {
-    let wasm_runtime_resource = build_wasm_runtime();
+    let built_runtime = build_wasm_runtime();
 
     let out_dir = env::var_os("OUT_DIR").unwrap();
+    let wasm_runtime_resource = Path::new(&out_dir).join("hyperlight-wasm-runtime");
+    // Copy to OUT_DIR to preserve this runtime when other feature builds overwrite the shared binary.
+    fs::copy(&built_runtime, &wasm_runtime_resource)?;
     let dest_path = Path::new(&out_dir).join("wasm_runtime_resource.rs");
     let contents = format!(
         "pub (super) static WASM_RUNTIME: [u8; include_bytes!({name:?}).len()] = *include_bytes!({name:?});",
