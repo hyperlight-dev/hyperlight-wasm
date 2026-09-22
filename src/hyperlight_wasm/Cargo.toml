@@ -81,7 +81,7 @@ blake3 = "1.8"
 toml = "1.1.0"
 metrics-util = "0.20.3"
 metrics-exporter-prometheus = "0.18"
-opentelemetry = "0.32.0"
+opentelemetry = "0.33.0"
 opentelemetry-otlp = { version = "0.32.0", default-features = false, features = ["http-proto", "reqwest-blocking-client", "grpc-tonic"] }
 opentelemetry-semantic-conventions = "0.33"
 opentelemetry_sdk = { version = "0.32.1", features = ["rt-tokio"] }
