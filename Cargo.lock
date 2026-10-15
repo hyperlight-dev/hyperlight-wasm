@@ -2083,6 +2083,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "hyperlight-wasm-capi"
+version = "0.15.0"
+dependencies = [
+ "examples_common",
+ "hyperlight-wasm",
+]
+
+[[package]]
 name = "hyperlight-wasm-macro"
 version = "0.15.0"
 dependencies = [
