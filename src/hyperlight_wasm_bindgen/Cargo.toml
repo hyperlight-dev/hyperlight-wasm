@@ -1,0 +1,19 @@
+[package]
+name = "hyperlight-wasm-bindgen"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme.workspace = true
+description = """
+Native library that generates C# host bindings for hyperlight-wasm from WIT. Used by the Hyperlight.Wasm.Build NuGet package at build time.
+"""
+
+[lib]
+name = "hyperlight_wasm_bindgen"
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+hyperlight-component-csharp.workspace = true

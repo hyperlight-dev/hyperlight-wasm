@@ -1,0 +1,8 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- The SDK defines NETCoreSdkRuntimeIdentifier after Directory.Build.props. -->
+    <HyperlightNativeRid Condition="'$(HyperlightNativeRid)' == ''">$(NETCoreSdkRuntimeIdentifier)</HyperlightNativeRid>
+  </PropertyGroup>
+
+</Project>

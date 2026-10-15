@@ -1,0 +1,23 @@
+<Project>
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Version>0.15.0</Version>
+    <Authors>The Hyperlight Authors</Authors>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/hyperlight-dev/hyperlight-wasm</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/hyperlight-dev/hyperlight-wasm</RepositoryUrl>
+    <!-- Cargo output for the native libraries. -->
+    <HyperlightCargoProfile Condition="'$(HyperlightCargoProfile)' == '' and '$(Configuration)' == 'Release'">release</HyperlightCargoProfile>
+    <HyperlightCargoProfile Condition="'$(HyperlightCargoProfile)' == ''">debug</HyperlightCargoProfile>
+    <HyperlightNativeDir Condition="'$(HyperlightNativeDir)' == ''">$(MSBuildThisFileDirectory)../target/$(HyperlightCargoProfile)/</HyperlightNativeDir>
+    <HyperlightNativePrefix Condition="!$([MSBuild]::IsOSPlatform('Windows'))">lib</HyperlightNativePrefix>
+    <HyperlightNativeSuffix Condition="$([MSBuild]::IsOSPlatform('Windows'))">.dll</HyperlightNativeSuffix>
+    <HyperlightNativeSuffix Condition="$([MSBuild]::IsOSPlatform('Linux'))">.so</HyperlightNativeSuffix>
+    <HyperlightNativeSuffix Condition="$([MSBuild]::IsOSPlatform('OSX'))">.dylib</HyperlightNativeSuffix>
+  </PropertyGroup>
+
+</Project>
