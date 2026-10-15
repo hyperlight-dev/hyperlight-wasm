@@ -621,6 +621,36 @@ mod tests {
     }
 
     #[test]
+    fn test_runtime_file() {
+        let path = env::temp_dir().join(format!("hyperlight-wasm-runtime-{}", std::process::id()));
+        std::fs::write(&path, &super::super::WASM_RUNTIME[..]).unwrap();
+        let sandbox = SandboxBuilder::new().with_runtime_file(&path).build();
+        std::fs::remove_file(&path).unwrap();
+        let mut sandbox = sandbox.unwrap();
+        sandbox
+            .register(
+                "GetTimeSinceBootMicrosecond",
+                get_time_since_boot_microsecond,
+            )
+            .unwrap();
+        let helloworld_wasm = get_test_file_path("HelloWorld.aot").unwrap();
+        let mut loaded = sandbox
+            .load_runtime()
+            .unwrap()
+            .load_module(helloworld_wasm)
+            .unwrap();
+        let result: i32 = loaded
+            .call_guest_function("HelloWorld", "Message from Rust Test".to_string())
+            .unwrap();
+        assert_eq!(result, 0);
+
+        let missing = SandboxBuilder::new()
+            .with_runtime_file(env::temp_dir().join("hyperlight-wasm-no-such-runtime"))
+            .build();
+        assert!(missing.is_err());
+    }
+
+    #[test]
     fn test_load_from_snapshot() {
         let mut sandbox = SandboxBuilder::new().build().unwrap();
         sandbox
