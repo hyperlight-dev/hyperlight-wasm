@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Prerelease] - Unreleased
 
+### Added
+
+- Added `SandboxBuilder::with_runtime_file` to load the guest runtime from a file, and `SandboxBuilder::with_interrupt_vcpu_sigrtmin_offset` to change the interrupt signal on Linux.
+
 ### Changed
 
 - **BREAKING CHANGE:** Component functions use hyperlight's wire names and little-endian encoding, so hosts and guests built with earlier versions cannot call each other.
