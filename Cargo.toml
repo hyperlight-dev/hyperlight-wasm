@@ -21,3 +21,16 @@ hyperlight-guest-bin = "0.18.0"
 hyperlight-host = { version = "0.18.0", default-features = false }
 hyperlight-wasm-macro = { version = "0.15.0", path = "src/hyperlight_wasm_macro" }
 hyperlight-wasm-runtime = { version = "0.15.0", path = "src/hyperlight_wasm_runtime" }
+
+# Unreleased hyperlight with the component wire format and C# bindings.
+# Remove once hyperlight releases these changes.
+[patch.crates-io]
+hyperlight-host = { git = "https://github.com/hyperlight-dev/hyperlight", branch = "component-wire-format" }
+hyperlight-common = { git = "https://github.com/hyperlight-dev/hyperlight", branch = "component-wire-format" }
+hyperlight-guest = { git = "https://github.com/hyperlight-dev/hyperlight", branch = "component-wire-format" }
+hyperlight-guest-bin = { git = "https://github.com/hyperlight-dev/hyperlight", branch = "component-wire-format" }
+hyperlight-guest-macro = { git = "https://github.com/hyperlight-dev/hyperlight", branch = "component-wire-format" }
+hyperlight-guest-tracing = { git = "https://github.com/hyperlight-dev/hyperlight", branch = "component-wire-format" }
+hyperlight-libc = { git = "https://github.com/hyperlight-dev/hyperlight", branch = "component-wire-format" }
+hyperlight-component-macro = { git = "https://github.com/hyperlight-dev/hyperlight", branch = "component-wire-format" }
+hyperlight-component-util = { git = "https://github.com/hyperlight-dev/hyperlight", branch = "component-wire-format" }

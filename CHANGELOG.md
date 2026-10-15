@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Prerelease] - Unreleased
 
+### Changed
+
+- **BREAKING CHANGE:** Component functions use hyperlight's wire names and little-endian encoding, so hosts and guests built with earlier versions cannot call each other.
+
+### Fixed
+
+- Wasm traps report an error instead of aborting the guest with a general protection fault.
+
 ## [v0.15.0] - 2026-08
 
 ### Changed
