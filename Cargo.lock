@@ -1874,6 +1874,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "hyperlight-component-csharp"
+version = "0.18.0"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#616d7889bc275bf6ae7c3d9be068cc0bd62873d0"
+dependencies = [
+ "hyperlight-component-util",
+]
+
+[[package]]
 name = "hyperlight-component-macro"
 version = "0.18.0"
 source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#616d7889bc275bf6ae7c3d9be068cc0bd62873d0"
@@ -2080,6 +2088,13 @@ dependencies = [
  "object 0.39.1",
  "wasmtime 36.0.18",
  "wasmtime 47.0.4",
+]
+
+[[package]]
+name = "hyperlight-wasm-bindgen"
+version = "0.15.0"
+dependencies = [
+ "hyperlight-component-csharp",
 ]
 
 [[package]]
