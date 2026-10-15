@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>Runs WebAssembly components in Hyperlight micro VMs. Use with Hyperlight.Wasm.Build to generate typed bindings from WIT.</Description>
+    <PackageTags>hyperlight;wasm;webassembly;component;sandbox</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Hyperlight.Wasm.Tests" />
+  </ItemGroup>
+
+  <!-- The native library is copied next to referencing apps and packed for the build machine's runtime identifier. -->
+  <PropertyGroup>
+    <HyperlightCapiLibrary>$(HyperlightNativeDir)$(HyperlightNativePrefix)hyperlight_wasm_capi$(HyperlightNativeSuffix)</HyperlightCapiLibrary>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="$(HyperlightCapiLibrary)"
+          Link="$(HyperlightNativePrefix)hyperlight_wasm_capi$(HyperlightNativeSuffix)"
+          CopyToOutputDirectory="PreserveNewest"
+          Pack="true"
+          PackagePath="runtimes/$(HyperlightNativeRid)/native/" />
+  </ItemGroup>
+
+  <Target Name="CheckHyperlightNativeLibrary" BeforeTargets="PrepareForBuild;GenerateNuspec">
+    <Error Condition="!Exists('$(HyperlightCapiLibrary)')"
+           Text="Missing '$(HyperlightCapiLibrary)'. Build it with `cargo build -p hyperlight-wasm-capi --profile $(HyperlightCargoProfile)`, using `dev` for debug, or set HyperlightNativeDir." />
+  </Target>
+
+</Project>
