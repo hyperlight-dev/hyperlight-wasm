@@ -260,7 +260,7 @@ fn emit_import_instance<'b>(
     depth: u32,
     it: &Instance<'b>,
 ) -> TokenStream {
-    let mut s = s.with_cursor(wn.namespace_idents());
+    let mut s = s.with_instance(&wn);
     s.cur_helper_mod = Some(kebab_to_namespace(wn.name));
     s.cur_trait = Some(kebab_to_type(wn.name));
     let imports = it
@@ -283,7 +283,7 @@ fn emit_export_instance<'b>(
     path: Vec<String>,
     it: &Instance<'b>,
 ) -> TokenStream {
-    let mut s = s.with_cursor(wn.namespace_idents());
+    let mut s = s.with_instance(&wn);
     s.cur_helper_mod = Some(kebab_to_namespace(wn.name));
     s.cur_trait = Some(kebab_to_type(wn.name));
     let exports = it

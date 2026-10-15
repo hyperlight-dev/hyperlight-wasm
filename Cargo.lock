@@ -1858,8 +1858,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-common"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "360d5876788b26af66bf055bca6b4f2c9c930a0fdcaebda4bd7f808c6bd93068"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#92cc47430d09ca4c8a2de49f6ad277a5a6416678"
 dependencies = [
  "anyhow",
  "bitflags 2.13.2",
@@ -1878,8 +1877,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-component-macro"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec066e71934ebaddf70345ead15c4d01df880a9cd52fafb2934a559c4fa8a991"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#92cc47430d09ca4c8a2de49f6ad277a5a6416678"
 dependencies = [
  "env_logger",
  "hyperlight-component-util",
@@ -1893,8 +1891,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-component-util"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "271a2a808bc2e6b0058ca8dd6aea81c0dca91ec7919d167315289190bb64e767"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#92cc47430d09ca4c8a2de49f6ad277a5a6416678"
 dependencies = [
  "itertools 0.15.0",
  "prettyplease 0.3.0",
@@ -1911,8 +1908,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7faceeab52cbc0f128e75fa4b0ee9fce17c3c462d7776feca66f41e98bf2a4bb"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#92cc47430d09ca4c8a2de49f6ad277a5a6416678"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -1926,8 +1922,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest-bin"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7eff3c3b94ae4da51f03d535e9a13a4132f5f87694a19514c038a9517cfd750"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#92cc47430d09ca4c8a2de49f6ad277a5a6416678"
 dependencies = [
  "buddy_system_allocator",
  "flatbuffers",
@@ -1945,8 +1940,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest-macro"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f957baa8d97e2787589bf084a18096c08ab4dd22d4f5a040f153f9f719330ec3"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#92cc47430d09ca4c8a2de49f6ad277a5a6416678"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -1957,8 +1951,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest-tracing"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a12c240f87acd92e80ea08e9a405e781e4a15b9f38fee5fe261e9ce69b816d3"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#92cc47430d09ca4c8a2de49f6ad277a5a6416678"
 dependencies = [
  "hyperlight-common",
  "spin 0.12.3",
@@ -1969,8 +1962,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-host"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40f8b85ddd688890477158b9921b228973d1b70c84b866698838df0f32d2aa44"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#92cc47430d09ca4c8a2de49f6ad277a5a6416678"
 dependencies = [
  "anyhow",
  "bindgen",
@@ -2024,8 +2016,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-libc"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a74af1c1cc60140c000a6ebd4eba3121bc2b8f56f134163c25eadca1146b73e0"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#92cc47430d09ca4c8a2de49f6ad277a5a6416678"
 dependencies = [
  "anyhow",
  "bindgen",
