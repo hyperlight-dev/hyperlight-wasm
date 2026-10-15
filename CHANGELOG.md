@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Added the `hyperlight-wasm-capi` crate, a C API that calls component functions with arguments and results encoded in hyperlight's component wire format.
 - Added `SandboxBuilder::with_runtime_file` to load the guest runtime from a file, and `SandboxBuilder::with_interrupt_vcpu_sigrtmin_offset` to change the interrupt signal on Linux.
 
 ### Changed
