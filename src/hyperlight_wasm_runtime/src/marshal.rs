@@ -54,7 +54,6 @@ use hyperlight_common::flatbuffer_wrappers::function_types::{
     ParameterType, ParameterValue, ReturnType, ReturnValue,
 };
 use hyperlight_common::flatbuffer_wrappers::guest_error::ErrorCode;
-use hyperlight_common::flatbuffer_wrappers::util::get_flatbuffer_result;
 use hyperlight_guest::error::{HyperlightGuestError, Result};
 use spin::Mutex;
 use tracing::instrument;
@@ -238,6 +237,9 @@ pub fn hl_param_to_val<C: AsContextMut>(
             Ok(Val::I32(addr))
             // TODO: check that the next parameter is the correct length
         }
+        ParameterValue::ByteChunks(_) => {
+            todo!()
+        }
     }
 }
 
@@ -252,28 +254,31 @@ pub fn val_to_hl_result<C: AsContextMut>(
     get_export: impl Fn(&mut C, &str) -> Option<Extern>,
     rt: ReturnType,
     rvs: &[Val],
-) -> Result<Vec<u8>> {
+) -> Result<ReturnValue> {
     if let ReturnType::Void = rt {
-        return Ok(get_flatbuffer_result::<()>(()));
+        return Ok(ReturnValue::Void(()));
     }
     match (rt, rvs[0]) {
-        (ReturnType::Int, Val::I32(i)) => Ok(get_flatbuffer_result::<i32>(i)),
-        (ReturnType::UInt, Val::I32(u)) => Ok(get_flatbuffer_result::<u32>(u as u32)),
-        (ReturnType::Long, Val::I64(l)) => Ok(get_flatbuffer_result::<i64>(l)),
-        (ReturnType::ULong, Val::I64(u)) => Ok(get_flatbuffer_result::<u64>(u as u64)),
+        (ReturnType::Int, Val::I32(i)) => Ok(ReturnValue::Int(i)),
+        (ReturnType::UInt, Val::I32(u)) => Ok(ReturnValue::UInt(u as u32)),
+        (ReturnType::Long, Val::I64(l)) => Ok(ReturnValue::Long(l)),
+        (ReturnType::ULong, Val::I64(u)) => Ok(ReturnValue::ULong(u as u64)),
         /* todo: get_flatbuffer_result_from_bool is missing */
-        (ReturnType::Float, Val::F32(f)) => Ok(get_flatbuffer_result::<f32>(f32::from_bits(f))),
-        (ReturnType::Double, Val::F64(f)) => Ok(get_flatbuffer_result::<f64>(f64::from_bits(f))),
+        (ReturnType::Float, Val::F32(f)) => Ok(ReturnValue::Float(f32::from_bits(f))),
+        (ReturnType::Double, Val::F64(f)) => Ok(ReturnValue::Double(f64::from_bits(f))),
         (ReturnType::String, Val::I32(p)) => {
             // Track this allocation so it can be freed on next VM entry
             track_return_value_allocation(p);
-            Ok(get_flatbuffer_result::<&str>(
-                read_cstr(&mut ctx, &get_export, p)?.to_str().map_err(|e| {
-                    HyperlightGuestError::new(
-                        ErrorCode::GuestError,
-                        format!("non-UTF-8 c string in guest function return: {}", e),
-                    )
-                })?,
+            Ok(ReturnValue::String(
+                read_cstr(&mut ctx, &get_export, p)?
+                    .to_str()
+                    .map_err(|e| {
+                        HyperlightGuestError::new(
+                            ErrorCode::GuestError,
+                            format!("non-UTF-8 c string in guest function return: {}", e),
+                        )
+                    })?
+                    .to_string(),
             ))
         }
         (ReturnType::VecBytes, Val::I32(ret)) => {
@@ -284,7 +289,7 @@ pub fn val_to_hl_result<C: AsContextMut>(
             let size = i32::from_le_bytes(size_bytes);
             let mut bytes = vec![0; size as usize];
             read(&mut ctx, &get_export, ret + 4, &mut bytes)?;
-            Ok(get_flatbuffer_result::<&[u8]>(&bytes))
+            Ok(ReturnValue::VecBytes(bytes))
         }
         (_, _) => Err(HyperlightGuestError::new(
             ErrorCode::GuestError,
@@ -383,6 +388,9 @@ pub fn hl_return_to_val<C: AsContextMut>(
             write(ctx, &get_export, addr, b.as_ref())?;
             Ok(Val::I32(addr))
             // TODO: check that the next parameter is the correct length
+        }
+        ReturnValue::ByteChunks(_) => {
+            todo!()
         }
         ReturnValue::Void(()) => Ok(Val::I32(0)),
     }

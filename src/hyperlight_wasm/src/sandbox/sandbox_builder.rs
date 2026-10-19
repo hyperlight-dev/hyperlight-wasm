@@ -37,7 +37,7 @@ impl SandboxBuilder {
     /// Create a new SandboxBuilder
     pub fn new() -> Self {
         let mut config: SandboxConfiguration = Default::default();
-        config.set_input_data_size(MIN_INPUT_DATA_SIZE);
+        config.set_h2g_pool_pages(MIN_INPUT_DATA_SIZE / hyperlight_common::vmem::PAGE_SIZE);
         config.set_heap_size(MIN_HEAP_SIZE);
         config.set_scratch_size(MIN_SCRATCH_SIZE);
 
@@ -79,8 +79,13 @@ impl SandboxBuilder {
     }
 
     /// Set the guest output buffer size
+    #[deprecated(
+        since = "0.16.0",
+        note = "use with_g2h_{pool_pages,buffer_size,queue_size}"
+    )]
     pub fn with_guest_output_buffer_size(mut self, guest_output_buffer_size: usize) -> Self {
-        self.config.set_output_data_size(guest_output_buffer_size);
+        self.config
+            .set_g2h_pool_pages(guest_output_buffer_size / hyperlight_common::vmem::PAGE_SIZE + 1);
         self
     }
 
@@ -89,10 +94,54 @@ impl SandboxBuilder {
     /// to send data to the host
     /// The host can read from this buffer
     /// The guest can write to this buffer
+    #[deprecated(
+        since = "0.16.0",
+        note = "use with_h2g_{pool_pages,buffer_size,queue_size}"
+    )]
     pub fn with_guest_input_buffer_size(mut self, guest_input_buffer_size: usize) -> Self {
         if guest_input_buffer_size > MIN_INPUT_DATA_SIZE {
-            self.config.set_input_data_size(guest_input_buffer_size);
+            self.config.set_h2g_pool_pages(
+                guest_input_buffer_size / hyperlight_common::vmem::PAGE_SIZE + 1,
+            );
         }
+        self
+    }
+
+    /// Set the maximum number of guest pages used for Guest2Host buffers
+    pub fn with_g2h_pool_pages(mut self, pages: usize) -> Self {
+        self.config.set_g2h_pool_pages(pages);
+        self
+    }
+
+    /// Set the maximum number of in-flight Guest2Host descriptors
+    pub fn with_g2h_queue_size(mut self, entries: usize) -> Self {
+        self.config.set_g2h_queue_size(entries);
+        self
+    }
+
+    /// Set the size of each in-flight GuestToHost buffer
+    pub fn with_g2h_buffer_size(mut self, size: usize) -> Self {
+        self.config.set_g2h_buffer_size(size);
+        self
+    }
+
+    /// Set the maximum number of guest pages used for Host2Guest buffers
+    pub fn with_h2g_pool_pages(mut self, pages: usize) -> Self {
+        if pages > (MIN_INPUT_DATA_SIZE / hyperlight_common::vmem::PAGE_SIZE + 1) {
+            self.config.set_h2g_pool_pages(pages);
+        }
+        self
+    }
+
+    /// Set the maximum number of in-flight Host2Guest descriptors
+    pub fn with_h2g_queue_size(mut self, entries: usize) -> Self {
+        self.config.set_h2g_queue_size(entries);
+        self
+    }
+
+    /// Set the size of each in-flight Host2Guest buffer
+    pub fn with_h2g_buffer_size(mut self, size: usize) -> Self {
+        self.config.set_h2g_buffer_size(size);
         self
     }
 

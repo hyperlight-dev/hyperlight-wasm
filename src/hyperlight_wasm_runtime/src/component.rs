@@ -21,10 +21,9 @@ use core::result::Result::*;
 
 use hyperlight_common::flatbuffer_wrappers::function_call::FunctionCall;
 use hyperlight_common::flatbuffer_wrappers::function_types::{
-    ParameterType, ParameterValue, ReturnType,
+    ParameterType, ParameterValue, ReturnType, ReturnValue,
 };
 use hyperlight_common::flatbuffer_wrappers::guest_error::ErrorCode;
-use hyperlight_common::flatbuffer_wrappers::util::get_flatbuffer_result;
 use hyperlight_guest::error::{HyperlightGuestError, Result};
 use hyperlight_guest_bin::guest_function::definition::GuestFunctionDefinition;
 use hyperlight_guest_bin::guest_function::register::register_function;
@@ -45,8 +44,8 @@ hyperlight_wasm_macro::wasm_guest_bindgen!();
 
 // dummy for compatibility with the module loading approach
 #[instrument(skip_all, level = "Info")]
-fn init_wasm_runtime(_function_call: FunctionCall) -> Result<Vec<u8>> {
-    Ok(get_flatbuffer_result::<i32>(0))
+fn init_wasm_runtime(_function_call: FunctionCall) -> Result<ReturnValue> {
+    Ok(ReturnValue::Int(0))
 }
 
 #[instrument(skip_all, level = "Info")]
@@ -63,7 +62,7 @@ fn load_component_common(engine: &Engine, component: Component) -> Result<()> {
 }
 
 #[instrument(skip_all, level = "Info")]
-fn load_wasm_module(function_call: FunctionCall) -> Result<Vec<u8>> {
+fn load_wasm_module(function_call: FunctionCall) -> Result<ReturnValue> {
     if let (
         ParameterValue::VecBytes(ref wasm_bytes),
         ParameterValue::Int(ref _len),
@@ -76,7 +75,7 @@ fn load_wasm_module(function_call: FunctionCall) -> Result<Vec<u8>> {
         let component =
             unsafe { Component::deserialize(engine, wasm_bytes).map_err(map_wasmtime_error)? };
         load_component_common(engine, component)?;
-        Ok(get_flatbuffer_result::<i32>(0))
+        Ok(ReturnValue::Int(0))
     } else {
         Err(HyperlightGuestError::new(
             ErrorCode::GuestFunctionParameterTypeMismatch,
@@ -86,7 +85,7 @@ fn load_wasm_module(function_call: FunctionCall) -> Result<Vec<u8>> {
 }
 
 #[instrument(skip_all, level = "Info")]
-fn load_wasm_module_phys(function_call: FunctionCall) -> Result<Vec<u8>> {
+fn load_wasm_module_phys(function_call: FunctionCall) -> Result<ReturnValue> {
     if let (ParameterValue::ULong(ref phys), ParameterValue::ULong(ref len), Some(ref engine)) = (
         &function_call.parameters.as_ref().unwrap()[0],
         &function_call.parameters.as_ref().unwrap()[1],
@@ -97,7 +96,7 @@ fn load_wasm_module_phys(function_call: FunctionCall) -> Result<Vec<u8>> {
                 .map_err(map_wasmtime_error)?
         };
         load_component_common(engine, component)?;
-        Ok(get_flatbuffer_result::<()>(()))
+        Ok(ReturnValue::Void(()))
     } else {
         Err(HyperlightGuestError::new(
             ErrorCode::GuestFunctionParameterTypeMismatch,

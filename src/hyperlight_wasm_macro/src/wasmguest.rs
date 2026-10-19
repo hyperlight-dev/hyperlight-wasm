@@ -166,7 +166,7 @@ fn emit_export_extern_decl<'b>(
             let (function_call, ret) = emit_wasm_function_call(s, &ft.result, pwts, pus);
             let marshal_result = emit_hl_marshal_result(s, ret.clone(), &ft.result);
             quote! {
-                fn #n(fc: ::hyperlight_common::flatbuffer_wrappers::function_call::FunctionCall) -> ::hyperlight_guest::error::Result<::alloc::vec::Vec<u8>> {
+                fn #n(fc: ::hyperlight_common::flatbuffer_wrappers::function_call::FunctionCall) -> ::hyperlight_guest::error::Result<::hyperlight_common::flatbuffer_wrappers::function_types::ReturnValue> {
                     #(#pds)*
                     let mut store = CUR_STORE.lock(); let mut store = store.as_mut().unwrap();
                     let instance = CUR_INSTANCE.lock(); let mut instance = instance.unwrap();
@@ -174,7 +174,7 @@ fn emit_export_extern_decl<'b>(
                     #(#get_instance;)*
                     let func_idx = instance.get_export_index(&mut *store, instance_idx.as_ref(), #nlit).unwrap();
                     #function_call
-                    ::core::result::Result::Ok(::hyperlight_common::flatbuffer_wrappers::util::get_flatbuffer_result::<&[u8]>(&#marshal_result))
+                    ::core::result::Result::Ok(::hyperlight_common::flatbuffer_wrappers::function_types::ReturnValue::VecBytes(#marshal_result))
                 }
                 ::hyperlight_guest_bin::guest_function::register::register_function(
                     ::hyperlight_guest_bin::guest_function::definition::GuestFunctionDefinition::new(

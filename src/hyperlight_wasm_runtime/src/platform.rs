@@ -19,6 +19,7 @@ use core::ptr::NonNull;
 use core::sync::atomic::{AtomicPtr, AtomicU64, Ordering};
 
 use hyperlight_common::vmem;
+#[allow(deprecated)]
 use hyperlight_guest_bin::exception::arch;
 use hyperlight_guest_bin::paging;
 
@@ -205,6 +206,7 @@ fn copy_va_mapping(base: *const u8, len: usize, to_va: *mut u8, remap_original: 
             // Skip unmapped pages, since they will be unmapped in
             // both the original and the new copy
             vmem::MappingKind::Unmapped => continue,
+            vmem::MappingKind::ZeroInit(bm) => (vmem::MappingKind::ZeroInit(bm), false),
             vmem::MappingKind::Basic(bm) if bm.writable => (
                 vmem::MappingKind::Cow(vmem::CowMapping {
                     readable: bm.readable,

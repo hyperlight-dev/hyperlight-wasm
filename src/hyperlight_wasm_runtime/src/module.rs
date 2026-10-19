@@ -15,16 +15,14 @@ limitations under the License.
 */
 
 use alloc::string::ToString;
-use alloc::vec::Vec;
 use alloc::{format, vec};
 use core::ops::{Deref, DerefMut};
 
 use hyperlight_common::flatbuffer_wrappers::function_call::FunctionCall;
 use hyperlight_common::flatbuffer_wrappers::function_types::{
-    ParameterType, ParameterValue, ReturnType,
+    ParameterType, ParameterValue, ReturnType, ReturnValue,
 };
 use hyperlight_common::flatbuffer_wrappers::guest_error::ErrorCode;
-use hyperlight_common::flatbuffer_wrappers::util::get_flatbuffer_result;
 use hyperlight_guest::error::{HyperlightGuestError, Result};
 use hyperlight_guest_bin::guest_function::definition::GuestFunctionDefinition;
 use hyperlight_guest_bin::guest_function::register::register_function;
@@ -45,7 +43,7 @@ static CUR_INSTANCE: Mutex<Option<wasmtime::Instance>> = Mutex::new(None);
 
 #[no_mangle]
 #[instrument(skip_all, level = "Info")]
-pub fn guest_dispatch_function(function_call: FunctionCall) -> Result<Vec<u8>> {
+pub fn guest_dispatch_function(function_call: FunctionCall) -> Result<ReturnValue> {
     let mut store = CUR_STORE.lock();
     let store = store.deref_mut().as_mut().ok_or(HyperlightGuestError::new(
         ErrorCode::GuestError,
@@ -97,7 +95,7 @@ pub fn guest_dispatch_function(function_call: FunctionCall) -> Result<Vec<u8>> {
 }
 
 #[instrument(skip_all, level = "Info")]
-fn init_wasm_runtime(function_call: FunctionCall) -> Result<Vec<u8>> {
+fn init_wasm_runtime(function_call: FunctionCall) -> Result<ReturnValue> {
     let mut config = Config::new();
     // Enable x86_float_abi_ok only for the latest Wasmtime native x86 target.
     // Safety:
@@ -173,11 +171,11 @@ fn init_wasm_runtime(function_call: FunctionCall) -> Result<Vec<u8>> {
 
     *CUR_ENGINE.lock() = Some(engine);
     *CUR_LINKER.lock() = Some(linker);
-    Ok(get_flatbuffer_result::<i32>(0))
+    Ok(ReturnValue::Int(0))
 }
 
 #[instrument(skip_all, level = "Info")]
-fn load_wasm_module(function_call: FunctionCall) -> Result<Vec<u8>> {
+fn load_wasm_module(function_call: FunctionCall) -> Result<ReturnValue> {
     if let (
         ParameterValue::VecBytes(ref wasm_bytes),
         ParameterValue::Int(ref _len),
@@ -203,7 +201,7 @@ fn load_wasm_module(function_call: FunctionCall) -> Result<Vec<u8>> {
         *CUR_MODULE.lock() = Some(module);
         *CUR_STORE.lock() = Some(store);
         *CUR_INSTANCE.lock() = Some(instance);
-        Ok(get_flatbuffer_result::<i32>(0))
+        Ok(ReturnValue::Int(0))
     } else {
         Err(HyperlightGuestError::new(
             ErrorCode::GuestFunctionParameterTypeMismatch,
@@ -213,7 +211,7 @@ fn load_wasm_module(function_call: FunctionCall) -> Result<Vec<u8>> {
 }
 
 #[instrument(skip_all, level = "Info")]
-fn load_wasm_module_phys(function_call: FunctionCall) -> Result<Vec<u8>> {
+fn load_wasm_module_phys(function_call: FunctionCall) -> Result<ReturnValue> {
     if let (ParameterValue::ULong(ref phys), ParameterValue::ULong(ref len), Some(ref engine)) = (
         &function_call.parameters.as_ref().unwrap()[0],
         &function_call.parameters.as_ref().unwrap()[1],
@@ -237,7 +235,7 @@ fn load_wasm_module_phys(function_call: FunctionCall) -> Result<Vec<u8>> {
         *CUR_MODULE.lock() = Some(module);
         *CUR_STORE.lock() = Some(store);
         *CUR_INSTANCE.lock() = Some(instance);
-        Ok(get_flatbuffer_result::<()>(()))
+        Ok(ReturnValue::Void(()))
     } else {
         Err(HyperlightGuestError::new(
             ErrorCode::GuestFunctionParameterTypeMismatch,

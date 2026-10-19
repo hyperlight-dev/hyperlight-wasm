@@ -54,6 +54,7 @@ pub(crate) fn hostfunc_type(d: &HostFunctionDefinition, e: &Engine) -> Result<Fu
                 last_was_vec = true;
                 ValType::I32
             }
+            ParameterType::ByteChunks => todo!(),
         });
     }
     let mut results = Vec::new();
@@ -71,6 +72,7 @@ pub(crate) fn hostfunc_type(d: &HostFunctionDefinition, e: &Engine) -> Result<Fu
          * a packed i64 with a (wasm32) pointer in the lower half and
          * a length in the upper half. */
         ReturnType::VecBytes => results.push(ValType::I64),
+        ReturnType::ByteChunks => todo!(),
     }
     Ok(FuncType::new(e, params, results))
 }
@@ -121,6 +123,7 @@ fn return_type_from_val(val: &ReturnValue) -> ReturnType {
         ReturnValue::Double(_) => ReturnType::Double,
         ReturnValue::String(_) => ReturnType::String,
         ReturnValue::VecBytes(_) => ReturnType::VecBytes,
+        ReturnValue::ByteChunks(_) => ReturnType::ByteChunks,
         ReturnValue::Bool(_) => ReturnType::Bool,
         ReturnValue::Void(_) => ReturnType::Void,
     }
