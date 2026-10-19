@@ -34,6 +34,7 @@ wasmtime = { version = "47.0.4", default-features = false, features = [ "runtime
 wasmtime_lts = { package = "wasmtime", version = "36.0.14", default-features = false, features = [ "runtime", "custom-virtual-memory", "custom-native-signals", "component-model" ], optional = true }
 spin = "0.12.0"
 tracing = { version = "0.1.44", default-features = false, features = ["attributes", "log"] }
+bytes = { version = "1", default-features = false }
 
 [build-dependencies]
 cfg_aliases = "0.2.1"

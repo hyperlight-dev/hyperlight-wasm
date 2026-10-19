@@ -50,6 +50,7 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 use alloc::{format, vec};
 
+use bytes::Bytes;
 use hyperlight_common::flatbuffer_wrappers::function_types::{
     ParameterType, ParameterValue, ReturnType, ReturnValue,
 };
@@ -205,6 +206,21 @@ fn read_cstr<C: AsContextMut>(
     })
 }
 
+fn to_val_bytes<'a, C: AsContextMut>(
+    ctx: &mut C,
+    get_export: impl Fn(&mut C, &str) -> Option<Extern>,
+    mut bs: impl Iterator<Item = &'a [u8]> + Clone,
+) -> Result<Val> {
+    let len = bs.clone().map(|x| x.len()).sum();
+    let addr = malloc(ctx, &get_export, len)?;
+    let _ = bs.try_fold(addr, |a, b| {
+        write(ctx, &get_export, a, b)?;
+        Result::Ok(a + b.len() as i32)
+    })?;
+    Result::Ok(Val::I32(addr))
+    // TODO: check that the next parameter is the correct length
+}
+
 /// Convert a hyperlight parameter value to a wasmtime value.
 ///
 /// For String and VecBytes parameter types, this allocates memory in the guest's memory space
@@ -232,13 +248,10 @@ pub fn hl_param_to_val<C: AsContextMut>(
             Ok(Val::I32(addr))
         }
         ParameterValue::VecBytes(b) => {
-            let addr = malloc(&mut ctx, &get_export, b.len())?;
-            write(&mut ctx, &get_export, addr, b)?;
-            Ok(Val::I32(addr))
-            // TODO: check that the next parameter is the correct length
+            to_val_bytes(&mut ctx, get_export, core::iter::once(b.as_ref()))
         }
-        ParameterValue::ByteChunks(_) => {
-            todo!()
+        ParameterValue::ByteChunks(bs) => {
+            to_val_bytes(&mut ctx, get_export, bs.iter().map(|x| x.as_ref()))
         }
     }
 }
@@ -258,6 +271,16 @@ pub fn val_to_hl_result<C: AsContextMut>(
     if let ReturnType::Void = rt {
         return Ok(ReturnValue::Void(()));
     }
+    let mut get_bytes = |ret| {
+        // Track this allocation so it can be freed on next VM entry
+        track_return_value_allocation(ret);
+        let mut size_bytes = [0; 4];
+        read(&mut ctx, &get_export, ret, &mut size_bytes)?;
+        let size = i32::from_le_bytes(size_bytes);
+        let mut bytes = vec![0; size as usize];
+        read(&mut ctx, &get_export, ret + 4, &mut bytes)?;
+        Result::Ok(bytes)
+    };
     match (rt, rvs[0]) {
         (ReturnType::Int, Val::I32(i)) => Ok(ReturnValue::Int(i)),
         (ReturnType::UInt, Val::I32(u)) => Ok(ReturnValue::UInt(u as u32)),
@@ -281,15 +304,11 @@ pub fn val_to_hl_result<C: AsContextMut>(
                     .to_string(),
             ))
         }
-        (ReturnType::VecBytes, Val::I32(ret)) => {
-            // Track this allocation so it can be freed on next VM entry
-            track_return_value_allocation(ret);
-            let mut size_bytes = [0; 4];
-            read(&mut ctx, &get_export, ret, &mut size_bytes)?;
-            let size = i32::from_le_bytes(size_bytes);
-            let mut bytes = vec![0; size as usize];
-            read(&mut ctx, &get_export, ret + 4, &mut bytes)?;
-            Ok(ReturnValue::VecBytes(bytes))
+        (ReturnType::VecBytes, Val::I32(ret)) => Ok(ReturnValue::VecBytes(get_bytes(ret)?)),
+        (ReturnType::ByteChunks, Val::I32(ret)) => {
+            Ok(ReturnValue::ByteChunks(vec![Bytes::from_owner(get_bytes(
+                ret,
+            )?)]))
         }
         (_, _) => Err(HyperlightGuestError::new(
             ErrorCode::GuestError,
@@ -299,6 +318,22 @@ pub fn val_to_hl_result<C: AsContextMut>(
             ),
         )),
     }
+}
+
+fn val_to_bytes<'a, C: AsContextMut>(
+    ctx: &mut C,
+    get_export: impl Fn(&mut C, &str) -> Option<Extern>,
+    ps: &mut impl Iterator<Item = &'a Val>,
+    last_vec_len: &mut Option<u32>,
+    p: i32,
+) -> Vec<u8> {
+    let Some(Val::I32(l)) = ps.next() else {
+        panic!("Host function call missing vecbytes length parameter");
+    };
+    *last_vec_len = Some(*l as u32);
+    let mut bytes = vec![0; *l as usize];
+    read(ctx, &get_export, p, &mut bytes).unwrap();
+    bytes.clone()
 }
 
 /// Convert guest-provided WASM values to hyperlight parameters for host function calls.
@@ -342,13 +377,12 @@ pub fn val_to_hl_param<'a, C: AsContextMut>(
                 .to_string(),
         )),
         (ParameterType::VecBytes, Val::I32(p)) => {
-            let Some(Val::I32(l)) = ps.next() else {
-                panic!("Host function call missing vecbytes length parameter");
-            };
-            *last_vec_len = Some(*l as u32);
-            let mut bytes = vec![0; *l as usize];
-            read(ctx, &get_export, *p, &mut bytes).unwrap();
-            Some(ParameterValue::VecBytes(bytes.clone()))
+            let bs = val_to_bytes(ctx, get_export, ps, last_vec_len, *p);
+            Some(ParameterValue::VecBytes(bs))
+        }
+        (ParameterType::ByteChunks, Val::I32(p)) => {
+            let bs = val_to_bytes(ctx, get_export, ps, last_vec_len, *p);
+            Some(ParameterValue::ByteChunks(vec![Bytes::from_owner(bs)]))
         }
         (_, _) => panic!(
             "Host function return type combination unsupported: {:?} / {:?}",
@@ -383,15 +417,8 @@ pub fn hl_return_to_val<C: AsContextMut>(
             write(ctx, &get_export, addr, s.as_bytes_with_nul())?;
             Ok(Val::I32(addr))
         }
-        ReturnValue::VecBytes(b) => {
-            let addr = malloc(ctx, &get_export, b.len())?;
-            write(ctx, &get_export, addr, b.as_ref())?;
-            Ok(Val::I32(addr))
-            // TODO: check that the next parameter is the correct length
-        }
-        ReturnValue::ByteChunks(_) => {
-            todo!()
-        }
+        ReturnValue::VecBytes(b) => to_val_bytes(ctx, get_export, core::iter::once(b.as_ref())),
+        ReturnValue::ByteChunks(bs) => to_val_bytes(ctx, get_export, bs.iter().map(|x| x.as_ref())),
         ReturnValue::Void(()) => Ok(Val::I32(0)),
     }
 }

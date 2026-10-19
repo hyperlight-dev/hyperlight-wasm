@@ -2040,6 +2040,7 @@ dependencies = [
  "anyhow",
  "blake3",
  "built",
+ "bytes",
  "cargo-hyperlight",
  "cfg-if",
  "cfg_aliases",
@@ -2106,6 +2107,7 @@ dependencies = [
 name = "hyperlight-wasm-runtime"
 version = "0.15.0"
 dependencies = [
+ "bytes",
  "cargo_metadata",
  "cc",
  "cfg-if",

@@ -230,6 +230,7 @@ mod tests {
     use std::sync::Arc;
     use std::thread;
 
+    use bytes::Bytes;
     use crossbeam_queue::ArrayQueue;
     use examples_common::get_wasm_module_path;
     use hyperlight_host::{HyperlightError, new_error};
@@ -439,6 +440,49 @@ mod tests {
     }
 
     #[test]
+    fn test_call_host_func_with_bytechunks() {
+        let host_func = |b: Vec<Bytes>, l: i32| {
+            // get the C String from the vec of bytes
+
+            let b = b.iter().flatten().cloned().collect::<Vec<_>>();
+            let s = std::str::from_utf8(&b).unwrap();
+            println!("Host function received buffer: {}", s);
+
+            // check that s is the expected value if not return an error
+            if s != "Hello World!" {
+                return Err(new_error!("Unexpected value in buffer {}", s));
+            }
+
+            if l != 12 {
+                return Err(new_error!("Unexpected length of buffer {}", l));
+            }
+            Ok(0i32)
+        };
+
+        let mut proto_wasm_sandbox = SandboxBuilder::new().build().unwrap();
+
+        proto_wasm_sandbox
+            .register("HostFuncWithBufferAndLength", host_func)
+            .unwrap();
+
+        let wasm_sandbox = proto_wasm_sandbox.load_runtime().unwrap();
+
+        let mut loaded_wasm_sandbox: LoadedWasmSandbox = {
+            let mod_path = get_wasm_module_path("HostFunction.aot").unwrap();
+            wasm_sandbox.load_module(mod_path)
+        }
+        .unwrap();
+
+        // Call a guest function that calls a host function that takes a buffer and a length
+
+        let r: i32 = loaded_wasm_sandbox
+            .call_guest_function("PassBufferAndLengthToHost", ())
+            .unwrap();
+
+        assert_eq!(r, 0);
+    }
+
+    #[test]
     fn test_load_module_fails_with_missing_host_function() {
         // HostFunction.aot imports "HostFuncWithBufferAndLength" from "env".
         // Loading it without registering that host function should fail
@@ -518,6 +562,28 @@ mod tests {
         for i in 0..iterations {
             let result: Vec<u8> = loaded_wasm_sandbox
                 .call_guest_function("ReceiveByteArray", (vec![0x01, 0x02, 0x03], 3i32))
+                .unwrap();
+
+            println!(
+                "Got result: {:?} from the host function! iteration {}",
+                result, i,
+            );
+        }
+
+        // The same, but using ByteChunks instead of VecBytes
+
+        for i in 0..iterations {
+            let result: Vec<Bytes> = loaded_wasm_sandbox
+                .call_guest_function(
+                    "ReceiveByteArray",
+                    (
+                        vec![
+                            Bytes::from_owner(vec![0x01, 0x02]),
+                            Bytes::from_owner(vec![0x03]),
+                        ],
+                        3i32,
+                    ),
+                )
                 .unwrap();
 
             println!(

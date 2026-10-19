@@ -54,7 +54,10 @@ pub(crate) fn hostfunc_type(d: &HostFunctionDefinition, e: &Engine) -> Result<Fu
                 last_was_vec = true;
                 ValType::I32
             }
-            ParameterType::ByteChunks => todo!(),
+            ParameterType::ByteChunks => {
+                last_was_vec = true;
+                ValType::I32
+            }
         });
     }
     let mut results = Vec::new();
@@ -72,7 +75,7 @@ pub(crate) fn hostfunc_type(d: &HostFunctionDefinition, e: &Engine) -> Result<Fu
          * a packed i64 with a (wasm32) pointer in the lower half and
          * a length in the upper half. */
         ReturnType::VecBytes => results.push(ValType::I64),
-        ReturnType::ByteChunks => todo!(),
+        ReturnType::ByteChunks => results.push(ValType::I64),
     }
     Ok(FuncType::new(e, params, results))
 }
