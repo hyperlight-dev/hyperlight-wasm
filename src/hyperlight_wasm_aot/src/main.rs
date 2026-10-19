@@ -27,6 +27,7 @@ use wasmtime::{Config, Engine, Module, OptLevel, Precompiled};
 #[derive(Debug)]
 enum SupportedTarget {
     X86_64UnknownNone,
+    AArch64UnknownNone,
     WasmtimePulley64,
 }
 
@@ -34,6 +35,7 @@ impl Display for SupportedTarget {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             SupportedTarget::X86_64UnknownNone => write!(f, "x86_64-unknown-none"),
+            SupportedTarget::AArch64UnknownNone => write!(f, "aarch64-unknown-none"),
             SupportedTarget::WasmtimePulley64 => write!(f, "pulley64"),
         }
     }
@@ -112,7 +114,10 @@ fn precompile_bytes_lts(
     if pulley {
         config.target("pulley64").unwrap();
     } else {
+        #[cfg(target_arch = "x86_64")]
         config.target("x86_64-unknown-none").unwrap();
+        #[cfg(target_arch = "aarch64")]
+        config.target("aarch64-unknown-none").unwrap();
     }
     if debug {
         config.debug_info(true);
@@ -133,7 +138,10 @@ fn precompile_bytes_lts(
 /// Detect and deserialize using the LTS wasmtime version
 fn detect_and_deserialize_lts(bytes: &[u8], debug: bool, file: &str) {
     let mut config = wasmtime_lts::Config::new();
+    #[cfg(target_arch = "x86_64")]
     config.target("x86_64-unknown-none").unwrap();
+    #[cfg(target_arch = "aarch64")]
+    config.target("aarch64-unknown-none").unwrap();
     if debug {
         config.debug_info(true);
         config.cranelift_opt_level(wasmtime_lts::OptLevel::None);
@@ -189,7 +197,11 @@ fn main() {
                     let target = if pulley {
                         SupportedTarget::WasmtimePulley64
                     } else {
-                        SupportedTarget::X86_64UnknownNone
+                        #[cfg(target_arch = "x86_64")]
+                        let target = SupportedTarget::X86_64UnknownNone;
+                        #[cfg(target_arch = "aarch64")]
+                        let target = SupportedTarget::AArch64UnknownNone;
+                        target
                     };
                     if debug {
                         println!(
@@ -216,7 +228,14 @@ fn main() {
                     let target_name = if pulley {
                         "pulley64"
                     } else {
-                        "x86_64-unknown-none"
+                        #[cfg(target_arch = "x86_64")]
+                        {
+                            "x86_64-unknown-none"
+                        }
+                        #[cfg(target_arch = "aarch64")]
+                        {
+                            "aarch64-unknown-none"
+                        }
                     };
                     if debug {
                         println!(
@@ -356,6 +375,9 @@ fn get_config(debug: bool, minimal: bool, target: &SupportedTarget) -> Config {
             // See https://github.com/bytecodealliance/wasmtime/pull/11553
             unsafe { config.x86_float_abi_ok(true) };
         }
+        SupportedTarget::AArch64UnknownNone => {
+            config.target("aarch64-unknown-none").unwrap();
+        }
         SupportedTarget::WasmtimePulley64 => {
             config.target("pulley64").unwrap();
         }
@@ -390,9 +412,7 @@ fn get_aot_target(bytes: &[u8]) -> Result<SupportedTarget, String> {
     if let Ok(elf) = ElfFile64::<Endianness>::parse(bytes) {
         match elf.architecture() {
             Architecture::X86_64 => Ok(SupportedTarget::X86_64UnknownNone),
-            Architecture::Aarch64 => {
-                Err("Unsupported architecture Aarch64 in AOT compiled file".to_string())
-            }
+            Architecture::Aarch64 => Ok(SupportedTarget::AArch64UnknownNone),
             Architecture::S390x => {
                 Err("Unsupported architecture S390x in AOT compiled file".to_string())
             }
