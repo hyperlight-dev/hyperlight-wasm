@@ -20,7 +20,7 @@ use std::sync::Arc;
 #[cfg(target_os = "linux")]
 use hyperlight_host::mem::memory_region::{MemoryRegion, MemoryRegionFlags, MemoryRegionType};
 use hyperlight_host::sandbox::snapshot::Snapshot;
-use hyperlight_host::{MultiUseSandbox, Result, new_error};
+use hyperlight_host::{Result, Sandbox, new_error};
 
 use super::loaded_wasm_sandbox::LoadedWasmSandbox;
 use crate::sandbox::metrics::{
@@ -35,13 +35,13 @@ mod backing_sandbox {
     #[derive(Debug)]
     pub(super) enum BackingSandbox {
         /// A sandbox which has a clean copy of the runtime in it
-        Clean(MultiUseSandbox),
+        Clean(Sandbox),
         /// A sandbox which has had a wasm component/module loaded into
         /// it, but has not yet run any code from that
-        Loaded(MultiUseSandbox),
+        Loaded(Sandbox),
         /// A sandbox which came from a `LoadedWasmSandbox`, and
         /// therefore presumably has run user code
-        Dirty(MultiUseSandbox),
+        Dirty(Sandbox),
         /// A non-existent sandbox, used as an internal implementation
         /// detail of a few methods.
         Missing,
@@ -88,7 +88,7 @@ mod backing_sandbox {
         }
         pub(super) fn load_via_fn(
             &mut self,
-            load: impl FnOnce(&mut MultiUseSandbox) -> Result<()>,
+            load: impl FnOnce(&mut Sandbox) -> Result<()>,
         ) -> Result<()> {
             *self = match std::mem::replace(self, BackingSandbox::Missing) {
                 BackingSandbox::Clean(mut x) => {
@@ -103,7 +103,7 @@ mod backing_sandbox {
             };
             Ok(())
         }
-        pub(super) fn get_loaded(&mut self) -> Result<MultiUseSandbox> {
+        pub(super) fn get_loaded(&mut self) -> Result<Sandbox> {
             match std::mem::replace(self, BackingSandbox::Missing) {
                 BackingSandbox::Loaded(x) => Ok(x),
                 _ => Err(new_error!(
@@ -169,9 +169,9 @@ use backing_sandbox::*;
 /// function to load a Wasm module into memory. That function will return a
 /// `LoadedWasmSandbox` able to execute code in the loaded Wasm Module.
 pub struct WasmSandbox {
-    // inner is an Option<MultiUseSandbox> as we need to take ownership of it
+    // inner is an Option<Sandbox> as we need to take ownership of it
     // We implement drop on the WasmSandbox to decrement the count of Sandboxes when it is dropped
-    // because of this we cannot implement drop without making inner an Option (alternatively we could make MultiUseSandbox Copy but that would introduce other issues)
+    // because of this we cannot implement drop without making inner an Option (alternatively we could make Sandbox Copy but that would introduce other issues)
     inner: BackingSandbox,
     // Snapshot of state of an initial WasmSandbox (runtime loaded, but no guest module code loaded).
     // Used for LoadedWasmSandbox to be able restore state back to WasmSandbox
@@ -180,11 +180,11 @@ pub struct WasmSandbox {
 
 const MAPPED_BINARY_VA: u64 = 0x1_0000_0000u64;
 impl WasmSandbox {
-    /// Create a new WasmSandBox from a `MultiUseSandbox`.
+    /// Create a new WasmSandBox from a `Sandbox`.
     /// This function should be used to create a new `WasmSandbox` from a ProtoWasmSandbox.
     /// The difference between this function and creating  a `WasmSandbox` directly is that
     /// this function will increment the metrics for the number of `WasmSandbox`es in the system.
-    pub(super) fn new(mut inner: MultiUseSandbox) -> Result<Self> {
+    pub(super) fn new(mut inner: Sandbox) -> Result<Self> {
         let snapshot = inner.snapshot()?;
         metrics::gauge!(METRIC_ACTIVE_WASM_SANDBOXES).increment(1);
         metrics::counter!(METRIC_TOTAL_WASM_SANDBOXES).increment(1);
@@ -198,10 +198,7 @@ impl WasmSandbox {
     /// for example when creating a `WasmSandbox` from a `LoadedWasmSandbox`, since
     /// the snapshot has already been created in that case.
     /// Expects a snapshot of the state where wasm runtime is loaded, but no guest module code is loaded.
-    pub(super) fn new_from_loaded(
-        loaded: MultiUseSandbox,
-        snapshot: Arc<Snapshot>,
-    ) -> Result<Self> {
+    pub(super) fn new_from_loaded(loaded: Sandbox, snapshot: Arc<Snapshot>) -> Result<Self> {
         metrics::gauge!(METRIC_ACTIVE_WASM_SANDBOXES).increment(1);
         metrics::counter!(METRIC_TOTAL_WASM_SANDBOXES).increment(1);
         Ok(WasmSandbox {
@@ -315,7 +312,7 @@ impl WasmSandbox {
     }
 }
 
-fn load_wasm_module_from_bytes(inner: &mut MultiUseSandbox, wasm_bytes: Vec<u8>) -> Result<()> {
+fn load_wasm_module_from_bytes(inner: &mut Sandbox, wasm_bytes: Vec<u8>) -> Result<()> {
     let res: i32 = inner.call(
         "LoadWasmModule",
         (wasm_bytes.clone(), wasm_bytes.len() as i32),

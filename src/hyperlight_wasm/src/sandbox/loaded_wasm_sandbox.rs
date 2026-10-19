@@ -21,7 +21,7 @@ use hyperlight_host::func::{ParameterTuple, SupportedReturnType};
 use hyperlight_host::hypervisor::InterruptHandle;
 use hyperlight_host::sandbox::snapshot::Snapshot;
 use hyperlight_host::sandbox::{Callable, SandboxStatus};
-use hyperlight_host::{MultiUseSandbox, Result, log_then_return, new_error};
+use hyperlight_host::{Result, Sandbox, log_then_return, new_error};
 
 use super::metrics::METRIC_TOTAL_LOADED_WASM_SANDBOXES;
 use super::wasm_sandbox::WasmSandbox;
@@ -37,10 +37,10 @@ use crate::sandbox::metrics::{METRIC_ACTIVE_LOADED_WASM_SANDBOXES, METRIC_SANDBO
 /// a new `LoadedWasmSandbox` -- either from another `WasmSandbox` or by
 /// calling `my_loaded_wasm_sandbox.devolve()?.evolve()?`
 pub struct LoadedWasmSandbox {
-    // inner is an Option<MultiUseSandbox> as we need to take ownership of it
+    // inner is an Option<Sandbox> as we need to take ownership of it
     // We implement drop on the LoadedWasmSandbox to decrement the count of Sandboxes when it is dropped
-    // because of this we cannot implement drop without making inner an Option (alternatively we could make MultiUseSandbox Copy but that would introduce other issues)
-    inner: Option<MultiUseSandbox>,
+    // because of this we cannot implement drop without making inner an Option (alternatively we could make Sandbox Copy but that would introduce other issues)
+    inner: Option<Sandbox>,
     // The state the sandbox was in before loading a wasm module. Used for transitioning back to a `WasmSandbox` (unloading the wasm module).
     runtime_snapshot: Option<Arc<Snapshot>>,
 }
@@ -72,7 +72,7 @@ impl LoadedWasmSandbox {
     ) -> Result<Output> {
         match &mut self.inner {
             Some(inner) => inner.call(fn_name, params),
-            None => log_then_return!("No inner MultiUseSandbox to call"),
+            None => log_then_return!("No inner Sandbox to call"),
         }
     }
 
@@ -89,7 +89,7 @@ impl LoadedWasmSandbox {
     pub fn snapshot(&mut self) -> Result<Arc<Snapshot>> {
         match &mut self.inner {
             Some(inner) => inner.snapshot(),
-            None => log_then_return!("No inner MultiUseSandbox to snapshot"),
+            None => log_then_return!("No inner Sandbox to snapshot"),
         }
     }
 
@@ -108,7 +108,7 @@ impl LoadedWasmSandbox {
     pub fn restore(&mut self, snapshot: Arc<Snapshot>) -> Result<()> {
         match &mut self.inner {
             Some(inner) => inner.restore(snapshot),
-            None => log_then_return!("No inner MultiUseSandbox to restore"),
+            None => log_then_return!("No inner Sandbox to restore"),
         }
     }
 
@@ -124,7 +124,7 @@ impl LoadedWasmSandbox {
         let sandbox = self
             .inner
             .take()
-            .ok_or_else(|| new_error!("No inner MultiUseSandbox to unload"))?;
+            .ok_or_else(|| new_error!("No inner Sandbox to unload"))?;
 
         let snapshot = self
             .runtime_snapshot
@@ -137,7 +137,7 @@ impl LoadedWasmSandbox {
     }
 
     pub(super) fn new(
-        inner: MultiUseSandbox,
+        inner: Sandbox,
         runtime_snapshot: Arc<Snapshot>,
     ) -> Result<LoadedWasmSandbox> {
         metrics::gauge!(METRIC_ACTIVE_LOADED_WASM_SANDBOXES).increment(1);
@@ -168,7 +168,7 @@ impl LoadedWasmSandbox {
     pub fn status(&self) -> Result<SandboxStatus> {
         match &self.inner {
             Some(inner) => Ok(inner.status()),
-            None => log_then_return!("No inner MultiUseSandbox to check status"),
+            None => log_then_return!("No inner Sandbox to check status"),
         }
     }
 
