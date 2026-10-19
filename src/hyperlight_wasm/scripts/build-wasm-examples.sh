@@ -68,13 +68,16 @@ if [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
         cargo run ${AOT_FEATURES} -p hyperlight-wasm-aot compile ${AOT_DEBUG_FLAGS} ${AOT_VERSION_FLAGS} --component ${OUTPUT_DIR}/${COMPONENT_NAME}-p2.wasm ${OUTPUT_DIR}/${COMPONENT_NAME}.aot
     done
 
-else 
+else
     # not running in a container so use the docker image to build the wasm files
     echo Building docker image that has Wasm sdk. Should be quick if preivoulsy built and no changes to dockerfile.
     echo This will take a while if it is the first time you are building the docker image.
     echo Log in ${OUTPUT_DIR}/dockerbuild.log
 
-    docker pull ghcr.io/hyperlight-dev/wasm-clang-builder:latest
+    arch="$(uname -m)"
+    if [[ "$arch" == "x86_64" ]]; then
+        docker pull ghcr.io/hyperlight-dev/wasm-clang-builder:latest
+    fi
 
     docker build --build-arg GCC_VERSION=12 --build-arg WASI_SDK_VERSION_FULL=25.0 --cache-from ghcr.io/hyperlight-dev/wasm-clang-builder:latest -t wasm-clang-builder:latest . 2> ${OUTPUT_DIR}/dockerbuild.log
 
