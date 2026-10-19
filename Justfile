@@ -18,7 +18,7 @@ make-vendor-tar:
 ensure-tools:
     cargo install wasm-tools --locked --version 1.235.0
     cargo install cargo-component --locked --version 0.21.1
-    cargo install wit-bindgen-cli --locked --version 0.43.0
+    cargo install wit-bindgen-cli --locked --version 0.58.0
     cargo install cargo-hyperlight --locked
 
 build-all target=default-target features="": (build target features) (build-examples target features) 
