@@ -23,6 +23,15 @@ permissions:
 jobs:
     build-docker-image:
       if: ${{ inputs.docs_only == 'false' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+      strategy:
+        matrix:
+          arch:
+            - name: X64
+              runner: ubuntu-latest
+              docker-platform: linux/amd64
+            - name: arm64
+              runner: ubuntu-24.04-arm
+              docker-platform: linux/arm64
       runs-on: ubuntu-latest
       steps:
         - uses: actions/checkout@v5
@@ -46,15 +55,18 @@ jobs:
           with:
             images: ${{ github.repository_owner }}/wasm-clang-builder
         - name: Calculate ghcr cache destination
+          id: ghcr-dest
           env:
             CAN_WRITE: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && github.actor != 'dependabot[bot]' }}
           run: |
             if [ "$CAN_WRITE" = "true" ]; then
               echo "CACHE_TO=type=registry,ref=ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:buildcache,mode=max" >> $GITHUB_ENV
               echo "DO_PUSH=true" >> $GITHUB_ENV
+              echo "DO_PUSH=false" >> $GITHUB_OUTPUT
             else
               echo "CACHE_TO=type=local,dest=/tmp/wasm-clang-builder-cache/" >> $GITHUB_ENV
               echo "DO_PUSH=false" >> $GITHUB_ENV
+              echo "DO_PUSH=false" >> $GITHUB_OUTPUT
             fi
         - name: Build and push wasm-clang-builder
         # Only push if not from a fork, not from pull request, and not from dependabot
@@ -67,13 +79,36 @@ jobs:
             build-args: |
               WASI_SDK_VERSION_FULL=25.0
               GCC_VERSION=12
-            tags: ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:latest
+            platforms: ${{ matrix.arch.docker-platform }}
+            tags: ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:latest-${{ matrix.arch.name }}
             cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:buildcache
             cache-to: ${{ env.CACHE_TO }}
+      outputs:
+        do_push: ${{ steps.ghcr-dest.outputs.DO_PUSH }}
+
+    merge-docker-image:
+      needs: build-docker-image
+      if: ${{ needs.build-docker-image.outputs.do_push }}
+      runs-on: ubuntu-latest
+      steps:
+        - name: Login to Registry
+          uses: docker/login-action@v3
+          with:
+            registry: ghcr.io
+            username: ${{ github.actor }}
+            password: ${{ secrets.GITHUB_TOKEN }}
+        - name: Create manifest
+          run: |
+            docker buildx imagetools create -t ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:latest \
+              ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:latest-X64 \
+              ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:latest-arm64
 
     build-wasm-examples:
-      needs: build-docker-image
-      runs-on: ubuntu-latest
+      needs: merge-docker-image
+      # Required because merge-docker-image is skipped on some runs,
+      # and a skipped dependency transitively skips all downstream
+      # jobs.  See: https://github.com/actions/runner/issues/2205
+      if: ${{ !cancelled() && !failure() }}
       strategy:
         matrix:
           wasmtime_version:
@@ -81,14 +116,22 @@ jobs:
               features: ""
             - name: latest
               features: "wasmtime_latest"
+          arch:
+            - name: X64
+              runner: ubuntu-latest
+            - name: arm64
+              runner: ubuntu-24.04-arm
+      runs-on: ${{ matrix.arch.runner }}
       steps:
         - uses: actions/checkout@v5
           with:
             fetch-depth: 0
         - name: Remove default clang
           run: sudo rm /usr/bin/clang
+        - name: Fake /dev/kvm for ci-setup-workflow action
+          run: sudo touch /dev/kvm
         - name: Hyperlight setup workflow
-          uses: hyperlight-dev/ci-setup-workflow@v1.8.0
+          uses: hyperlight-dev/ci-setup-workflow@v2.3.0
           with:
             rust-toolchain: "1.94"
         - name: Set up Docker Buildx
@@ -110,6 +153,6 @@ jobs:
         - name: Upload Wasm Modules (wasmtime ${{ matrix.wasmtime_version.name }})
           uses: actions/upload-artifact@v4
           with:
-            name: guest-modules-${{ matrix.wasmtime_version.name }}
+            name: guest-modules-${{ matrix.arch.name }}-${{ matrix.wasmtime_version.name }}
             path: | 
               build/release/*.aot

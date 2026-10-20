@@ -39,25 +39,54 @@ jobs:
         # failed-job rerun does not need to repeat the entire matrix.
         fail-fast: false
         matrix:
-          hypervisor: [hyperv, mshv3, kvm] # hyperv is windows, mshv and kvm are linux
-          cpu: [amd, intel]
+          hypervisor: [hyperv, mshv3, kvm, hvf] # hyperv is windows, mshv and kvm are linux
+          cpu: [amd, intel, apple, microsoft]
+          arch: [X64, arm64]
           config: [debug, release]
           wasmtime: [latest, lts]
           exclude:
             # Latest testing: skip debug builds to reduce CI load
             - wasmtime: latest
               config: debug
-  
-    runs-on: ${{ fromJson(
-        format('["self-hosted", "{0}", "X64", "1ES.Pool=hld-{1}-{2}", "JobId=build-{3}-{4}-{5}-{6}-{7}"]',
-          matrix.hypervisor == 'hyperv' && 'Windows' || 'Linux', 
-          matrix.hypervisor == 'hyperv' && 'win2025' || matrix.hypervisor == 'mshv3' && 'azlinux3-mshv' || matrix.hypervisor, 
-          matrix.cpu,
-          matrix.config,
-          matrix.wasmtime,
-          github.run_id,
-          github.run_number,
-          github.run_attempt)) }} 
+            - cpu: apple
+              hypervisor: hyperv
+            - cpu: apple
+              hypervisor: mshv3
+            - cpu: microsoft
+              hypervisor: mshv3
+            - cpu: microsoft
+              hypervisor: kvm
+            - cpu: microsoft
+              hypervisor: hvf
+            - arch: X64
+              hypervisor: hvf
+            - cpu: amd
+              arch: arm64
+            - cpu: intel
+              arch: arm64
+            - cpu: apple
+              arch: X64
+            - cpu: microsoft
+              arch: X64
+    runs-on: ${{ fromJson(matrix.arch == 'X64'
+        && format('["self-hosted", "{0}", "X64", "1ES.Pool=hld-{1}-{2}", "JobId=build-{3}-{4}-{5}-{6}-{7}"]',
+            matrix.hypervisor == 'hyperv' && 'Windows' || 'Linux',
+            matrix.hypervisor == 'hyperv' && 'win2025' || matrix.hypervisor == 'mshv3' && 'azlinux3-mshv' || matrix.hypervisor,
+            matrix.cpu,
+            matrix.config,
+            matrix.wasmtime,
+            github.run_id,
+            github.run_number,
+            github.run_attempt)
+        || matrix.hypervisor == 'hyperv'
+        && format('["self-hosted", "Windows", "ARM64", "1ES.Pool=hl-windows-arm", "JobId=build-{0}-{1}-{2}-{3}"]',
+            matrix.config,
+            matrix.run_id,
+            matrix.run_number,
+            matrix.run_attempt)
+        || format('["self-hosted", "{0}", "arm64", "{1}"]',
+            matrix.hypervisor == 'hvf' && 'macos' || 'Linux',
+            matrix.hypervisor)) }}
     env:
       # Features to pass to cargo. 
       # On Windows LTS builds, do not pass any features.
@@ -69,7 +98,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Hyperlight setup
-        uses: hyperlight-dev/ci-setup-workflow@v1.8.0
+        uses: hyperlight-dev/ci-setup-workflow@v2.3.0
         with:
           rust-toolchain: "1.94"
 
@@ -86,10 +115,31 @@ jobs:
         if: runner.os == 'Windows'
         run: rustup component add --toolchain nightly-x86_64-pc-windows-msvc rustfmt
 
+      - name: Configure ARM64 libclang
+        if: runner.os == 'Windows' && matrix.arch == 'arm64'
+        shell: pwsh
+        run: |
+          if (-not $env:VSINSTALLDIR) {
+            throw "Visual Studio developer environment did not set VSINSTALLDIR"
+          }
+          $libclang = Join-Path $env:VSINSTALLDIR "VC\Tools\Llvm\ARM64\bin\libclang.dll"
+          if (-not (Test-Path $libclang)) {
+            throw "ARM64 libclang not found at '$libclang'"
+          }
+          $llvmPath = Split-Path $libclang
+          "LIBCLANG_PATH=$llvmPath" >> $env:GITHUB_ENV
+          $llvmPath >> $env:GITHUB_PATH
+
+      - name: Install clang tools (macOS)
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          brew install llvm
+          echo "$(brew --prefix llvm)/bin" >> "$GITHUB_PATH"
+
       - name: Download Wasm Modules
         uses: actions/download-artifact@v5
         with:
-          name: guest-modules-${{ matrix.wasmtime }}
+          name: guest-modules-${{ matrix.arch }}-${{ matrix.wasmtime }}
           path: ./build/${{ matrix.config }}
 
       - name: Build Rust component model examples
@@ -174,7 +224,7 @@ jobs:
       - name: Download Wasm Modules
         uses: actions/download-artifact@v5
         with:
-          name: guest-modules-${{ matrix.wasmtime }}
+          name: guest-modules-${{ matrix.arch }}-${{ matrix.wasmtime }}
           path: ./build/release
 
       - name: Download benchmarks from "latest"
