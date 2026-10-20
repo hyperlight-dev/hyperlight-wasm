@@ -108,8 +108,6 @@ fn load_wasm_module_phys(function_call: FunctionCall) -> Result<ReturnValue> {
 #[no_mangle]
 #[instrument(skip_all, level = "Info")]
 pub extern "C" fn hyperlight_main() {
-    platform::register_page_fault_handler();
-
     let mut config = Config::new();
     // Enable x86_float_abi_ok only for the latest Wasmtime native x86 target.
     // Safety:
