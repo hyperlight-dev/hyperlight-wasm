@@ -248,8 +248,6 @@ fn load_wasm_module_phys(function_call: FunctionCall) -> Result<ReturnValue> {
 #[no_mangle]
 #[instrument(skip_all, level = "Info")]
 pub extern "C" fn hyperlight_main() {
-    platform::register_page_fault_handler();
-
     register_function(GuestFunctionDefinition::new(
         "PrintOutput".to_string(),
         vec![ParameterType::String],
