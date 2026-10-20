@@ -112,13 +112,14 @@ serde_json = "1.0"
 junction = "2"
 
 [features]
-default = ["function_call_metrics", "kvm", "mshv3"]
+default = ["function_call_metrics", "kvm", "mshv3", "hvf"]
 function_call_metrics = ["hyperlight-host/function_call_metrics"]
 print_debug = ["hyperlight-host/print_debug"]
 crashdump = ["hyperlight-host/crashdump"]
 gdb = ["hyperlight-host/gdb"]
 kvm = ["hyperlight-host/kvm"]
 mshv3 = ["hyperlight-host/mshv3"]
+hvf = ["hyperlight-host/hvf"]
 pulley = []
 trace_guest = ["hyperlight-host/trace_guest"]
 # Use latest wasmtime instead of the default LTS version in wasm_runtime

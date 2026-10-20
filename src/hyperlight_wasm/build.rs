@@ -167,8 +167,12 @@ fn build_wasm_runtime() -> PathBuf {
     cmd.status()
         .unwrap_or_else(|e| panic!("could not run cargo build hyperlight-wasm-runtime: {e:?}"));
 
+    let target_arch = format!(
+        "{}-hyperlight-none",
+        std::env::var("CARGO_CFG_TARGET_ARCH").unwrap()
+    );
     let resource = target_dir
-        .join("x86_64-hyperlight-none")
+        .join(target_arch)
         .join(profile)
         .join("hyperlight-wasm-runtime");
 

@@ -36,7 +36,12 @@ else
     AOT_VERSION_FLAGS=""
 fi
 
-if [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
+if [[ "$CI" == "true" && "$RUNNER_ARCH" == "ARM64" ]]; then
+    # ARM64 gh runners do not have docker installed on the test
+    # runners, but will have already downloaded the built examples
+    # artifact from the builder job
+    echo "Running in GH Actions on ARM64, so not re-building examples"
+elif [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
     # running in a container so use the installed wasi-sdk as the devcontainer has this installed  
     for FILENAME in $(find . -name '*.c' -not -path './components/*')
     do
