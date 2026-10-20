@@ -662,7 +662,10 @@ mod tests {
 
     #[test]
     fn test_load_module_buffer() {
-        let sandboxes = get_test_wasm_sandboxes().unwrap();
+        let sandboxes = get_test_wasm_sandboxes_with_config(|builder| {
+            builder.with_h2g_pool_pages(128).with_h2g_queue_size(128)
+        })
+        .unwrap();
 
         for sbox_test in sandboxes {
             let name = sbox_test.name;
@@ -715,12 +718,13 @@ mod tests {
         name: String,
     }
 
-    fn get_test_wasm_sandboxes() -> Result<Vec<SandboxTest>> {
+    fn get_test_wasm_sandboxes_with_config(
+        f: impl FnOnce(SandboxBuilder) -> SandboxBuilder,
+    ) -> Result<Vec<SandboxTest>> {
         let builder = SandboxBuilder::new()
-            .with_guest_input_buffer_size(0x8000)
-            .with_guest_output_buffer_size(0x8000)
             .with_guest_scratch_size(0x2000)
             .with_guest_heap_size(0x100000);
+        let builder = f(builder);
 
         let mut sandboxes: Vec<SandboxTest> = Vec::new();
         if is_hypervisor_present() {
@@ -731,5 +735,9 @@ mod tests {
         }
 
         Ok(sandboxes)
+    }
+
+    fn get_test_wasm_sandboxes() -> Result<Vec<SandboxTest>> {
+        get_test_wasm_sandboxes_with_config(|b| b)
     }
 }

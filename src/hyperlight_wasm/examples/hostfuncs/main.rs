@@ -21,7 +21,6 @@ fn main() {
     // Create a Wasm Sandbox (this is running in the local Hypervisor)
 
     let mut proto_wasm_sandbox = SandboxBuilder::new()
-        .with_guest_input_buffer_size(0x40000)
         .with_guest_heap_size(0x70000)
         .build()
         .unwrap();

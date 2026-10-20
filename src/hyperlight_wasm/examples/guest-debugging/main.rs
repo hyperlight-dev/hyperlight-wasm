@@ -55,7 +55,10 @@ fn builder() -> SandboxBuilder {
     #[cfg(gdb)]
     {
         SandboxBuilder::new()
-            .with_guest_input_buffer_size(2 * 1024 * 1024) // 2 MiB
+            .with_h2g_pool_pages(512)
+            .with_h2g_queue_size(128)
+            .with_h2g_buffer_size(16384)
+            .with_guest_scratch_size(0xc0_0000)
             .with_guest_heap_size(10 * 1024 * 1024) // 4 MiB
             .with_debugging_enabled(8080) // debugging on port 8080
     }

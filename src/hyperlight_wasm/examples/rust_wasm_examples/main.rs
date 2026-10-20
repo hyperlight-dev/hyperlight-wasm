@@ -39,7 +39,6 @@ fn main() -> Result<()> {
         };
 
         let mut proto_wasm_sandbox = SandboxBuilder::new()
-            .with_guest_input_buffer_size(256 * 1024)
             .with_guest_heap_size(1280 * 1024)
             .build()?;
 

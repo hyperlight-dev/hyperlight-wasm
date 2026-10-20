@@ -32,9 +32,7 @@ fn main() -> Result<()> {
             a + 1
         };
 
-        let mut wasm_sandbox = SandboxBuilder::new()
-            .with_guest_input_buffer_size(1000000)
-            .build()?;
+        let mut wasm_sandbox = SandboxBuilder::new().build()?;
 
         wasm_sandbox.register("TestHostFunc", host_func)?;
 
