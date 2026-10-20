@@ -50,7 +50,7 @@ jobs:
     - name: Download Wasm Modules
       uses: actions/download-artifact@v5
       with:
-        name: guest-modules-lts
+        name: guest-modules-X64-lts
         path: ${{ env.PLATFORM }}/${{ env.CONFIG }}
     - name: Build rust wasm modules
       run: just build-rust-wasm-examples ${{ env.CONFIG }}

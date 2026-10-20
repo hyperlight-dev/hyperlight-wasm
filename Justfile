@@ -90,14 +90,24 @@ fmt:
     cd src/hyperlight_wasm_runtime && cargo +nightly fmt -v --all
     cd src/hyperlight_wasm_macro && cargo +nightly fmt -v --all
 
+# On Windows runners, GH actions extractions/setup-just installs an
+# amd64 version of just, instead of a native aarch64 version. This
+# seems to be mostly okay, but it means that arch() in the justfile
+# will return x86_64 rather than aarch64. So, in aarch64 CI (where
+# this problem happens) we use an env var to override the arch.
+arch := env("JUST_OVERRIDE_ARCH", arch())
+
+clippy-excluded-features := if arch == "x86_64" { "" } else { "gdb,trace_guest,crashdump" }
+clippy-runtime-features := if arch == "x86_64" { ",gdb,trace_guest" } else { "" }
+
 clippy target=default-target: (check target)
-    cargo clippy --workspace --exclude hyperlight-wasm-runtime --exclude hyperlight-wasm-macro --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
+    cargo clippy --workspace --exclude hyperlight-wasm-runtime --exclude hyperlight-wasm-macro --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --features "$(cargo metadata --format-version 1 --no-deps | jq -r '[.packages[]|.name as$pkg|.features|keys.[]|select(.!="default" and (IN($ARGS.positional[0]//" "|split(",")[])|not))|$pkg+"/"+.]|join(",")' --args {{clippy-excluded-features}})" -- -D warnings
     cd src/tests/rust_guests/rust_wasm_samples &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/tests/rust_guests/component_sample &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/tests/rust_guests/greeter_sample &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     # hyperlight_wasm_runtime has mutually exclusive wasmtime features, so we run clippy for each separately with all other features
-    cd src/hyperlight_wasm_runtime && cargo hyperlight clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --no-default-features --features wasmtime_latest,gdb,trace_guest,pulley -- -D warnings
-    cd src/hyperlight_wasm_runtime && cargo hyperlight clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --no-default-features --features wasmtime_lts,gdb,trace_guest -- -D warnings
+    cd src/hyperlight_wasm_runtime && cargo hyperlight clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --no-default-features --features wasmtime_latest{{clippy-runtime-features}},pulley -- -D warnings
+    cd src/hyperlight_wasm_runtime && cargo hyperlight clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --no-default-features --features wasmtime_lts{{clippy-runtime-features}} -- -D warnings
     cd src/hyperlight_wasm_macro && cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
 
 # TESTING

@@ -58,7 +58,7 @@ jobs:
     - name: Download Wasm Modules
       uses: actions/download-artifact@v5
       with:
-        name: guest-modules-lts
+        name: guest-modules-X64-lts
         path: ./build/${{ matrix.config }}
 
     ### Benchmarks ###
