@@ -163,7 +163,7 @@ pub extern "C" fn hyperlight_main() {
 
 #[no_mangle]
 #[instrument(skip_all, level = "Info")]
-pub fn guest_dispatch_function(function_call: FunctionCall) -> Result<Vec<u8>> {
+pub fn guest_dispatch_function(function_call: FunctionCall) -> Result<ReturnValue> {
     Err(HyperlightGuestError::new(
         ErrorCode::GuestFunctionNotFound,
         function_call.function_name.clone(),

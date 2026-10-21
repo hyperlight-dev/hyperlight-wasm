@@ -99,11 +99,8 @@ impl SandboxBuilder {
         note = "use with_h2g_{pool_pages,buffer_size,queue_size}"
     )]
     pub fn with_guest_input_buffer_size(mut self, guest_input_buffer_size: usize) -> Self {
-        if guest_input_buffer_size > MIN_INPUT_DATA_SIZE {
-            self.config.set_h2g_pool_pages(
-                guest_input_buffer_size / hyperlight_common::vmem::PAGE_SIZE + 1,
-            );
-        }
+        self.config
+            .set_h2g_pool_pages(guest_input_buffer_size / hyperlight_common::vmem::PAGE_SIZE + 1);
         self
     }
 
@@ -127,7 +124,7 @@ impl SandboxBuilder {
 
     /// Set the maximum number of guest pages used for Host2Guest buffers
     pub fn with_h2g_pool_pages(mut self, pages: usize) -> Self {
-        if pages > (MIN_INPUT_DATA_SIZE / hyperlight_common::vmem::PAGE_SIZE + 1) {
+        if pages > (MIN_INPUT_DATA_SIZE / hyperlight_common::vmem::PAGE_SIZE) {
             self.config.set_h2g_pool_pages(pages);
         }
         self
