@@ -20,7 +20,7 @@ limitations under the License.
 // This is done by reading the hyperlight-wasm-runtime binary into a static byte array named WASM_RUNTIME.
 // this build script writes the code to do that to a file named built.rs in the OUT_DIR.
 // this file is included in lib.rs.
-// The hyperlight-wasm-runtime binary is expected to be in the x64/{config} directory.
+// The hyperlight-wasm-runtime binary is expected to be in the build/{config} directory.
 
 use std::fs::OpenOptions;
 use std::io::Write;

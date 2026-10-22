@@ -90,7 +90,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: guest-modules-${{ matrix.wasmtime }}
-          path: ./x64/${{ matrix.config }}
+          path: ./build/${{ matrix.config }}
 
       - name: Build Rust component model examples
         run:  |
@@ -175,7 +175,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: guest-modules-${{ matrix.wasmtime }}
-          path: ./x64/release
+          path: ./build/release
 
       - name: Download benchmarks from "latest"
         run: just bench-download ${{ runner.os }} ${{ matrix.hypervisor }} ${{ matrix.cpu }} dev-latest

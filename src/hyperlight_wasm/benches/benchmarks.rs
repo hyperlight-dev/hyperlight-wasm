@@ -75,7 +75,7 @@ fn get_loaded_wasm_sandbox() -> LoadedWasmSandbox {
     let wasm_sandbox = sandbox.load_runtime().unwrap();
 
     wasm_sandbox
-        .load_module("../../x64/release/RunWasm.aot")
+        .load_module("../../build/release/RunWasm.aot")
         .unwrap()
 }
 
