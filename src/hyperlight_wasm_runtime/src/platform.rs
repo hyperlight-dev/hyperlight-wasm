@@ -293,7 +293,13 @@ pub extern "C" fn wasmtime_memory_image_new(
     // the original VA range here, making the original copy CoW as we
     // go.
     let new_virt = FIRST_VADDR.fetch_add(0x100_0000_0000, Ordering::Relaxed) as *mut u8;
-    copy_va_mapping(ptr, len, new_virt, RemapOriginal::MakeCow, ModifyCopy::DontChange);
+    copy_va_mapping(
+        ptr,
+        len,
+        new_virt,
+        RemapOriginal::MakeCow,
+        ModifyCopy::DontChange
+    );
     *ret = new_virt as *mut c_void;
     0
 }
@@ -304,7 +310,13 @@ pub extern "C" fn wasmtime_memory_image_map_at(
     addr: *mut u8,
     len: usize,
 ) -> i32 {
-    copy_va_mapping(image as *mut u8, len, addr, RemapOriginal::DontChange, ModifyCopy::MakeWritable);
+    copy_va_mapping(
+        image as *mut u8,
+        len,
+        addr,
+        RemapOriginal::DontChange,
+        ModifyCopy::MakeWritable
+    );
     0
 }
 
