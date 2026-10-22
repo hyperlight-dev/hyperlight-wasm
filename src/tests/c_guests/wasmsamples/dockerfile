@@ -3,21 +3,25 @@ FROM ubuntu
 ENV DEBIAN_FRONTEND=noninteractive
 LABEL org.opencontainers.image.source=https://github.com/hyperlight-dev/hyperlight-wasm
 
+ARG TARGETPLATFORM
 ARG GCC_VERSION=12
 
 RUN apt-get update \
  && apt-get upgrade -y
 RUN apt-get install -y  wget  \
  && apt-get install -y build-essential \
- && apt-get install -y g++-multilib \
  && apt-get install -y libgcc-${GCC_VERSION}-dev \
- && apt-get install -y lib32gcc-${GCC_VERSION}-dev 
+ && ([[ $TARGETPLATFORM == "linux/amd64" ]] \
+    && (apt-get install -y g++-multilib \
+        && apt-get install -y libgcc32-${GCC_VERSION}-dev) \
+    || true)
 
 ARG WASI_SDK_VERSION_FULL=25.0
 ARG WASI_SDK_VERSION_MAJOR=${WASI_SDK_VERSION_FULL%%.*}
 
-RUN wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION_MAJOR}/wasi-sdk-${WASI_SDK_VERSION_FULL}-x86_64-linux.tar.gz \
- && tar xvf wasi-sdk-${WASI_SDK_VERSION_FULL}-x86_64-linux.tar.gz \
- && rm wasi-sdk-${WASI_SDK_VERSION_FULL}-x86_64-linux.tar.gz \
- && mv /wasi-sdk-${WASI_SDK_VERSION_FULL}-x86_64-linux /opt/wasi-sdk
+RUN WASI_SDK_ARCH=$(echo "${TARGETPLATFORM#*/}" | sed 's/amd64/x86_64/'); \
+    wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION_MAJOR}/wasi-sdk-${WASI_SDK_VERSION_FULL}-${WASI_SDK_ARCH}-linux.tar.gz \
+    && tar xvf wasi-sdk-${WASI_SDK_VERSION_FULL}-${WASI_SDK_ARCH}-linux.tar.gz \
+    && rm wasi-sdk-${WASI_SDK_VERSION_FULL}-${WASI_SDK_ARCH}-linux.tar.gz \
+    && mv /wasi-sdk-${WASI_SDK_VERSION_FULL}-${WASI_SDK_ARCH}-linux /opt/wasi-sdk
 CMD ["/bin/sh"]

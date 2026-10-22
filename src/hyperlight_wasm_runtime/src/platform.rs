@@ -19,87 +19,82 @@ use core::ptr::NonNull;
 use core::sync::atomic::{AtomicPtr, AtomicU64, Ordering};
 
 use hyperlight_common::vmem;
-#[allow(deprecated)]
-use hyperlight_guest_bin::exception::arch;
-use hyperlight_guest_bin::paging;
+use hyperlight_guest_bin::{exception, paging};
+
+// Wasmtime Embedding Interface
+
+const WASMTIME_PROT_READ: u32 = 1 << 0;
+const WASMTIME_PROT_WRITE: u32 = 1 << 1;
+const WASMTIME_PROT_EXEC: u32 = 1 << 2;
+
+#[allow(non_camel_case_types)] // we didn't choose the name!
+type wasmtime_trap_handler_t =
+    extern "C" fn(ip: usize, fp: usize, has_faulting_addr: bool, faulting_addr: usize);
+static WASMTIME_REQUESTED_TRAP_HANDLER: spin::Mutex<Option<wasmtime_trap_handler_t>> =
+    spin::Mutex::new(None);
+
+extern "C" fn page_fault_handler(pc: u64, fp: u64, va: u64) -> ! {
+    let guard = WASMTIME_REQUESTED_TRAP_HANDLER.lock();
+    let handler = *guard;
+    drop(guard);
+    if let Some(handler) = handler {
+        handler(pc as usize, fp as usize, true, va as usize);
+    }
+    panic!("wasmtime did not handle page fault");
+}
+extern "C" fn undef_handler(pc: u64, fp: u64) -> ! {
+    let guard = WASMTIME_REQUESTED_TRAP_HANDLER.lock();
+    let handler = *guard;
+    drop(guard);
+    if let Some(handler) = handler {
+        handler(pc as usize, fp as usize, false, 0);
+    }
+    panic!("wasmtime did not handle undefined instruction");
+}
 
 // Extremely stupid virtual address allocator
 // 0x1_0000_0000 is where the module is
 // we start at
 // 0x100_0000_0000 and go up from there
 static FIRST_VADDR: AtomicU64 = AtomicU64::new(0x100_0000_0000u64);
-fn page_fault_handler(
-    _exception_number: u64,
-    info: *mut arch::ExceptionInfo,
-    _ctx: *mut arch::Context,
-    page_fault_address: u64,
-) -> bool {
-    let error_code = unsafe { (&raw const (*info).error_code).read_volatile() };
-    // TODO: check if this is a guard-region trap (which can't happen
-    // right now since we don't actually set the permissions properly
-    // in mprotect)
-
-    // TODO: replace this with some generic virtual memory area data
-    // structure in hyperlight core
-    if (error_code & 0x1) == 0x0 && page_fault_address >= 0x100_0000_0000u64 {
-        unsafe {
-            let phys_page = hyperlight_guest::prim_alloc::alloc_phys_pages(1);
-            let virt_base = (page_fault_address & !0xFFF) as *mut u8;
-            paging::map_region(
-                phys_page,
-                virt_base,
-                hyperlight_guest_bin::OS_PAGE_SIZE as u64,
-                vmem::MappingKind::Basic(vmem::BasicMapping {
-                    readable: true,
-                    writable: true,
-                    executable: true,
-                }),
-            );
-            virt_base.write_bytes(0u8, hyperlight_guest_bin::OS_PAGE_SIZE as usize);
-        }
-        return true; // Try again!
-    }
-    false
-}
-pub(crate) fn register_page_fault_handler() {
-    // On amd64, vector 14 is #PF
-    // See AMD64 Architecture Programmer's Manual, Volume 2
-    //    §8.2 Vectors, p. 245
-    //      Table 8-1: Interrupt Vector Source and Cause
-    arch::HANDLERS[14].store(
-        page_fault_handler as *const () as usize as u64,
-        Ordering::Release,
-    );
-}
-
-// Wasmtime Embedding Interface
 
 /* We don't actually have any sensible virtual memory areas, so
  * we just give out virtual addresses very coarsely with
- * probably-more-than-enough space between them, and take over
- * page-fault handling to hardcoded check if memory is in this region
- * (see above) */
+ * probably-more-than-enough space between them */
 #[no_mangle]
-pub extern "C" fn wasmtime_mmap_new(_size: usize, _prot_flags: u32, ret: &mut *mut u8) -> i32 {
-    if _size > 0x100_0000_0000 {
-        panic!("wasmtime_mmap_{:x} {:x}", _size, _prot_flags);
+pub extern "C" fn wasmtime_mmap_new(size: usize, prot_flags: u32, ret: &mut *mut u8) -> i32 {
+    if size > 0x100_0000_0000 {
+        panic!("wasmtime_mmap_{:x} {:x}", size, prot_flags);
     }
-    *ret = FIRST_VADDR.fetch_add(0x100_0000_0000, Ordering::Relaxed) as *mut u8;
+    let va = FIRST_VADDR.fetch_add(0x100_0000_0000, Ordering::Relaxed) as *mut u8;
+    wasmtime_mmap_remap(va, size, prot_flags);
+    *ret = va;
     0
 }
 
-/* Remap is only used for changing the region size (which is presently
- * a no-op, since we just hand out very large regions and treat them all
- * the same), or possibly for changing permissions, which will be a no-op
- * as we don't properly implement permissions at the moment. */
 #[no_mangle]
 pub extern "C" fn wasmtime_mmap_remap(addr: *mut u8, size: usize, prot_flags: u32) -> i32 {
-    if size > 0x100_0000_0000 {
-        panic!(
-            "wasmtime_mmap_remap {:x} {:x} {:x}",
-            addr as usize, size, prot_flags
-        );
+    // Since wasmtime needs a huge buffer region (4GB) and we don't
+    // have hugepages yet, don't actually record anything unless the
+    // protection flags tell us we need to.  One of
+    // wasmtime_mmap_remap, wasmtime_mprotect, or
+    // WasmtimeCodeMemory::publish will have a chance to change this
+    // later.
+    if prot_flags != 0 {
+        unsafe {
+            paging::map_region(
+                0,
+                addr,
+                size as u64,
+                vmem::MappingKind::ZeroInit(vmem::BasicMapping {
+                    readable: prot_flags & WASMTIME_PROT_READ != 0,
+                    writable: prot_flags & WASMTIME_PROT_WRITE != 0,
+                    executable: prot_flags & WASMTIME_PROT_EXEC != 0,
+                }),
+            );
+        }
     }
+    paging::barrier::first_valid_same_ctx();
     0
 }
 
@@ -108,15 +103,84 @@ pub extern "C" fn wasmtime_munmap(_ptr: *mut u8, _size: usize) -> i32 {
     0
 }
 
+// On most architectures, "upgrades" including the first time that
+// a a valid translation exists for a VA, need a lighter barrier
+// than full downgrades, and don't even need that if another
+// barrier has been used.
+struct BarrierTracker {
+    downgrade_start: Option<u64>,
+    has_ops_since_last_downgrade: bool,
+}
+impl BarrierTracker {
+    fn new() -> Self {
+        Self {
+            downgrade_start: None,
+            has_ops_since_last_downgrade: false,
+        }
+    }
+    fn track(&mut self, here: u64, is_downgrade: bool) {
+        if is_downgrade && self.downgrade_start.is_none() {
+            self.downgrade_start = Some(here);
+        } else if !is_downgrade {
+            if let Some(start) = self.downgrade_start {
+                paging::barrier::downgrade_in_place(start..here);
+                self.downgrade_start = None;
+                self.has_ops_since_last_downgrade = false;
+            } else {
+                self.has_ops_since_last_downgrade = true;
+            }
+        }
+    }
+}
+
 /* TODO: implement permissions properly */
 #[no_mangle]
-pub extern "C" fn wasmtime_mprotect(_ptr: *mut u8, _size: usize, prot_flags: u32) -> i32 {
-    /* currently all memory is allocated RWX; we assume that
-     * restricting to R or RX can be ignored */
-    if prot_flags == 1 || prot_flags == 3 || prot_flags == 5 {
-        return 0;
+pub extern "C" fn wasmtime_mprotect(ptr: *mut u8, size: usize, prot_flags: u32) -> i32 {
+    let base_u = ptr as u64;
+    let mut bt = BarrierTracker::new();
+    let readable = prot_flags & WASMTIME_PROT_READ != 0;
+    let writable = prot_flags & WASMTIME_PROT_WRITE != 0;
+    let executable = prot_flags & WASMTIME_PROT_EXEC != 0;
+    unsafe {
+        paging::modify_mapping(ptr, size as u64, |va, mapping| {
+            bt.track(va, true);
+            match mapping.kind {
+                // The main reason an unmapped region would show up in
+                // an mprotect'd region is if it was left unmapped by
+                // wasmtime_mmap_new above, so just treat it
+                // more-or-less the same as ZeroInit.
+                vmem::MappingKind::Unmapped => vmem::MappingKind::ZeroInit(vmem::BasicMapping {
+                    readable,
+                    writable,
+                    executable,
+                }),
+                vmem::MappingKind::ZeroInit(_) => vmem::MappingKind::ZeroInit(vmem::BasicMapping {
+                    readable,
+                    writable,
+                    executable,
+                }),
+                vmem::MappingKind::Basic(_) => vmem::MappingKind::Basic(vmem::BasicMapping {
+                    readable,
+                    writable,
+                    executable,
+                }),
+                vmem::MappingKind::Cow(_) if !writable => {
+                    vmem::MappingKind::Basic(vmem::BasicMapping {
+                        readable,
+                        writable,
+                        executable,
+                    })
+                }
+                vmem::MappingKind::Cow(_) => vmem::MappingKind::Cow(vmem::CowMapping {
+                    readable,
+                    executable,
+                }),
+            }
+        });
     }
-    -1
+    bt.track(base_u + size as u64, false);
+
+    0
 }
 
 #[no_mangle]
@@ -124,147 +188,93 @@ pub extern "C" fn wasmtime_page_size() -> usize {
     unsafe { hyperlight_guest_bin::OS_PAGE_SIZE as usize }
 }
 
-#[allow(non_camel_case_types)] // we didn't choose the name!
-type wasmtime_trap_handler_t =
-    extern "C" fn(ip: usize, fp: usize, has_faulting_addr: bool, faulting_addr: usize);
-static WASMTIME_REQUESTED_TRAP_HANDLER: AtomicU64 = AtomicU64::new(0);
-fn wasmtime_trap_handler(
-    exception_number: u64,
-    info: *mut arch::ExceptionInfo,
-    ctx: *mut arch::Context,
-    _page_fault_address: u64,
-) -> bool {
-    let requested_handler = WASMTIME_REQUESTED_TRAP_HANDLER.load(Ordering::Relaxed);
-    if requested_handler != 0 {
-        #[allow(clippy::collapsible_if)] // We will add more cases
-        if exception_number == 6 {
-            // #UD
-            // we assume that handle_trap always longjmp's away, so don't bother
-            // setting up a terribly proper stack frame
-            unsafe {
-                let orig_rip = (&raw mut (*info).rip).read_volatile();
-                (&raw mut (*info).rip).write_volatile(requested_handler);
-                // TODO: This only works on amd64 sysv
-                (&raw mut (*ctx).gprs[9]).write_volatile(orig_rip);
-                let orig_rbp = (&raw mut (*ctx).gprs[8]).read_volatile();
-                (&raw mut (*ctx).gprs[10]).write_volatile(orig_rbp);
-                (&raw mut (*ctx).gprs[11]).write_volatile(0);
-                (&raw mut (*ctx).gprs[12]).write_volatile(0);
-            }
-            return true;
-        }
-        // TODO: Add handlers for any other traps that wasmtime needs
-    }
-    false
-}
-
 #[no_mangle]
 pub extern "C" fn wasmtime_init_traps(handler: wasmtime_trap_handler_t) -> i32 {
-    WASMTIME_REQUESTED_TRAP_HANDLER.store(handler as usize as u64, Ordering::Relaxed);
-    // On amd64, vector 6 is #UD
-    // See AMD64 Architecture Programmer's Manual, Volume 2
-    //    §8.2 Vectors, p. 245
-    //      Table 8-1: Interrupt Vector Source and Cause
-    arch::HANDLERS[6].store(
-        wasmtime_trap_handler as *const () as usize as u64,
-        Ordering::Release,
-    );
+    *WASMTIME_REQUESTED_TRAP_HANDLER.lock() = Some(handler);
+    exception::register_page_fault_handler(page_fault_handler);
+    exception::register_undefined_instruction_handler(undef_handler);
     // TODO: Add handlers for any other traps that wasmtime needs,
     //       probably including at least some floating-point
     //       exceptions
-    // TODO: Ensure that invalid accesses to mprotect()'d regions also
-    //       need to trap, although those will need to go through the
-    //       page fault handler instead of using this handler that
-    //       takes over the exception.
     0
+}
+
+enum RemapOriginal {
+    MakeCow,
+    DontChange,
+}
+
+enum ModifyCopy {
+    MakeWritable,
+    DontChange,
 }
 
 // Copy a VA range to a new VA. Old and new VA, and len, must be
 // page-aligned.
-fn copy_va_mapping(base: *const u8, len: usize, to_va: *mut u8, remap_original: bool) {
+fn copy_va_mapping(
+    base: *const u8,
+    len: usize,
+    to_va: *mut u8,
+    remap_original: RemapOriginal,
+    force_writable: ForceWritable,
+) {
     debug_assert!((base as usize).is_multiple_of(vmem::PAGE_SIZE));
     debug_assert!(len.is_multiple_of(vmem::PAGE_SIZE));
-    // TODO: all this barrier code is amd64 specific. It should be
-    // refactored to use some better architecture-independent APIs.
-    //
-    // On amd64, "upgrades" including the first time that a a valid
-    // translation exists for a VA, only need a light (serialising
-    // instruction) barrier.  Since invlpg is also a barrier, we don't
-    // even need that, if we did do a downgrade remap just before.
-    let mut needs_first_valid_exposure_barrier = false;
-
-    // TODO: make this more efficient by directly exposing the ability
-    // to traverse an entire VA range in
-    // hyperlight_guest_bin::paging::virt_to_phys, and coalescing
-    // continuous ranges there.
     let base_u = base as u64;
-    let va_page_bases = (base_u..(base_u + len as u64)).step_by(vmem::PAGE_SIZE);
-    let mappings = va_page_bases.flat_map(paging::virt_to_phys);
-    for mapping in mappings {
-        // TODO: Deduplicate with identical logic in hyperlight_host snapshot.
-        let (new_kind, was_writable) = match mapping.kind {
-            // Skip unmapped pages, since they will be unmapped in
-            // both the original and the new copy
-            vmem::MappingKind::Unmapped => continue,
-            vmem::MappingKind::ZeroInit(bm) => (vmem::MappingKind::ZeroInit(bm), false),
-            vmem::MappingKind::Basic(bm) if bm.writable => (
-                vmem::MappingKind::Cow(vmem::CowMapping {
-                    readable: bm.readable,
-                    executable: bm.executable,
-                }),
-                true,
-            ),
-            vmem::MappingKind::Basic(bm) => (
-                vmem::MappingKind::Basic(vmem::BasicMapping {
-                    readable: bm.readable,
-                    writable: false,
-                    executable: bm.executable,
-                }),
-                false,
-            ),
-            vmem::MappingKind::Cow(cm) => (vmem::MappingKind::Cow(cm), false),
-        };
-        let do_downgrade = remap_original && was_writable;
-        if do_downgrade {
-            // If necessary, remap the original page as Cow, instead
-            // of whatever it is now, to ensure that any more writes to
-            // that region do not change the image base.
-            //
-            // TODO: could the table traversal needed for this be fused
-            // with the table traversal that got the original mapping,
-            // above?
-            unsafe {
-                paging::map_region(
-                    mapping.phys_base,
-                    mapping.virt_base as *mut u8,
-                    vmem::PAGE_SIZE as u64,
-                    new_kind,
-                );
-            }
-        }
-        // map the same pages to the new VA
-        unsafe {
+
+    let mut bt = BarrierTracker::new();
+
+    unsafe {
+        paging::modify_mapping(base as *mut u8, len as u64, |va, mapping| {
+            // TODO: Deduplicate with identical logic in hyperlight_host snapshot.
+            let (new_kind, was_writable) = match mapping.kind {
+                // Skip unmapped pages, since they will be unmapped in
+                // both the original and the new copy
+                vmem::MappingKind::Unmapped => return vmem::MappingKind::Unmapped,
+                vmem::MappingKind::ZeroInit(bm) => (vmem::MappingKind::ZeroInit(bm), false),
+                vmem::MappingKind::Basic(bm) if bm.writable => (
+                    vmem::MappingKind::Cow(vmem::CowMapping {
+                        readable: bm.readable,
+                        executable: bm.executable,
+                    }),
+                    true,
+                ),
+                vmem::MappingKind::Basic(bm) if force_writable == ForceWritable::MakeWritable => (
+                    vmem::MappingKind::Cow(vmem::CowMapping {
+                        readable: bm.readable,
+                        executable: bm.executable,
+                    }),
+                    false,
+                ),
+                vmem::MappingKind::Basic(bm) => (
+                    vmem::MappingKind::Basic(vmem::BasicMapping {
+                        readable: bm.readable,
+                        writable: false,
+                        executable: bm.executable,
+                    }),
+                    false,
+                ),
+                vmem::MappingKind::Cow(cm) => (vmem::MappingKind::Cow(cm), false),
+            };
+            // map the same pages to the new VA
             paging::map_region(
-                mapping.phys_base,
-                to_va.wrapping_add((mapping.virt_base - base_u) as usize),
-                vmem::PAGE_SIZE as u64,
+                mapping.phys_base + (va - mapping.virt_base),
+                to_va.wrapping_add((va - base_u) as usize),
+                mapping.len,
                 new_kind,
             );
-        }
-        if do_downgrade {
-            // Since we have downgraded a page from writable to CoW we
-            // need to do an invlpg on it. Because invlpg is a
-            // serialising instruction, we don't need the other
-            // barrier for the new mapping.
-            unsafe {
-                core::arch::asm!("invlpg [{}]", in(reg) mapping.virt_base, options(readonly, nostack, preserves_flags));
+            let do_downgrade = (remap_original == RemapOriginal::MakeCow) && was_writable;
+            bt.track(va, do_downgrade);
+            if do_downgrade {
+                new_kind
+            } else {
+                mapping.kind
             }
-            needs_first_valid_exposure_barrier = false;
-        } else {
-            needs_first_valid_exposure_barrier = true;
-        }
+        });
     }
-    if needs_first_valid_exposure_barrier {
+
+    bt.track(base_u + len as u64, false);
+    if bt.has_ops_since_last_downgrade {
         paging::barrier::first_valid_same_ctx();
     }
 }
@@ -283,7 +293,13 @@ pub extern "C" fn wasmtime_memory_image_new(
     // the original VA range here, making the original copy CoW as we
     // go.
     let new_virt = FIRST_VADDR.fetch_add(0x100_0000_0000, Ordering::Relaxed) as *mut u8;
-    copy_va_mapping(ptr, len, new_virt, true);
+    copy_va_mapping(
+        ptr,
+        len,
+        new_virt,
+        RemapOriginal::MakeCow,
+        ModifyCopy::DontChange
+    );
     *ret = new_virt as *mut c_void;
     0
 }
@@ -294,7 +310,13 @@ pub extern "C" fn wasmtime_memory_image_map_at(
     addr: *mut u8,
     len: usize,
 ) -> i32 {
-    copy_va_mapping(image as *mut u8, len, addr, false);
+    copy_va_mapping(
+        image as *mut u8,
+        len,
+        addr,
+        RemapOriginal::DontChange,
+        ModifyCopy::MakeWritable
+    );
     0
 }
 
@@ -340,16 +362,22 @@ impl wasmtime::CustomCodeMemory for WasmtimeCodeMemory {
     }
     fn publish_executable(
         &self,
-        _ptr: *const u8,
-        _len: usize,
+        ptr: *const u8,
+        len: usize,
     ) -> core::result::Result<(), wasmtime::Error> {
+        wasmtime_mprotect(ptr as *mut u8, len, WASMTIME_PROT_READ | WASMTIME_PROT_EXEC);
         Ok(())
     }
     fn unpublish_executable(
         &self,
-        _ptr: *const u8,
-        _len: usize,
+        ptr: *const u8,
+        len: usize,
     ) -> core::result::Result<(), wasmtime::Error> {
+        wasmtime_mprotect(
+            ptr as *mut u8,
+            len,
+            WASMTIME_PROT_READ | WASMTIME_PROT_WRITE,
+        );
         Ok(())
     }
 }
