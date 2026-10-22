@@ -26,7 +26,7 @@ limitations under the License.
 //! Prerequisites:
 //! - An OTLP-compatible tracing backend (e.g., OpenTelemetry Collector, Jaeger,
 //!   Zipkin) running and accessible at `http://localhost:4318/v1/traces`.
-//! - The `rust_wasm_samples.aot` Wasm module available in the expected path (x64/<profile>/).
+//! - The `rust_wasm_samples.aot` Wasm module available in the expected path (build/<profile>/).
 //! - The `trace_guest` feature enabled in the `hyperlight-wasm` crate.
 //!
 //! ```sh

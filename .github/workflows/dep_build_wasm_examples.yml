@@ -112,4 +112,4 @@ jobs:
           with:
             name: guest-modules-${{ matrix.wasmtime_version.name }}
             path: | 
-              x64/release/*.aot
+              build/release/*.aot

@@ -5,7 +5,7 @@ set -o nounset
 set -o pipefail
 
 pushd "$(dirname "${BASH_SOURCE[0]}")/../../tests/c_guests/wasmsamples"
-OUTPUT_DIR="../../../../x64/${1:-"debug"}"
+OUTPUT_DIR="../../../../build/${1:-"debug"}"
 BUILD_TYPE="${1:-"debug"}"
 FEATURES="${2:-""}"
 mkdir -p ${OUTPUT_DIR}

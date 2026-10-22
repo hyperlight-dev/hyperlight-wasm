@@ -59,7 +59,7 @@ jobs:
       uses: actions/download-artifact@v5
       with:
         name: guest-modules-lts
-        path: ./x64/${{ matrix.config }}
+        path: ./build/${{ matrix.config }}
 
     ### Benchmarks ###
 

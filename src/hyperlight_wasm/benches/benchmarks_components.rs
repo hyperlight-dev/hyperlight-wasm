@@ -93,7 +93,7 @@ fn get_loaded_wasm_sandbox() -> (
     let sb = sandbox.load_runtime().unwrap();
 
     let sb = sb
-        .load_module("../../x64/release/runcomponent.aot")
+        .load_module("../../build/release/runcomponent.aot")
         .unwrap();
     (sb, rt)
 }
