@@ -131,7 +131,7 @@ jobs:
         - name: Fake /dev/kvm for ci-setup-workflow action
           run: sudo touch /dev/kvm
         - name: Hyperlight setup workflow
-          uses: hyperlight-dev/ci-setup-workflow@v2.3.0
+          uses: hyperlight-dev/ci-setup-workflow@v2.3.1
           with:
             rust-toolchain: "1.94"
         - name: Set up Docker Buildx
