@@ -20,7 +20,7 @@ use std::path::Path;
 use hyperlight_host::{Result, new_error};
 
 /// Get the Wasm module called `name` from the standard module location
-/// at `$REPO_ROOT/x64/[debug|release]/$name`.
+/// at `$REPO_ROOT/build/[debug|release]/$name`.
 pub fn get_wasm_module_path(name: &str) -> Result<String> {
     #[cfg(debug_assertions)]
     let config = "debug";
@@ -32,17 +32,17 @@ pub fn get_wasm_module_path(name: &str) -> Result<String> {
             .expect("Failed to get CARGO_MANIFEST_DIR  or RUST_DIR_FOR_DEBUGGING_TESTS env var")
     });
 
-    let x64_dir = Path::new(&proj_dir)
-        .join("../../x64")
+    let build_dir = Path::new(&proj_dir)
+        .join("../../build")
         .join(config)
         .join(name);
 
-    let path = match x64_dir.canonicalize() {
+    let path = match build_dir.canonicalize() {
         Ok(path) => path.to_str().unwrap().to_string(),
         Err(e) => {
             return Err(new_error!(
                 "Failed to get the path to the Wasm module: {:?} {}",
-                x64_dir,
+                build_dir,
                 e,
             ));
         }

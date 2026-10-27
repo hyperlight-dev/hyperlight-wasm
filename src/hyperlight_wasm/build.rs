@@ -20,7 +20,7 @@ limitations under the License.
 // This is done by reading the hyperlight-wasm-runtime binary into a static byte array named WASM_RUNTIME.
 // this build script writes the code to do that to a file named built.rs in the OUT_DIR.
 // this file is included in lib.rs.
-// The hyperlight-wasm-runtime binary is expected to be in the x64/{config} directory.
+// The hyperlight-wasm-runtime binary is expected to be in the build/{config} directory.
 
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -167,8 +167,12 @@ fn build_wasm_runtime() -> PathBuf {
     cmd.status()
         .unwrap_or_else(|e| panic!("could not run cargo build hyperlight-wasm-runtime: {e:?}"));
 
+    let target_arch = format!(
+        "{}-hyperlight-none",
+        std::env::var("CARGO_CFG_TARGET_ARCH").unwrap()
+    );
     let resource = target_dir
-        .join("x86_64-hyperlight-none")
+        .join(target_arch)
         .join(profile)
         .join("hyperlight-wasm-runtime");
 

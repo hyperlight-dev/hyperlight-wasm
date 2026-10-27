@@ -5,7 +5,7 @@ set -o nounset
 set -o pipefail
 
 pushd "$(dirname "${BASH_SOURCE[0]}")/../../tests/c_guests/wasmsamples"
-OUTPUT_DIR="../../../../x64/${1:-"debug"}"
+OUTPUT_DIR="../../../../build/${1:-"debug"}"
 BUILD_TYPE="${1:-"debug"}"
 FEATURES="${2:-""}"
 mkdir -p ${OUTPUT_DIR}
@@ -36,7 +36,12 @@ else
     AOT_VERSION_FLAGS=""
 fi
 
-if [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
+if [[ "$CI" == "true" && "$RUNNER_ARCH" == "ARM64" ]]; then
+    # ARM64 gh runners do not have docker installed on the test
+    # runners, but will have already downloaded the built examples
+    # artifact from the builder job
+    echo "Running in GH Actions on ARM64, so not re-building examples"
+elif [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
     # running in a container so use the installed wasi-sdk as the devcontainer has this installed  
     for FILENAME in $(find . -name '*.c' -not -path './components/*')
     do
@@ -68,13 +73,16 @@ if [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
         cargo run ${AOT_FEATURES} -p hyperlight-wasm-aot compile ${AOT_DEBUG_FLAGS} ${AOT_VERSION_FLAGS} --component ${OUTPUT_DIR}/${COMPONENT_NAME}-p2.wasm ${OUTPUT_DIR}/${COMPONENT_NAME}.aot
     done
 
-else 
+else
     # not running in a container so use the docker image to build the wasm files
     echo Building docker image that has Wasm sdk. Should be quick if preivoulsy built and no changes to dockerfile.
     echo This will take a while if it is the first time you are building the docker image.
     echo Log in ${OUTPUT_DIR}/dockerbuild.log
 
-    docker pull ghcr.io/hyperlight-dev/wasm-clang-builder:latest
+    arch="$(uname -m)"
+    if [[ "$arch" == "x86_64" ]]; then
+        docker pull ghcr.io/hyperlight-dev/wasm-clang-builder:latest
+    fi
 
     docker build --build-arg GCC_VERSION=12 --build-arg WASI_SDK_VERSION_FULL=25.0 --cache-from ghcr.io/hyperlight-dev/wasm-clang-builder:latest -t wasm-clang-builder:latest . 2> ${OUTPUT_DIR}/dockerbuild.log
 
