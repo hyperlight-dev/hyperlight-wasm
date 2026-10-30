@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>Hyperlight.Wasm.Tests</RootNamespace>
+    <RepoRoot>$(MSBuildThisFileDirectory)../../../</RepoRoot>
+    <!-- Use the generator from this repository instead of the package layout. -->
+    <HyperlightBindgenTaskAssembly>$(MSBuildThisFileDirectory)../../src/Hyperlight.Wasm.Build/bin/$(Configuration)/net8.0/Hyperlight.Wasm.Build.dll</HyperlightBindgenTaskAssembly>
+    <HyperlightBindgenLibrary>$(HyperlightNativeDir)$(HyperlightNativePrefix)hyperlight_wasm_bindgen$(HyperlightNativeSuffix)</HyperlightBindgenLibrary>
+  </PropertyGroup>
+
+  <Import Project="../../src/Hyperlight.Wasm.Build/build/Hyperlight.Wasm.Build.props" />
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
+    <PackageReference Include="xunit" Version="2.9.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Hyperlight.Wasm/Hyperlight.Wasm.csproj" />
+    <ProjectReference Include="../../src/Hyperlight.Wasm.Build/Hyperlight.Wasm.Build.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <HyperlightWit Include="$(RepoRoot)src/tests/rust_guests/component_sample/wit/example.wit" World="example" Namespace="Hyperlight.Wasm.Tests.Sample" />
+  </ItemGroup>
+
+  <!-- Built by `just dotnet-test-assets`. -->
+  <ItemGroup>
+    <None Include="$(RepoRoot)x64/$(HyperlightCargoProfile)/component_sample.aot" Link="assets/component_sample.aot" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)target/component-sample-runtime/x86_64-hyperlight-none/$(HyperlightCargoProfile)/hyperlight-wasm-runtime" Link="assets/component-sample-runtime" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Import Project="../../src/Hyperlight.Wasm.Build/build/Hyperlight.Wasm.Build.targets" />
+
+</Project>

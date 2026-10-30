@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::path::PathBuf;
+
 use hyperlight_host::func::HostFunction;
 use hyperlight_host::sandbox::SandboxConfiguration;
 use hyperlight_host::{GuestBinary, HyperlightError, Result, is_hypervisor_present};
@@ -31,6 +33,7 @@ pub const MIN_HEAP_SIZE: u64 = 1024 * 1024;
 pub struct SandboxBuilder {
     config: SandboxConfiguration,
     host_print_fn: Option<HostFunction<i32, (String,)>>,
+    runtime: Option<PathBuf>,
 }
 
 impl SandboxBuilder {
@@ -44,6 +47,7 @@ impl SandboxBuilder {
         Self {
             config,
             host_print_fn: None,
+            runtime: None,
         }
     }
 
@@ -174,13 +178,38 @@ impl SandboxBuilder {
         self
     }
 
+    /// Load the guest runtime from `path` instead of using the one built
+    /// into this crate.
+    ///
+    /// The runtime must be built by the same version of hyperlight-wasm.
+    /// A runtime built with `WIT_WORLD` set can only load components of
+    /// that world.
+    pub fn with_runtime_file(mut self, path: impl Into<PathBuf>) -> Self {
+        self.runtime = Some(path.into());
+        self
+    }
+
+    /// Set the offset from `SIGRTMIN` of the signal used to interrupt a
+    /// running guest.
+    ///
+    /// Change it when the host process already uses `SIGRTMIN`. The .NET
+    /// runtime does, for example.
+    #[cfg(target_os = "linux")]
+    pub fn with_interrupt_vcpu_sigrtmin_offset(mut self, offset: u8) -> Result<Self> {
+        self.config.set_interrupt_vcpu_sigrtmin_offset(offset)?;
+        Ok(self)
+    }
+
     /// Build the ProtoWasmSandbox
     pub fn build(self) -> Result<ProtoWasmSandbox> {
         if !is_hypervisor_present() {
             return Err(HyperlightError::NoHypervisorFound());
         }
 
-        let guest_binary = GuestBinary::Buffer(super::WASM_RUNTIME.to_vec());
+        let guest_binary = match self.runtime {
+            Some(path) => GuestBinary::FilePath(path),
+            None => GuestBinary::Buffer(super::WASM_RUNTIME.to_vec()),
+        };
 
         let mut proto_wasm_sandbox = ProtoWasmSandbox::new(Some(self.config), guest_binary)?;
         if let Some(host_print_fn) = self.host_print_fn {

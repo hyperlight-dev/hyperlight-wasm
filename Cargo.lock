@@ -187,21 +187,20 @@ checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
 
 [[package]]
 name = "bindgen"
-version = "0.72.1"
+version = "0.73.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "993776b509cfb49c750f11b8f07a46fa23e0a1386ffc01fb1e7d343efc387895"
+checksum = "787ef8ef523575546b106a58213d6e6b06198a05c2f757258c68a74273670cfa"
 dependencies = [
  "bitflags 2.13.2",
  "cexpr",
  "clang-sys",
- "itertools 0.13.0",
  "log",
  "prettyplease 0.2.37",
  "proc-macro2",
  "quote",
  "regex",
  "rustc-hash",
- "shlex 1.3.0",
+ "shlex",
  "syn 2.0.119",
 ]
 
@@ -402,7 +401,7 @@ dependencies = [
  "find-msvc-tools",
  "jobserver",
  "libc",
- "shlex 2.0.1",
+ "shlex",
 ]
 
 [[package]]
@@ -1858,8 +1857,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-common"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "360d5876788b26af66bf055bca6b4f2c9c930a0fdcaebda4bd7f808c6bd93068"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#616d7889bc275bf6ae7c3d9be068cc0bd62873d0"
 dependencies = [
  "anyhow",
  "bitflags 2.13.2",
@@ -1876,10 +1874,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "hyperlight-component-csharp"
+version = "0.18.0"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#616d7889bc275bf6ae7c3d9be068cc0bd62873d0"
+dependencies = [
+ "hyperlight-component-util",
+]
+
+[[package]]
 name = "hyperlight-component-macro"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec066e71934ebaddf70345ead15c4d01df880a9cd52fafb2934a559c4fa8a991"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#616d7889bc275bf6ae7c3d9be068cc0bd62873d0"
 dependencies = [
  "env_logger",
  "hyperlight-component-util",
@@ -1893,8 +1898,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-component-util"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "271a2a808bc2e6b0058ca8dd6aea81c0dca91ec7919d167315289190bb64e767"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#616d7889bc275bf6ae7c3d9be068cc0bd62873d0"
 dependencies = [
  "itertools 0.15.0",
  "prettyplease 0.3.0",
@@ -1911,8 +1915,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7faceeab52cbc0f128e75fa4b0ee9fce17c3c462d7776feca66f41e98bf2a4bb"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#616d7889bc275bf6ae7c3d9be068cc0bd62873d0"
 dependencies = [
  "anyhow",
  "flatbuffers",
@@ -1926,8 +1929,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest-bin"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7eff3c3b94ae4da51f03d535e9a13a4132f5f87694a19514c038a9517cfd750"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#616d7889bc275bf6ae7c3d9be068cc0bd62873d0"
 dependencies = [
  "buddy_system_allocator",
  "flatbuffers",
@@ -1945,8 +1947,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest-macro"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f957baa8d97e2787589bf084a18096c08ab4dd22d4f5a040f153f9f719330ec3"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#616d7889bc275bf6ae7c3d9be068cc0bd62873d0"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -1957,8 +1958,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-guest-tracing"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a12c240f87acd92e80ea08e9a405e781e4a15b9f38fee5fe261e9ce69b816d3"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#616d7889bc275bf6ae7c3d9be068cc0bd62873d0"
 dependencies = [
  "hyperlight-common",
  "spin 0.12.3",
@@ -1969,8 +1969,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-host"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40f8b85ddd688890477158b9921b228973d1b70c84b866698838df0f32d2aa44"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#616d7889bc275bf6ae7c3d9be068cc0bd62873d0"
 dependencies = [
  "anyhow",
  "bindgen",
@@ -1999,7 +1998,7 @@ dependencies = [
  "mshv-bindings",
  "mshv-ioctls",
  "oci-spec",
- "opentelemetry",
+ "opentelemetry 0.33.1",
  "page_size",
  "parking_lot",
  "rand 0.10.3",
@@ -2012,7 +2011,7 @@ dependencies = [
  "thiserror",
  "tracing",
  "tracing-core",
- "tracing-opentelemetry",
+ "tracing-opentelemetry 0.34.0",
  "uuid",
  "vmm-sys-util",
  "windows",
@@ -2024,8 +2023,7 @@ dependencies = [
 [[package]]
 name = "hyperlight-libc"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a74af1c1cc60140c000a6ebd4eba3121bc2b8f56f134163c25eadca1146b73e0"
+source = "git+https://github.com/hyperlight-dev/hyperlight?branch=component-wire-format#616d7889bc275bf6ae7c3d9be068cc0bd62873d0"
 dependencies = [
  "anyhow",
  "bindgen",
@@ -2061,7 +2059,7 @@ dependencies = [
  "metrics-exporter-prometheus",
  "metrics-util",
  "once_cell",
- "opentelemetry",
+ "opentelemetry 0.32.0",
  "opentelemetry-otlp",
  "opentelemetry-semantic-conventions",
  "opentelemetry_sdk",
@@ -2074,7 +2072,7 @@ dependencies = [
  "toml",
  "tracing",
  "tracing-forest",
- "tracing-opentelemetry",
+ "tracing-opentelemetry 0.33.0",
  "tracing-subscriber",
  "uuid",
  "windows",
@@ -2090,6 +2088,21 @@ dependencies = [
  "object 0.39.1",
  "wasmtime 36.0.18",
  "wasmtime 47.0.4",
+]
+
+[[package]]
+name = "hyperlight-wasm-bindgen"
+version = "0.15.0"
+dependencies = [
+ "hyperlight-component-csharp",
+]
+
+[[package]]
+name = "hyperlight-wasm-capi"
+version = "0.15.0"
+dependencies = [
+ "examples_common",
+ "hyperlight-wasm",
 ]
 
 [[package]]
@@ -2873,6 +2886,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentelemetry"
+version = "0.33.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8c1f1a6ac9c875a4941e4c7c085b61e8f4daa326de03b4701768c3491a6ad9ee"
+dependencies = [
+ "futures-core",
+ "futures-sink",
+ "js-sys",
+ "pin-project-lite",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
 name = "opentelemetry-http"
 version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2881,7 +2908,7 @@ dependencies = [
  "async-trait",
  "bytes",
  "http",
- "opentelemetry",
+ "opentelemetry 0.32.0",
  "reqwest",
 ]
 
@@ -2892,7 +2919,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9966929966d17620d7c316c643ba62631826e10021409357772d5eea84f62c35"
 dependencies = [
  "http",
- "opentelemetry",
+ "opentelemetry 0.32.0",
  "opentelemetry-http",
  "opentelemetry-proto",
  "opentelemetry_sdk",
@@ -2910,7 +2937,7 @@ version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56d658ba1faf63f7b9c492cfbe6e0ec365440a16132d3270c1065f7b33f1b638"
 dependencies = [
- "opentelemetry",
+ "opentelemetry 0.32.0",
  "opentelemetry_sdk",
  "prost",
  "tonic",
@@ -2932,7 +2959,7 @@ dependencies = [
  "futures-channel",
  "futures-executor",
  "futures-util",
- "opentelemetry",
+ "opentelemetry 0.32.0",
  "percent-encoding",
  "portable-atomic",
  "rand 0.9.5",
@@ -3830,12 +3857,6 @@ dependencies = [
 
 [[package]]
 name = "shlex"
-version = "1.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
-
-[[package]]
-name = "shlex"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
@@ -4345,7 +4366,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adbc64cba7137545b8044cb1fe9814f7aacf3c6b5f9b45be8bb5db538befdb26"
 dependencies = [
  "js-sys",
- "opentelemetry",
+ "opentelemetry 0.32.0",
+ "smallvec",
+ "tracing",
+ "tracing-core",
+ "tracing-log",
+ "tracing-subscriber",
+ "web-time",
+]
+
+[[package]]
+name = "tracing-opentelemetry"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a904802a1b902f43638b677ff2a650847e3b4404101b6c586d648e8c1e3e8fe"
+dependencies = [
+ "js-sys",
+ "opentelemetry 0.33.1",
  "smallvec",
  "tracing",
  "tracing-core",

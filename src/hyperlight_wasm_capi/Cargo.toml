@@ -1,0 +1,23 @@
+[package]
+name = "hyperlight-wasm-capi"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme.workspace = true
+description = """
+C API for hyperlight-wasm. Arguments and results are byte buffers encoded as
+described in hyperlight's component wire format.
+"""
+
+[lib]
+name = "hyperlight_wasm_capi"
+crate-type = ["cdylib", "staticlib", "lib"]
+
+[dependencies]
+hyperlight-wasm = { version = "0.15.0", path = "../hyperlight_wasm" }
+
+[dev-dependencies]
+examples_common = { path = "../examples_common" }

@@ -36,3 +36,11 @@ updates:
     target-branch: "main"
     labels:
       - "kind/dependencies"
+  - package-ecosystem: "nuget"
+    directory: "/dotnet"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+    target-branch: "main"
+    labels:
+      - "kind/dependencies"

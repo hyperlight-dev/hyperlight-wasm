@@ -19,9 +19,11 @@ use core::ptr::NonNull;
 use core::sync::atomic::{AtomicPtr, AtomicU64, Ordering};
 
 use hyperlight_common::vmem;
+// The page fault handler resumes after mapping a page, which the
+// architecture-independent hook does not allow.
 #[allow(deprecated)]
 use hyperlight_guest_bin::exception::arch;
-use hyperlight_guest_bin::paging;
+use hyperlight_guest_bin::{exception, paging};
 
 // Extremely stupid virtual address allocator
 // 0x1_0000_0000 is where the module is
@@ -128,47 +130,22 @@ pub extern "C" fn wasmtime_page_size() -> usize {
 type wasmtime_trap_handler_t =
     extern "C" fn(ip: usize, fp: usize, has_faulting_addr: bool, faulting_addr: usize);
 static WASMTIME_REQUESTED_TRAP_HANDLER: AtomicU64 = AtomicU64::new(0);
-fn wasmtime_trap_handler(
-    exception_number: u64,
-    info: *mut arch::ExceptionInfo,
-    ctx: *mut arch::Context,
-    _page_fault_address: u64,
-) -> bool {
-    let requested_handler = WASMTIME_REQUESTED_TRAP_HANDLER.load(Ordering::Relaxed);
-    if requested_handler != 0 {
-        #[allow(clippy::collapsible_if)] // We will add more cases
-        if exception_number == 6 {
-            // #UD
-            // we assume that handle_trap always longjmp's away, so don't bother
-            // setting up a terribly proper stack frame
-            unsafe {
-                let orig_rip = (&raw mut (*info).rip).read_volatile();
-                (&raw mut (*info).rip).write_volatile(requested_handler);
-                // TODO: This only works on amd64 sysv
-                (&raw mut (*ctx).gprs[9]).write_volatile(orig_rip);
-                let orig_rbp = (&raw mut (*ctx).gprs[8]).read_volatile();
-                (&raw mut (*ctx).gprs[10]).write_volatile(orig_rbp);
-                (&raw mut (*ctx).gprs[11]).write_volatile(0);
-                (&raw mut (*ctx).gprs[12]).write_volatile(0);
-            }
-            return true;
-        }
-        // TODO: Add handlers for any other traps that wasmtime needs
-    }
-    false
+
+/// Forwards #UD, which wasmtime raises for wasm traps, to wasmtime's handler.
+extern "C" fn undefined_instruction_handler(ip: u64, fp: u64) -> ! {
+    let handler = WASMTIME_REQUESTED_TRAP_HANDLER.load(Ordering::Relaxed);
+    // SAFETY: `wasmtime_init_traps` stores a `wasmtime_trap_handler_t`
+    // before registering this function.
+    let handler: wasmtime_trap_handler_t = unsafe { core::mem::transmute(handler as usize) };
+    // Wasmtime longjmps away when the trap came from wasm code.
+    handler(ip as usize, fp as usize, false, 0);
+    panic!("undefined instruction at {ip:#x}");
 }
 
 #[no_mangle]
 pub extern "C" fn wasmtime_init_traps(handler: wasmtime_trap_handler_t) -> i32 {
     WASMTIME_REQUESTED_TRAP_HANDLER.store(handler as usize as u64, Ordering::Relaxed);
-    // On amd64, vector 6 is #UD
-    // See AMD64 Architecture Programmer's Manual, Volume 2
-    //    §8.2 Vectors, p. 245
-    //      Table 8-1: Interrupt Vector Source and Cause
-    arch::HANDLERS[6].store(
-        wasmtime_trap_handler as *const () as usize as u64,
-        Ordering::Release,
-    );
+    exception::register_undefined_instruction_handler(undefined_instruction_handler);
     // TODO: Add handlers for any other traps that wasmtime needs,
     //       probably including at least some floating-point
     //       exceptions
