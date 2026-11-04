@@ -5,6 +5,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Prerelease] - Unreleased
 
+### Added
+
+- Added the `hyperlight-wasm-capi` crate, a C API that calls component functions with arguments and results encoded in hyperlight's component wire format.
+- Added the `Hyperlight.Wasm` and `Hyperlight.Wasm.Build` .NET packages. They run components from .NET with typed C# bindings generated from WIT at build time. See `dotnet/README.md`.
+- Added `SandboxBuilder::with_runtime_file` to load the guest runtime from a file, and `SandboxBuilder::with_interrupt_vcpu_sigrtmin_offset` to change the interrupt signal on Linux.
+
+### Changed
+
+- **BREAKING CHANGE:** Component functions use hyperlight's wire names and little-endian encoding, so hosts and guests built with earlier versions cannot call each other.
+
+### Fixed
+
+- Wasm traps report an error instead of aborting the guest with a general protection fault.
+
 ## [v0.15.0] - 2026-08
 
 ### Changed

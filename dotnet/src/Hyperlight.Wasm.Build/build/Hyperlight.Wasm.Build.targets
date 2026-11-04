@@ -1,0 +1,35 @@
+<Project>
+
+  <PropertyGroup>
+    <HyperlightBindgenTaskAssembly Condition="'$(HyperlightBindgenTaskAssembly)' == ''">$(MSBuildThisFileDirectory)../tasks/net8.0/Hyperlight.Wasm.Build.dll</HyperlightBindgenTaskAssembly>
+    <_HyperlightBindgenFile Condition="$([MSBuild]::IsOSPlatform('Windows'))">hyperlight_wasm_bindgen.dll</_HyperlightBindgenFile>
+    <_HyperlightBindgenFile Condition="$([MSBuild]::IsOSPlatform('Linux'))">libhyperlight_wasm_bindgen.so</_HyperlightBindgenFile>
+    <_HyperlightBindgenFile Condition="$([MSBuild]::IsOSPlatform('OSX'))">libhyperlight_wasm_bindgen.dylib</_HyperlightBindgenFile>
+    <HyperlightBindgenLibrary Condition="'$(HyperlightBindgenLibrary)' == ''">$(MSBuildThisFileDirectory)../tasks/net8.0/runtimes/$(NETCoreSdkRuntimeIdentifier)/native/$(_HyperlightBindgenFile)</HyperlightBindgenLibrary>
+  </PropertyGroup>
+
+  <!-- A separate task host keeps the native library from staying loaded in reused MSBuild nodes. -->
+  <UsingTask TaskName="Hyperlight.Wasm.Build.GenerateHyperlightBindings"
+             AssemblyFile="$(HyperlightBindgenTaskAssembly)"
+             TaskFactory="TaskHostFactory" />
+
+  <Target Name="GenerateHyperlightBindings"
+          BeforeTargets="CoreCompile"
+          Condition="'@(HyperlightWit)' != ''">
+    <!-- Set here because IntermediateOutputPath may be defined after this file is imported. -->
+    <PropertyGroup>
+      <HyperlightBindingsDirectory Condition="'$(HyperlightBindingsDirectory)' == ''">$(IntermediateOutputPath)HyperlightBindings/</HyperlightBindingsDirectory>
+    </PropertyGroup>
+    <GenerateHyperlightBindings Wit="@(HyperlightWit)"
+                                BindgenLibrary="$(HyperlightBindgenLibrary)"
+                                OutputDirectory="$(HyperlightBindingsDirectory)"
+                                DefaultNamespace="$(RootNamespace)">
+      <Output TaskParameter="Generated" ItemName="_HyperlightGeneratedBindings" />
+    </GenerateHyperlightBindings>
+    <ItemGroup>
+      <Compile Include="@(_HyperlightGeneratedBindings)" />
+      <FileWrites Include="@(_HyperlightGeneratedBindings)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

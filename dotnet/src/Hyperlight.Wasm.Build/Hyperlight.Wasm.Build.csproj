@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Description>Generates C# bindings for Hyperlight.Wasm from WIT files listed as HyperlightWit items.</Description>
+    <PackageTags>hyperlight;wasm;webassembly;component;wit;bindgen</PackageTags>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <!-- The task assembly goes in tasks/, not lib/, so referencing projects do not compile against it. -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <NoWarn>$(NoWarn);NU5100;NU5128</NoWarn>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.14.28" PrivateAssets="all" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <HyperlightBindgenNative>$(HyperlightNativeDir)$(HyperlightNativePrefix)hyperlight_wasm_bindgen$(HyperlightNativeSuffix)</HyperlightBindgenNative>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="build/**" Pack="true" PackagePath="build/" />
+    <None Include="$(OutputPath)$(AssemblyName).dll" Pack="true" PackagePath="tasks/$(TargetFramework)/" Visible="false" />
+    <None Include="$(HyperlightBindgenNative)"
+          Pack="true"
+          PackagePath="tasks/$(TargetFramework)/runtimes/$(HyperlightNativeRid)/native/"
+          Visible="false" />
+  </ItemGroup>
+
+  <Target Name="CheckHyperlightNativeLibrary" BeforeTargets="GenerateNuspec">
+    <Error Condition="!Exists('$(HyperlightBindgenNative)')"
+           Text="Missing '$(HyperlightBindgenNative)'. Build it with `cargo build -p hyperlight-wasm-bindgen --profile $(HyperlightCargoProfile)`, using `dev` for debug, or set HyperlightNativeDir." />
+  </Target>
+
+</Project>

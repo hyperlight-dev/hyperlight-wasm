@@ -1,0 +1,18 @@
+<Project>
+
+  <!--
+    List WIT inputs as HyperlightWit items:
+
+      <HyperlightWit Include="wit/policy.wit" World="policy" Namespace="MyApp.Policy" />
+
+    World selects a world when the package has several. Namespace defaults to
+    the project's root namespace.
+  -->
+  <ItemDefinitionGroup>
+    <HyperlightWit>
+      <World></World>
+      <Namespace></Namespace>
+    </HyperlightWit>
+  </ItemDefinitionGroup>
+
+</Project>
