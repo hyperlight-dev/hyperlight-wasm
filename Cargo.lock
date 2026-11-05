@@ -2070,6 +2070,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tar",
+ "tempfile",
  "tokio",
  "toml",
  "tracing",

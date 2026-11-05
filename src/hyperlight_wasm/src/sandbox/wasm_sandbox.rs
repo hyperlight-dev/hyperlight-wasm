@@ -19,13 +19,12 @@ use std::sync::Arc;
 
 #[cfg(target_os = "linux")]
 use hyperlight_host::mem::memory_region::{MemoryRegion, MemoryRegionFlags, MemoryRegionType};
-use hyperlight_host::sandbox::snapshot::Snapshot;
+use hyperlight_host::sandbox::snapshot::Snapshot as CoreSnapshot;
 use hyperlight_host::{Result, Sandbox, new_error};
 
 use super::loaded_wasm_sandbox::LoadedWasmSandbox;
-use crate::sandbox::metrics::{
-    METRIC_ACTIVE_WASM_SANDBOXES, METRIC_SANDBOX_LOADS, METRIC_TOTAL_WASM_SANDBOXES,
-};
+use super::snapshot::Snapshot;
+use crate::sandbox::metrics::{METRIC_ACTIVE_WASM_SANDBOXES, METRIC_TOTAL_WASM_SANDBOXES};
 
 // All the logic around when to restore is nicely encapsulated here,
 // so that it would be harder for a `WasmSandbox` to end up in an
@@ -47,7 +46,7 @@ mod backing_sandbox {
         Missing,
     }
     impl BackingSandbox {
-        pub(super) fn clean(&mut self, snapshot: Arc<Snapshot>) -> Result<()> {
+        pub(super) fn clean(&mut self, snapshot: Arc<CoreSnapshot>) -> Result<()> {
             *self = match std::mem::replace(self, BackingSandbox::Missing) {
                 BackingSandbox::Clean(x) => BackingSandbox::Clean(x),
                 BackingSandbox::Loaded(_) => {
@@ -56,7 +55,10 @@ mod backing_sandbox {
                     ));
                 }
                 BackingSandbox::Dirty(mut x) => {
-                    x.restore(snapshot)?;
+                    if let Err(error) = x.restore(snapshot) {
+                        *self = BackingSandbox::Dirty(x);
+                        return Err(error);
+                    }
                     BackingSandbox::Clean(x)
                 }
                 BackingSandbox::Missing => {
@@ -67,10 +69,14 @@ mod backing_sandbox {
             };
             Ok(())
         }
-        pub(super) fn load_via_restore(&mut self, snapshot: Arc<Snapshot>) -> Result<()> {
+        pub(super) fn load_via_restore(&mut self, snapshot: Arc<CoreSnapshot>) -> Result<()> {
             *self = match std::mem::replace(self, BackingSandbox::Missing) {
                 BackingSandbox::Clean(mut x) | BackingSandbox::Dirty(mut x) => {
-                    x.restore(snapshot)?;
+                    if let Err(error) = x.restore(snapshot) {
+                        // A failed restore may have changed memory, so loading must restore again.
+                        *self = BackingSandbox::Dirty(x);
+                        return Err(error);
+                    }
                     BackingSandbox::Loaded(x)
                 }
                 BackingSandbox::Loaded(_) => {
@@ -175,7 +181,7 @@ pub struct WasmSandbox {
     inner: BackingSandbox,
     // Snapshot of state of an initial WasmSandbox (runtime loaded, but no guest module code loaded).
     // Used for LoadedWasmSandbox to be able restore state back to WasmSandbox
-    snapshot: Option<Arc<Snapshot>>,
+    snapshot: Option<Snapshot<WasmSandbox>>,
 }
 
 const MAPPED_BINARY_VA: u64 = 0x1_0000_0000u64;
@@ -185,7 +191,14 @@ impl WasmSandbox {
     /// The difference between this function and creating  a `WasmSandbox` directly is that
     /// this function will increment the metrics for the number of `WasmSandbox`es in the system.
     pub(super) fn new(mut inner: Sandbox) -> Result<Self> {
-        let snapshot = inner.snapshot()?;
+        let snapshot = Snapshot::runtime(inner.snapshot()?);
+        Self::new_from_snapshot(inner, snapshot)
+    }
+
+    pub(super) fn new_from_snapshot(
+        inner: Sandbox,
+        snapshot: Snapshot<WasmSandbox>,
+    ) -> Result<Self> {
         metrics::gauge!(METRIC_ACTIVE_WASM_SANDBOXES).increment(1);
         metrics::counter!(METRIC_TOTAL_WASM_SANDBOXES).increment(1);
         Ok(WasmSandbox {
@@ -198,7 +211,10 @@ impl WasmSandbox {
     /// for example when creating a `WasmSandbox` from a `LoadedWasmSandbox`, since
     /// the snapshot has already been created in that case.
     /// Expects a snapshot of the state where wasm runtime is loaded, but no guest module code is loaded.
-    pub(super) fn new_from_loaded(loaded: Sandbox, snapshot: Arc<Snapshot>) -> Result<Self> {
+    pub(super) fn new_from_loaded(
+        loaded: Sandbox,
+        snapshot: Snapshot<WasmSandbox>,
+    ) -> Result<Self> {
         metrics::gauge!(METRIC_ACTIVE_WASM_SANDBOXES).increment(1);
         metrics::counter!(METRIC_TOTAL_WASM_SANDBOXES).increment(1);
         Ok(WasmSandbox {
@@ -211,7 +227,24 @@ impl WasmSandbox {
         let snapshot = self.snapshot.as_ref().ok_or(new_error!(
             "internal invariant violation: Snapshot is missing"
         ))?;
-        self.inner.clean(snapshot.clone())
+        self.inner.clean(snapshot.inner())
+    }
+
+    /// Capture the runtime baseline used when loading a module.
+    ///
+    /// Application state pending cleanup after an unload is excluded.
+    pub fn snapshot(&self) -> Result<Snapshot<WasmSandbox>> {
+        self.snapshot
+            .clone()
+            .ok_or_else(|| new_error!("No runtime snapshot to capture"))
+    }
+
+    /// Restore a runtime checkpoint and its module-loading baseline.
+    pub fn restore(&mut self, snapshot: Snapshot<WasmSandbox>) -> Result<()> {
+        self.inner.load_via_restore(snapshot.inner())?;
+        self.inner = BackingSandbox::Clean(self.inner.get_loaded()?);
+        self.snapshot = Some(snapshot);
+        Ok(())
     }
 
     /// Load a Wasm module at the given path into the sandbox and return a `LoadedWasmSandbox`
@@ -235,10 +268,16 @@ impl WasmSandbox {
         self.finalize_module_load()
     }
 
-    /// Load a Wasm module by restoring a Hyperlight snapshot taken
-    /// from a `LoadedWasmSandbox`.
-    pub fn load_from_snapshot(mut self, snapshot: Arc<Snapshot>) -> Result<LoadedWasmSandbox> {
-        self.inner.load_via_restore(snapshot)?;
+    /// Load a Wasm module by restoring a snapshot taken from a `LoadedWasmSandbox`.
+    ///
+    /// The snapshot's unload baseline replaces this sandbox's baseline.
+    pub fn load_from_snapshot(
+        mut self,
+        snapshot: Snapshot<LoadedWasmSandbox>,
+    ) -> Result<LoadedWasmSandbox> {
+        let runtime = snapshot.runtime_snapshot()?;
+        self.inner.load_via_restore(snapshot.inner())?;
+        self.snapshot = Some(runtime);
 
         self.finalize_module_load()
     }
@@ -300,8 +339,6 @@ impl WasmSandbox {
 
     /// Helper function to finalize module loading and create LoadedWasmSandbox
     fn finalize_module_load(mut self) -> Result<LoadedWasmSandbox> {
-        metrics::counter!(METRIC_SANDBOX_LOADS).increment(1);
-
         let sandbox = self.inner.get_loaded()?;
 
         let snapshot = self.snapshot.take().ok_or(new_error!(

@@ -17,6 +17,10 @@ limitations under the License.
 #![deny(dead_code, missing_docs, unused_mut)]
 //! This crate provides a Hyperlight implementation for WebAssembly (Wasm) guest code.
 
+// Generated component bindings in tests use `alloc` paths.
+#[cfg(all(test, component))]
+extern crate alloc;
+
 /// provides details about the build
 pub mod build_info;
 mod sandbox;
@@ -57,13 +61,13 @@ pub use hyperlight_host::is_hypervisor_present;
 pub use hyperlight_host::new_error;
 /// The lifecycle state of a sandbox.
 pub use hyperlight_host::sandbox::SandboxStatus;
-/// A snapshot of the memory of a sandbox at a given point in time.
-pub use hyperlight_host::sandbox::snapshot::Snapshot;
 /// OCI Image Layout reference types used by [`Snapshot::save`] /
 /// [`Snapshot::load`] to identify snapshots inside an OCI Image Layout
 /// directory. Re-exported here so downstream crates do not need a
 /// direct dependency on `hyperlight-host`.
 pub use hyperlight_host::sandbox::snapshot::{OciDigest, OciReference, OciTag};
+pub use sandbox::sandbox_builder::{NewSandbox, SnapshotSource};
+pub use sandbox::snapshot::{Snapshot, SnapshotTarget};
 
 /// Get the build information for this version of hyperlight-wasm
 pub fn get_build_info() -> BuildInfo {

@@ -5,6 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Prerelease] - Unreleased
 
+### Added
+
+* Add OCI snapshot save/load and direct sandbox construction from persisted state.
+* Add runtime checkpoints and preserve module unloading after restoring loaded state.
+
+### Changed
+
+* Replace raw core snapshots with typed `Snapshot<WasmSandbox>` and `Snapshot<LoadedWasmSandbox>` checkpoints. Update explicit snapshot types and remove their outer `Arc`. Snapshots saved with the raw core API cannot be loaded as typed checkpoints.
+* Make `SandboxBuilder` generic over its source. `SandboxBuilder::new()` keeps its type and setters. `SandboxBuilder::from_snapshot()` has no layout setters.
+* Change `WasmSandbox::load_from_snapshot()` to take `Snapshot<LoadedWasmSandbox>`. It and `LoadedWasmSandbox::restore()` replace the unload baseline with the snapshot's.
+* Count snapshot restores in `sandbox_loads_total`.
+
 ## [v0.15.0] - 2026-08
 
 ### Changed
