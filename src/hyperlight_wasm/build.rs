@@ -127,6 +127,12 @@ fn build_wasm_runtime() -> PathBuf {
     println!("cargo::rerun-if-changed={}", runtime_dir.display());
     println!("cargo::rerun-if-env-changed=WIT_WORLD");
     println!("cargo::rerun-if-env-changed=WIT_WORLD_NAME");
+    if let Some(path) = env::var_os("WIT_WORLD") {
+        println!(
+            "cargo::rerun-if-changed={}",
+            runtime_dir.join(path).display()
+        );
+    }
     // the PROFILE env var unfortunately only gives us 1 bit of "dev or release"
     let cargo_profile = if profile == "debug" { "dev" } else { "release" };
 
