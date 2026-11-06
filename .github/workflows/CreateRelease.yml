@@ -19,7 +19,8 @@ jobs:
     # see https://github.com/orgs/community/discussions/26286#discussioncomment-3251208 for why we need to check the ref
     if: ${{ contains(github.ref, 'refs/heads/release/') }} ||  ${{ github.ref=='refs/heads/main' }}
     needs: [ benchmarks ]
-    runs-on: ubuntu-latest
+    # LLVM 18 has no apt.llvm.org packages for Ubuntu 26.04.
+    runs-on: ubuntu-24.04
     env:
         PLATFORM: x64
     steps:

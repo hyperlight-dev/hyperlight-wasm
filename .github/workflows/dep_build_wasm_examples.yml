@@ -118,7 +118,8 @@ jobs:
               features: "wasmtime_latest"
           arch:
             - name: X64
-              runner: ubuntu-latest
+              # LLVM 18 has no apt.llvm.org packages for Ubuntu 26.04.
+              runner: ubuntu-24.04
             - name: arm64
               runner: ubuntu-24.04-arm
       runs-on: ${{ matrix.arch.runner }}

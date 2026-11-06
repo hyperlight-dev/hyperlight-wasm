@@ -135,9 +135,14 @@ jobs:
 
       - name: Install clang tools (macOS)
         if: ${{ runner.os == 'macOS' }}
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_UPGRADE: "1"
         run: |
           brew install llvm
-          echo "$(brew --prefix llvm)/bin" >> "$GITHUB_PATH"
+          llvm_bin="$(brew --prefix llvm)/bin"
+          "$llvm_bin/clang" --version
+          echo "$llvm_bin" >> "$GITHUB_PATH"
 
       - name: Download Wasm Modules
         uses: actions/download-artifact@v5
@@ -258,9 +263,14 @@ jobs:
 
       - name: Install clang tools (macOS)
         if: ${{ runner.os == 'macOS' }}
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_UPGRADE: "1"
         run: |
           brew install llvm
-          echo "$(brew --prefix llvm)/bin" >> "$GITHUB_PATH"
+          llvm_bin="$(brew --prefix llvm)/bin"
+          "$llvm_bin/clang" --version
+          echo "$llvm_bin" >> "$GITHUB_PATH"
 
       - name: Download Wasm Modules
         uses: actions/download-artifact@v5
