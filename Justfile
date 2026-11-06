@@ -15,16 +15,24 @@ make-vendor-tar:
         --exclude-vcs-ignores \
         -C ./src wasm_runtime hyperlight_wasm_macro
 
-ensure-tools:
-    cargo install wasm-tools --locked --version 1.235.0
-    cargo install cargo-component --locked --version 0.21.1
-    cargo install wit-bindgen-cli --locked --version 0.58.0
-    cargo install cargo-hyperlight --locked
+wasm-tools-version := "1.235.0"
+cargo-component-version := "0.21.1"
+wit-bindgen-version := "0.58.0"
+cargo-hyperlight-version := "0.1.14"
+
+# Installs a crate unless `<command> --version` already reports the pinned version.
+[private]
+ensure-tool crate version command:
+    {{ if os() == "windows" { "if (-not ($(try { " + command + " --version 2>$null } catch {}) -like '*" + version + "*')) { cargo install --locked --force --version " + version + " " + crate + " }" } else { command + " --version 2>/dev/null | grep -qF '" + version + "' || cargo install --locked --force --version " + version + " " + crate } }}
+
+ensure-tools: (ensure-tool "wasm-tools" wasm-tools-version "wasm-tools") (ensure-tool "cargo-component" cargo-component-version "cargo component") (ensure-tool "wit-bindgen-cli" wit-bindgen-version "wit-bindgen") ensure-cargo-hyperlight
+
+ensure-cargo-hyperlight: (ensure-tool "cargo-hyperlight" cargo-hyperlight-version "cargo hyperlight")
 
 build-all target=default-target features="": (build target features) (build-examples target features) 
 
-build target=default-target features="": (fmt-check)
-    cargo build {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }} --verbose --profile={{ if target == "debug" {"dev"} else { target } }}
+build target=default-target features="":
+    cargo build -p hyperlight-wasm {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }} --verbose --profile={{ if target == "debug" {"dev"} else { target } }}
 
 mkdir-redist target=default-target:
     mkdir {{ mkdir-arg }} build
@@ -100,7 +108,7 @@ arch := env("JUST_OVERRIDE_ARCH", arch())
 clippy-excluded-features := if arch == "x86_64" { "" } else { "gdb,trace_guest,crashdump" }
 clippy-runtime-features := if arch == "x86_64" { ",gdb,trace_guest" } else { "" }
 
-clippy target=default-target: (check target)
+clippy target=default-target: ensure-cargo-hyperlight
     cargo clippy --workspace --exclude hyperlight-wasm-runtime --exclude hyperlight-wasm-macro --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --features "$(cargo metadata --format-version 1 --no-deps | jq -r '[.packages[]|.name as$pkg|.features|keys.[]|select(.!="default" and (IN($ARGS.positional[0]//" "|split(",")[])|not))|$pkg+"/"+.]|join(",")' --args {{clippy-excluded-features}})" -- -D warnings
     cd src/tests/rust_guests/rust_wasm_samples &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/tests/rust_guests/component_sample &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
