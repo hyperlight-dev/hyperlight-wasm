@@ -36,12 +36,7 @@ else
     AOT_VERSION_FLAGS=""
 fi
 
-if [[ "${CI:-}" == "true" && "${RUNNER_ARCH:-}" == "ARM64" && -z "${CI_BUILD_WASM_MODULES:-}" ]]; then
-    # ARM64 gh runners do not have docker installed on the test
-    # runners, but will have already downloaded the built examples
-    # artifact from the builder job
-    echo "Running in GH Actions on ARM64, so not re-building examples"
-elif [[ -n "${WASI_SDK_PATH:-}" ]] || [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
+if [[ -n "${WASI_SDK_PATH:-}" ]] || [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
     # Use WASI_SDK_PATH, or the wasi-sdk the devcontainer installs.
     WASI_SDK_PATH="${WASI_SDK_PATH:-/opt/wasi-sdk}"
     for FILENAME in $(find . -name '*.c' -not -path './components/*')

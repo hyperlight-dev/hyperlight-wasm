@@ -20,17 +20,7 @@ jobs:
     needs: [ benchmarks ]
     # LLVM 18 has no apt.llvm.org packages for Ubuntu 26.04.
     runs-on: ubuntu-24.04
-    env:
-        PLATFORM: x64
     steps:
-    - name: Set Debug Configuration
-      if: ${{ github.ref=='refs/heads/main' }}
-      run: echo "CONFIG=debug" >> $GITHUB_ENV
-
-    - name: Set Release Configuration
-      if: ${{ contains(github.ref, 'refs/heads/release/') }}
-      run: echo "CONFIG=release" >> $GITHUB_ENV
-
     - uses: actions/checkout@v5
       with:
         fetch-depth: 0
@@ -46,14 +36,6 @@ jobs:
         echo "HYPERLIGHTWASM_VERSION=$version" >> $GITHUB_ENV
         echo "HYPERLIGHTWASM_VERSION=$version"
       if: ${{ contains(github.ref, 'refs/heads/release/') }}
-      shell: bash
-    - name: Download Wasm Modules
-      uses: actions/download-artifact@v5
-      with:
-        name: guest-modules-X64-lts
-        path: ${{ env.PLATFORM }}/${{ env.CONFIG }}
-    - name: Build rust wasm modules
-      run: just build-rust-wasm-examples ${{ env.CONFIG }}
       shell: bash
     - name: Download all benchmarks
       uses: actions/download-artifact@v5

@@ -148,16 +148,8 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: guest-modules-${{ matrix.arch }}-${{ matrix.wasmtime }}
-          path: ./build/${{ matrix.config }}
+          path: .
 
-      - name: Build Rust component model examples
-        run:  |
-          # this must be build before the formatting and other jobs run
-          # because the component model example depends on the wasm component built here
-          just ensure-tools
-          just compile-wit
-          just build-rust-component-examples ${{ matrix.config }} ${{ env.FEATURES }}
-      
       - name: Fmt
         run: just fmt-check
 
@@ -166,10 +158,6 @@ jobs:
 
       - name: Build
         run:  just build ${{ matrix.config }} ${{ env.FEATURES }}
-        working-directory: ./src/hyperlight_wasm
-
-      - name: Build Rust Wasm examples
-        run:  just build-rust-wasm-examples ${{ matrix.config }} ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm
 
       - name: Test
@@ -191,7 +179,7 @@ jobs:
         shell: pwsh
 
       - name: Test Examples
-        run: just examples-ci ${{ matrix.config }} ${{ env.FEATURES }}
+        run: just examples-ci-prebuilt ${{ matrix.config }} ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm
         env:
           # required for gh cli when downloading
@@ -276,7 +264,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: guest-modules-${{ matrix.arch }}-${{ matrix.wasmtime }}
-          path: ./build/release
+          path: .
 
       - name: Download benchmarks from "latest"
         run: just bench-download ${{ runner.os }} ${{ matrix.hypervisor }} ${{ matrix.cpu }} dev-latest
@@ -286,8 +274,5 @@ jobs:
         working-directory: ./src/hyperlight_wasm
 
       - name: Run benchmarks
-        run: |
-          just ensure-tools
-          just compile-wit
-          just bench-ci dev release ${{ env.FEATURES }}
+        run: just bench-ci dev release ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm

@@ -128,7 +128,9 @@ test target=default-target features="":
     cargo test --workspace --exclude hyperlight-wasm-aot {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }}
     cargo test --workspace --exclude hyperlight-wasm-aot test_metrics {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features -F function_call_metrics" } else {"--no-default-features -F function_call_metrics," + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored 
 
-examples-modules target=default-target features="": (build-wasm-examples target features) (build-rust-wasm-examples target features)
+examples-modules target=default-target features="": (build-wasm-examples target features) (build-rust-wasm-examples target features) (run-examples-modules target features)
+
+run-examples-modules target=default-target features="":
     cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example helloworld
     cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example hostfuncs
     cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example rust_wasm_examples
@@ -138,13 +140,42 @@ examples-modules target=default-target features="": (build-wasm-examples target 
 
 examples-ci target=default-target features="": (examples-modules target features) (examples-components target features) (examples-pulley target features)
 
-examples-components target=default-target features="": (build-rust-component-examples target features) 
+# Runs the examples-ci examples on the modules build-ci-examples builds.
+examples-ci-prebuilt target=default-target features="": (run-examples-modules target features) (run-examples-components target features) (use-pulley-examples target) (run-examples-pulley target features)
+
+# Builds every module the CI build jobs load, for the given profiles. C modules build
+# in release only. Pulley builds go to build/<profile>/pulley.
+build-ci-examples features="" profiles="debug release": (build-wasm-examples "release" features)
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ " {{ profiles }} " == *" debug "* ]]; then
+        mkdir -p build/debug
+        cp build/release/*.aot build/debug/
+    fi
+    for target in {{ profiles }}; do
+        just build-pulley-rust-wasm-examples $target {{ features }}
+        just build-pulley-rust-component-examples $target {{ features }}
+        mkdir -p build/$target/pulley
+        mv build/$target/rust_wasm_samples.aot build/$target/component_sample.aot build/$target/pulley/
+        just build-rust-wasm-examples $target {{ features }}
+        just build-rust-component-examples $target {{ features }}
+    done
+
+[private]
+use-pulley-examples target=default-target:
+    {{ if os() == "windows" { "Copy-Item -Force" } else { "cp" } }} build/{{ target }}/pulley/*.aot build/{{ target }}/
+
+examples-components target=default-target features="": (build-rust-component-examples target features) (run-examples-components target features)
+
+run-examples-components target=default-target features="":
     {{ wit-world }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_example
     {{ wit-world-c }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example c-component
     {{ wit-world }} {{ wit-world-name-greeter }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_greeter_example
 
 # Test a component and a module compiled with pulley
-examples-pulley target=default-target features="": (build-pulley-rust-component-examples target features) (build-pulley-rust-wasm-examples target features)
+examples-pulley target=default-target features="": (build-pulley-rust-component-examples target features) (build-pulley-rust-wasm-examples target features) (run-examples-pulley target features)
+
+run-examples-pulley target=default-target features="":
     {{ wit-world }} cargo run {{ if features =="" {'-F pulley'} else {"--no-default-features -F kvm,pulley -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_example
     cargo run {{ if features =="" {'-F pulley'} else {"--no-default-features -F pulley -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example rust_wasm_examples
 

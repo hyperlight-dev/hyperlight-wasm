@@ -27,8 +27,11 @@ jobs:
           wasmtime_version:
             - name: lts
               features: ""
+              profiles: "debug release"
+            # Build jobs skip debug for wasmtime latest.
             - name: latest
               features: "wasmtime_latest"
+              profiles: "release"
           arch:
             - name: X64
               # LLVM 18 has no apt.llvm.org packages for Ubuntu 26.04.
@@ -36,8 +39,6 @@ jobs:
             - name: arm64
               runner: ubuntu-24.04-arm
       runs-on: ${{ matrix.arch.runner }}
-      env:
-        CI_BUILD_WASM_MODULES: true
       steps:
         - uses: actions/checkout@v5
           with:
@@ -50,6 +51,7 @@ jobs:
           uses: hyperlight-dev/ci-setup-workflow@v2.3.1
           with:
             rust-toolchain: "1.94"
+            additional-toolchain-directory: src/tests/rust_guests
         - name: Install wasi-sdk
           run: |
             arch=$([ "$RUNNER_ARCH" = ARM64 ] && echo arm64 || echo x86_64)
@@ -60,11 +62,16 @@ jobs:
         - name: Build Modules (wasmtime ${{ matrix.wasmtime_version.name }})
           run: |
             just ensure-tools
-            just build-wasm-examples release ${{ matrix.wasmtime_version.features }}
+            just build-ci-examples "${{ matrix.wasmtime_version.features }}" "${{ matrix.wasmtime_version.profiles }}"
           shell: bash
+        # Build jobs compile examples against the WIT worlds, so they ship with the modules.
         - name: Upload Wasm Modules (wasmtime ${{ matrix.wasmtime_version.name }})
           uses: actions/upload-artifact@v4
           with:
             name: guest-modules-${{ matrix.arch.name }}-${{ matrix.wasmtime_version.name }}
-            path: | 
-              build/release/*.aot
+            if-no-files-found: error
+            path: |
+              build/*/*.aot
+              build/*/pulley/*.aot
+              src/tests/rust_guests/component_sample/wit/component-world.wasm
+              src/tests/c_guests/wasmsamples/components/runcomponent-world.wasm
