@@ -15,7 +15,6 @@ concurrency:
 permissions:
   pull-requests: read
   contents: read
-  packages: read
 
 jobs:
 
@@ -54,9 +53,6 @@ jobs:
     needs: 
       - docs-pr
     uses: ./.github/workflows/dep_build_wasm_examples.yml
-    permissions:
-      contents: read
-      packages: write # to push the image that builds wasm samples
     with: 
       docs_only: ${{needs.docs-pr.outputs.docs-only}}
   

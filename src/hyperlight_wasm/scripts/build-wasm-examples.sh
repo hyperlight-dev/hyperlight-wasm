@@ -41,13 +41,14 @@ if [[ "${CI:-}" == "true" && "${RUNNER_ARCH:-}" == "ARM64" && -z "${CI_BUILD_WAS
     # runners, but will have already downloaded the built examples
     # artifact from the builder job
     echo "Running in GH Actions on ARM64, so not re-building examples"
-elif [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
-    # running in a container so use the installed wasi-sdk as the devcontainer has this installed  
+elif [[ -n "${WASI_SDK_PATH:-}" ]] || [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
+    # Use WASI_SDK_PATH, or the wasi-sdk the devcontainer installs.
+    WASI_SDK_PATH="${WASI_SDK_PATH:-/opt/wasi-sdk}"
     for FILENAME in $(find . -name '*.c' -not -path './components/*')
     do
         echo Building ${FILENAME}
         # Build the wasm file with wasi-libc for wasmtime
-        /opt/wasi-sdk/bin/clang ${DEBUG_FLAGS} -flto -ffunction-sections -mexec-model=reactor ${OPT_FLAGS} -z stack-size=4096 -Wl,--initial-memory=65536 -Wl,--export=__data_end -Wl,--export=__heap_base,--export=malloc,--export=free,--export=__wasm_call_ctors ${STRIP_FLAGS} -Wl,--no-entry -Wl,--allow-undefined -Wl,--gc-sections  -o ${OUTPUT_DIR}/${FILENAME%.*}-wasi-libc.wasm ${FILENAME}
+        "${WASI_SDK_PATH}/bin/clang" ${DEBUG_FLAGS} -flto -ffunction-sections -mexec-model=reactor ${OPT_FLAGS} -z stack-size=4096 -Wl,--initial-memory=65536 -Wl,--export=__data_end -Wl,--export=__heap_base,--export=malloc,--export=free,--export=__wasm_call_ctors ${STRIP_FLAGS} -Wl,--no-entry -Wl,--allow-undefined -Wl,--gc-sections  -o ${OUTPUT_DIR}/${FILENAME%.*}-wasi-libc.wasm ${FILENAME}
 
         cargo run ${AOT_FEATURES} -p hyperlight-wasm-aot compile ${AOT_DEBUG_FLAGS} ${AOT_VERSION_FLAGS} ${OUTPUT_DIR}/${FILENAME%.*}-wasi-libc.wasm ${OUTPUT_DIR}/${FILENAME%.*}.aot
     done
@@ -60,7 +61,7 @@ elif [ -f "/.dockerenv" ] || grep -q docker /proc/1/cgroup; then
         wit-bindgen c ${WIT_FILE} --out-dir ${PWD}/components/bindings
 
         # Build the wasm file with wasi-libc for wasmtime
-        /opt/wasi-sdk/bin/wasm32-wasip2-clang \
+        "${WASI_SDK_PATH}/bin/wasm32-wasip2-clang" \
             -ffunction-sections -mexec-model=reactor ${OPT_FLAGS} -z stack-size=4096 \
             -Wl,--initial-memory=65536 -Wl,--export=__data_end -Wl,--export=__heap_base,--export=malloc,--export=free,--export=__wasm_call_ctors \
             ${STRIP_FLAGS} -Wl,--no-entry -Wl,--allow-undefined -Wl,--gc-sections \
@@ -81,7 +82,8 @@ else
 
     arch="$(uname -m)"
     if [[ "$arch" == "x86_64" ]]; then
-        docker pull ghcr.io/hyperlight-dev/wasm-clang-builder:latest
+        # Only a build cache, so a missing image is fine.
+        docker pull ghcr.io/hyperlight-dev/wasm-clang-builder:latest || true
     fi
 
     docker build --build-arg GCC_VERSION=12 --build-arg WASI_SDK_VERSION_FULL=25.0 --cache-from ghcr.io/hyperlight-dev/wasm-clang-builder:latest -t wasm-clang-builder:latest . 2> ${OUTPUT_DIR}/dockerbuild.log

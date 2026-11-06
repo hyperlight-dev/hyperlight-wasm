@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  packages: write
   id-token: write  # Required for crates.io trusted publishing
 
 jobs:
