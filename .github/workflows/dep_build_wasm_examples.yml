@@ -12,6 +12,11 @@ on:
         required: false
         type: string
         default: "false"
+      prime_cache:
+        description: Save the tool and module caches when they miss.
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -43,16 +48,44 @@ jobs:
         - uses: actions/checkout@v5
           with:
             fetch-depth: 0
+        # The key hashes every input to the modules, so a hit skips the build.
+        - name: Restore Wasm Modules cache
+          id: modules-cache
+          uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+          with:
+            path: |
+              build/*/*.aot
+              build/*/pulley/*.aot
+              src/tests/rust_guests/component_sample/wit/component-world.wasm
+              src/tests/c_guests/wasmsamples/components/runcomponent-world.wasm
+            key: wasm-modules-${{ matrix.arch.name }}-${{ matrix.wasmtime_version.name }}-${{ hashFiles('src/tests/**', 'src/hyperlight_wasm_aot/**', 'Cargo.lock', '.cargo/config.toml', 'rust-toolchain.toml', 'Justfile', 'src/hyperlight_wasm/scripts/build-wasm-examples.sh', '.github/workflows/dep_build_wasm_examples.yml') }}
         - name: Remove default clang
+          if: steps.modules-cache.outputs.cache-hit != 'true'
           run: sudo rm /usr/bin/clang
         - name: Fake /dev/kvm for ci-setup-workflow action
+          if: steps.modules-cache.outputs.cache-hit != 'true'
           run: sudo touch /dev/kvm
         - name: Hyperlight setup workflow
+          if: steps.modules-cache.outputs.cache-hit != 'true'
           uses: hyperlight-dev/ci-setup-workflow@v2.3.1
           with:
             rust-toolchain: "1.94"
             additional-toolchain-directory: src/tests/rust_guests
+        # ensure-tools reinstalls only the tools whose pinned version changed.
+        - name: Restore tools cache
+          id: tools-cache
+          if: steps.modules-cache.outputs.cache-hit != 'true'
+          uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+          with:
+            path: |
+              ~/.cargo/bin/wasm-tools
+              ~/.cargo/bin/cargo-component
+              ~/.cargo/bin/wit-bindgen
+              ~/.cargo/bin/cargo-hyperlight
+            key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Justfile') }}
+            restore-keys: tools-${{ runner.os }}-${{ runner.arch }}-
         - name: Install wasi-sdk
+          if: steps.modules-cache.outputs.cache-hit != 'true'
           run: |
             arch=$([ "$RUNNER_ARCH" = ARM64 ] && echo arm64 || echo x86_64)
             name="wasi-sdk-${WASI_SDK_VERSION}-${arch}-linux"
@@ -60,10 +93,31 @@ jobs:
             echo "WASI_SDK_PATH=$RUNNER_TEMP/$name" >> "$GITHUB_ENV"
           shell: bash
         - name: Build Modules (wasmtime ${{ matrix.wasmtime_version.name }})
+          if: steps.modules-cache.outputs.cache-hit != 'true'
           run: |
             just ensure-tools
             just build-ci-examples "${{ matrix.wasmtime_version.features }}" "${{ matrix.wasmtime_version.profiles }}"
           shell: bash
+        - name: Save tools cache
+          if: inputs.prime_cache && steps.modules-cache.outputs.cache-hit != 'true' && steps.tools-cache.outputs.cache-hit != 'true'
+          uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+          with:
+            path: |
+              ~/.cargo/bin/wasm-tools
+              ~/.cargo/bin/cargo-component
+              ~/.cargo/bin/wit-bindgen
+              ~/.cargo/bin/cargo-hyperlight
+            key: ${{ steps.tools-cache.outputs.cache-primary-key }}
+        - name: Save Wasm Modules cache
+          if: inputs.prime_cache && steps.modules-cache.outputs.cache-hit != 'true'
+          uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+          with:
+            path: |
+              build/*/*.aot
+              build/*/pulley/*.aot
+              src/tests/rust_guests/component_sample/wit/component-world.wasm
+              src/tests/c_guests/wasmsamples/components/runcomponent-world.wasm
+            key: ${{ steps.modules-cache.outputs.cache-primary-key }}
         # Build jobs compile examples against the WIT worlds, so they ship with the modules.
         - name: Upload Wasm Modules (wasmtime ${{ matrix.wasmtime_version.name }})
           uses: actions/upload-artifact@v4

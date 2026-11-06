@@ -128,6 +128,17 @@ test target=default-target features="":
     cargo test --workspace --exclude hyperlight-wasm-aot {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }}
     cargo test --workspace --exclude hyperlight-wasm-aot test_metrics {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features -F function_call_metrics" } else {"--no-default-features -F function_call_metrics," + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored 
 
+set-env-command := if os() == "windows" { "$env:" } else { "export " }
+# Cargo launches test and example binaries through the runner in this variable.
+no-run-runner-var := "CARGO_TARGET_" + uppercase(arch) + (if os() == "windows" { "_PC_WINDOWS_MSVC" } else if os() == "macos" { "_APPLE_DARWIN" } else { "_UNKNOWN_LINUX_GNU" }) + "_RUNNER"
+# Cargo runs `<runner> <binary> <args>`. Both forms exit 0 and ignore the rest.
+no-run-runner := if os() == "windows" { "cmd /c rem" } else { "true" }
+
+# Builds what a CI build job compiles, to fill the CI cache. Tests and examples build but do not run.
+prime-caches target=default-target features="":
+    just build {{ target }} {{ features }}
+    {{ set-env-command }}{{ no-run-runner-var }}='{{ no-run-runner }}'; just test {{ target }} {{ features }} && just examples-ci-prebuilt {{ target }} {{ features }}
+
 examples-modules target=default-target features="": (build-wasm-examples target features) (build-rust-wasm-examples target features) (run-examples-modules target features)
 
 run-examples-modules target=default-target features="":
