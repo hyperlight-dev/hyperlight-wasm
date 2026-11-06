@@ -1,0 +1,89 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+name: Code Checks
+
+on:
+  workflow_call:
+    inputs:
+      docs_only:
+        description: Skip building if docs only
+        required: false
+        type: string
+        default: "false"
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: full
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  linux-checks:
+    if: ${{ inputs.docs_only == 'false' }}
+    # Spread load across vendor pools: AMD when run_id ends in 0,2,4,6,8, Intel otherwise.
+    runs-on: ${{ fromJSON(format('["self-hosted", "Linux", "X64", "1ES.Pool=hld-kvm-{0}", "JobId=linux-checks-{1}-{2}-{3}"]',
+        (endsWith(github.run_id, '0') || endsWith(github.run_id, '2') || endsWith(github.run_id, '4') || endsWith(github.run_id, '6') || endsWith(github.run_id, '8')) && 'amd' || 'intel',
+        github.run_id,
+        github.run_number,
+        github.run_attempt)) }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Hyperlight setup
+        uses: hyperlight-dev/ci-setup-workflow@v2.3.1
+        with:
+          rust-toolchain: "1.94"
+          additional-toolchain-directory: src/tests/rust_guests
+          just-version: 1.59.0
+
+      # The examples compile against the WIT worlds in this artifact.
+      - name: Download Wasm Modules
+        uses: actions/download-artifact@v5
+        with:
+          name: guest-modules-X64-lts
+          path: .
+
+      - name: fmt
+        run: just fmt-check
+
+      - name: clippy (debug)
+        run: just clippy debug
+
+      - name: clippy (release)
+        run: just clippy release
+
+  windows-checks:
+    if: ${{ inputs.docs_only == 'false' }}
+    # Spread load across vendor pools: AMD when run_id ends in 0,2,4,6,8, Intel otherwise.
+    runs-on: ${{ fromJSON(format('["self-hosted", "Windows", "X64", "1ES.Pool=hld-win2025-{0}", "JobId=windows-checks-{1}-{2}-{3}"]',
+        (endsWith(github.run_id, '0') || endsWith(github.run_id, '2') || endsWith(github.run_id, '4') || endsWith(github.run_id, '6') || endsWith(github.run_id, '8')) && 'amd' || 'intel',
+        github.run_id,
+        github.run_number,
+        github.run_attempt)) }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Hyperlight setup
+        uses: hyperlight-dev/ci-setup-workflow@v2.3.1
+        with:
+          rust-toolchain: "1.94"
+          additional-toolchain-directory: src/tests/rust_guests
+          just-version: 1.59.0
+
+      # The examples compile against the WIT worlds in this artifact.
+      - name: Download Wasm Modules
+        uses: actions/download-artifact@v5
+        with:
+          name: guest-modules-X64-lts
+          path: .
+
+      - name: clippy (debug)
+        run: just clippy debug
+
+      - name: clippy (release)
+        run: just clippy release

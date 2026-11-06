@@ -102,21 +102,7 @@ jobs:
         uses: hyperlight-dev/ci-setup-workflow@v2.3.1
         with:
           rust-toolchain: "1.94"
-          additional-toolchain-directory: src/tests/rust_guests
           just-version: 1.59.0
-
-      - name: Add Nightly Rust
-        run: |
-          rustup toolchain install nightly
-          for target in $(rustup target list --installed); do
-              rustup target add $target --toolchain nightly
-          done
-          rustup target add wasm32-unknown-unknown  
-        shell: bash
-
-      - name: Add Nightly Rust Windows
-        if: runner.os == 'Windows'
-        run: rustup component add --toolchain nightly-x86_64-pc-windows-msvc rustfmt
 
       - name: Configure ARM64 libclang
         if: runner.os == 'Windows' && matrix.arch == 'arm64'
@@ -149,12 +135,6 @@ jobs:
         with:
           name: guest-modules-${{ matrix.arch }}-${{ matrix.wasmtime }}
           path: .
-
-      - name: Fmt
-        run: just fmt-check
-
-      - name: Clippy
-        run: just clippy ${{ matrix.config }}
 
       - name: Build
         run:  just build ${{ matrix.config }} ${{ env.FEATURES }}
