@@ -21,9 +21,6 @@ on:
 permissions:
   contents: read
 
-env:
-  WASI_SDK_VERSION: "25.0"
-
 jobs:
     build-wasm-examples:
       if: ${{ inputs.docs_only != 'true' }}
@@ -47,8 +44,6 @@ jobs:
       runs-on: ${{ matrix.arch.runner }}
       steps:
         - uses: actions/checkout@v5
-          with:
-            fetch-depth: 0
         # The key hashes every input to the modules, so a hit skips the build.
         - name: Restore Wasm Modules cache
           id: modules-cache
@@ -59,7 +54,7 @@ jobs:
               build/*/pulley/*.aot
               src/tests/rust_guests/component_sample/wit/component-world.wasm
               src/tests/c_guests/wasmsamples/components/runcomponent-world.wasm
-            key: wasm-modules-${{ matrix.arch.name }}-${{ matrix.wasmtime_version.name }}-${{ hashFiles('src/tests/**', 'src/hyperlight_wasm_aot/**', 'Cargo.lock', '.cargo/config.toml', 'rust-toolchain.toml', 'Justfile', 'src/hyperlight_wasm/scripts/build-wasm-examples.sh', '.github/workflows/dep_build_wasm_examples.yml') }}
+            key: wasm-modules-${{ matrix.arch.name }}-${{ matrix.wasmtime_version.name }}-${{ hashFiles('src/tests/**', 'src/hyperlight_wasm_aot/**', 'Cargo.lock', '.cargo/config.toml', 'rust-toolchain.toml', 'Justfile', 'c.just', '.github/workflows/dep_build_wasm_examples.yml') }}
         - name: Remove default clang
           if: steps.modules-cache.outputs.cache-hit != 'true'
           run: sudo rm /usr/bin/clang
@@ -85,14 +80,6 @@ jobs:
               ~/.cargo/bin/cargo-hyperlight
             key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Justfile') }}
             restore-keys: tools-${{ runner.os }}-${{ runner.arch }}-
-        - name: Install wasi-sdk
-          if: steps.modules-cache.outputs.cache-hit != 'true'
-          run: |
-            arch=$([ "$RUNNER_ARCH" = ARM64 ] && echo arm64 || echo x86_64)
-            name="wasi-sdk-${WASI_SDK_VERSION}-${arch}-linux"
-            curl -fsSL --retry 3 "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION%%.*}/${name}.tar.gz" | tar -xz -C "$RUNNER_TEMP"
-            echo "WASI_SDK_PATH=$RUNNER_TEMP/$name" >> "$GITHUB_ENV"
-          shell: bash
         - name: Build Modules (wasmtime ${{ matrix.wasmtime_version.name }})
           if: steps.modules-cache.outputs.cache-hit != 'true'
           run: |

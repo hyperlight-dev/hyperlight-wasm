@@ -1,6 +1,7 @@
+import 'c.just'
+
 default-target:= "debug"
 default-tag:= "latest"
-build-wasm-examples-command := if os() == "windows" { "./src/hyperlight_wasm/scripts/build-wasm-examples.bat" } else { "./src/hyperlight_wasm/scripts/build-wasm-examples.sh" }
 mkdir-arg := if os() == "windows" { "-Force" } else { "-p" }
 latest-release:= if os() == "windows" {"$(git tag -l --sort=v:refname | select -last 2 | select -first 1)"} else {`git tag -l --sort=v:refname | tail -n 2 | head -n 1`}
 wit-world := if os() == "windows" { "$env:WIT_WORLD=\"" + justfile_directory() + "\\src\\tests\\rust_guests\\component_sample\\wit\\component-world.wasm" + "\";" } else { "WIT_WORLD=" + justfile_directory() + "/src/tests/rust_guests/component_sample/wit/component-world.wasm" }
@@ -43,9 +44,6 @@ compile-wit:
     wasm-tools component wit ./src/tests/rust_guests/component_sample/wit/example.wit -w -o ./src/tests/rust_guests/component_sample/wit/component-world.wasm
 
 build-examples target=default-target features="": (build-wasm-examples target features) (build-rust-wasm-examples target features) (build-rust-component-examples target features)
-
-build-wasm-examples target=default-target features="": (compile-wit) 
-    {{ build-wasm-examples-command }} {{target}} {{features}}
 
 build-rust-wasm-examples target=default-target features="": (mkdir-redist target)
     rustup target add wasm32-unknown-unknown
