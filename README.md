@@ -77,6 +77,8 @@ just build-wasm-examples
 just build-rust-wasm-examples
 ```
 
+`just build-wasm-examples` uses wasi-sdk from `WASI_SDK_PATH` or `/opt/wasi-sdk`, and otherwise downloads it into `target`.
+
 Then you can test the Rust Wasm library and run the example:
 
 ```Console
