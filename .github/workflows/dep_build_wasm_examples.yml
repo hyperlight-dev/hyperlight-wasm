@@ -27,6 +27,7 @@ env:
 jobs:
     build-wasm-examples:
       if: ${{ inputs.docs_only != 'true' }}
+      timeout-minutes: ${{ fromJSON(vars.BUILD_WASM_EXAMPLES_JOB_TIMEOUT || '30') }}
       strategy:
         matrix:
           wasmtime_version:
