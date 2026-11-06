@@ -12,110 +12,29 @@ on:
         required: false
         type: string
         default: "false"
-  schedule:
-    # Run at 1am UTC daily
-    - cron: '0 1 * * *'
+      prime_cache:
+        description: Save the tool and module caches when they miss.
+        required: false
+        type: boolean
+        default: false
 
 permissions:
-  packages: write
   contents: read
 
 jobs:
-    build-docker-image:
-      if: ${{ inputs.docs_only == 'false' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
-      strategy:
-        matrix:
-          arch:
-            - name: X64
-              runner: ubuntu-latest
-              docker-platform: linux/amd64
-            - name: arm64
-              runner: ubuntu-24.04-arm
-              docker-platform: linux/arm64
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v5
-          with:
-            fetch-depth: 0
-        - name: Set up Docker Buildx
-          uses: docker/setup-buildx-action@v3
-        - name: Login to Registry
-          uses: docker/login-action@v3
-          with:
-            registry: ghcr.io
-            username: ${{ github.actor }}
-            password: ${{ secrets.GITHUB_TOKEN }}
-        - name: Pull wasm-clang-builder
-          continue-on-error: true
-          run: |
-                docker pull ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:latest
-        - name: Set up Docker image metadata
-          id: meta
-          uses: docker/metadata-action@v5
-          with:
-            images: ${{ github.repository_owner }}/wasm-clang-builder
-        - name: Calculate ghcr cache destination
-          id: ghcr-dest
-          env:
-            CAN_WRITE: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && github.actor != 'dependabot[bot]' }}
-          run: |
-            if [ "$CAN_WRITE" = "true" ]; then
-              echo "CACHE_TO=type=registry,ref=ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:buildcache,mode=max" >> $GITHUB_ENV
-              echo "DO_PUSH=true" >> $GITHUB_ENV
-              echo "DO_PUSH=true" >> $GITHUB_OUTPUT
-            else
-              echo "CACHE_TO=type=local,dest=/tmp/wasm-clang-builder-cache/" >> $GITHUB_ENV
-              echo "DO_PUSH=false" >> $GITHUB_ENV
-              echo "DO_PUSH=false" >> $GITHUB_OUTPUT
-            fi
-        - name: Build and push wasm-clang-builder
-        # Only push if not from a fork, not from pull request, and not from dependabot
-          uses: docker/build-push-action@v6
-          with:
-            context: src/tests/c_guests/wasmsamples
-            file: src/tests/c_guests/wasmsamples/dockerfile
-            load: true
-            push: ${{ env.DO_PUSH }}
-            build-args: |
-              WASI_SDK_VERSION_FULL=25.0
-              GCC_VERSION=12
-            platforms: ${{ matrix.arch.docker-platform }}
-            tags: ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:latest-${{ matrix.arch.name }}
-            cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:buildcache
-            cache-to: ${{ env.CACHE_TO }}
-      outputs:
-        do_push: ${{ steps.ghcr-dest.outputs.DO_PUSH }}
-
-    merge-docker-image:
-      needs: build-docker-image
-      if: ${{ needs.build-docker-image.outputs.do_push == 'true' }}
-      runs-on: ubuntu-latest
-      steps:
-        - name: Login to Registry
-          uses: docker/login-action@v3
-          with:
-            registry: ghcr.io
-            username: ${{ github.actor }}
-            password: ${{ secrets.GITHUB_TOKEN }}
-        - name: Create manifest
-          run: |
-            docker buildx imagetools create -t ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:latest \
-              ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:latest-X64 \
-              ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:latest-arm64
-
     build-wasm-examples:
-      needs: merge-docker-image
-      # Required because merge-docker-image is skipped on some runs,
-      # and a skipped dependency transitively skips all downstream
-      # jobs.  See: https://github.com/actions/runner/issues/2205
-      if: ${{ !cancelled() && !failure() }}
+      if: ${{ inputs.docs_only != 'true' }}
+      timeout-minutes: ${{ fromJSON(vars.BUILD_WASM_EXAMPLES_JOB_TIMEOUT || '30') }}
       strategy:
         matrix:
           wasmtime_version:
             - name: lts
               features: ""
+              profiles: "debug release"
+            # Build jobs skip debug for wasmtime latest.
             - name: latest
               features: "wasmtime_latest"
+              profiles: "release"
           arch:
             - name: X64
               # LLVM 18 has no apt.llvm.org packages for Ubuntu 26.04.
@@ -123,39 +42,78 @@ jobs:
             - name: arm64
               runner: ubuntu-24.04-arm
       runs-on: ${{ matrix.arch.runner }}
-      env:
-        CI_BUILD_WASM_MODULES: true
       steps:
         - uses: actions/checkout@v5
+        # The key hashes every input to the modules, so a hit skips the build.
+        - name: Restore Wasm Modules cache
+          id: modules-cache
+          uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
           with:
-            fetch-depth: 0
+            path: |
+              build/*/*.aot
+              build/*/pulley/*.aot
+              src/tests/rust_guests/component_sample/wit/component-world.wasm
+              src/tests/c_guests/wasmsamples/components/runcomponent-world.wasm
+            key: wasm-modules-${{ matrix.arch.name }}-${{ matrix.wasmtime_version.name }}-${{ hashFiles('src/tests/**', 'src/hyperlight_wasm_aot/**', 'Cargo.lock', '.cargo/config.toml', 'rust-toolchain.toml', 'Justfile', 'c.just', '.github/workflows/dep_build_wasm_examples.yml') }}
         - name: Remove default clang
+          if: steps.modules-cache.outputs.cache-hit != 'true'
           run: sudo rm /usr/bin/clang
         - name: Fake /dev/kvm for ci-setup-workflow action
+          if: steps.modules-cache.outputs.cache-hit != 'true'
           run: sudo touch /dev/kvm
         - name: Hyperlight setup workflow
+          if: steps.modules-cache.outputs.cache-hit != 'true'
           uses: hyperlight-dev/ci-setup-workflow@v2.3.1
           with:
             rust-toolchain: "1.94"
-        - name: Set up Docker Buildx
-          uses: docker/setup-buildx-action@v3
-        - name: Login to Registry
-          uses: docker/login-action@v3
+            additional-toolchain-directory: src/tests/rust_guests
+        # ensure-tools reinstalls only the tools whose pinned version changed.
+        - name: Restore tools cache
+          id: tools-cache
+          if: steps.modules-cache.outputs.cache-hit != 'true'
+          uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
           with:
-            registry: ghcr.io
-            username: ${{ github.actor }}
-            password: ${{ secrets.GITHUB_TOKEN }}
-        - name: Pull wasm-clang-builder
-          run: |
-                docker pull ghcr.io/${{ github.repository_owner }}/wasm-clang-builder:latest
+            path: |
+              ~/.cargo/bin/wasm-tools
+              ~/.cargo/bin/cargo-component
+              ~/.cargo/bin/wit-bindgen
+              ~/.cargo/bin/cargo-hyperlight
+            key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Justfile') }}
+            restore-keys: tools-${{ runner.os }}-${{ runner.arch }}-
         - name: Build Modules (wasmtime ${{ matrix.wasmtime_version.name }})
+          if: steps.modules-cache.outputs.cache-hit != 'true'
           run: |
             just ensure-tools
-            just build-wasm-examples release ${{ matrix.wasmtime_version.features }}
+            just build-ci-examples "${{ matrix.wasmtime_version.features }}" "${{ matrix.wasmtime_version.profiles }}"
           shell: bash
+        - name: Save tools cache
+          if: inputs.prime_cache && steps.modules-cache.outputs.cache-hit != 'true' && steps.tools-cache.outputs.cache-hit != 'true'
+          uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+          with:
+            path: |
+              ~/.cargo/bin/wasm-tools
+              ~/.cargo/bin/cargo-component
+              ~/.cargo/bin/wit-bindgen
+              ~/.cargo/bin/cargo-hyperlight
+            key: ${{ steps.tools-cache.outputs.cache-primary-key }}
+        - name: Save Wasm Modules cache
+          if: inputs.prime_cache && steps.modules-cache.outputs.cache-hit != 'true'
+          uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+          with:
+            path: |
+              build/*/*.aot
+              build/*/pulley/*.aot
+              src/tests/rust_guests/component_sample/wit/component-world.wasm
+              src/tests/c_guests/wasmsamples/components/runcomponent-world.wasm
+            key: ${{ steps.modules-cache.outputs.cache-primary-key }}
+        # Build jobs compile examples against the WIT worlds, so they ship with the modules.
         - name: Upload Wasm Modules (wasmtime ${{ matrix.wasmtime_version.name }})
           uses: actions/upload-artifact@v4
           with:
             name: guest-modules-${{ matrix.arch.name }}-${{ matrix.wasmtime_version.name }}
-            path: | 
-              build/release/*.aot
+            if-no-files-found: error
+            path: |
+              build/*/*.aot
+              build/*/pulley/*.aot
+              src/tests/rust_guests/component_sample/wit/component-world.wasm
+              src/tests/c_guests/wasmsamples/components/runcomponent-world.wasm

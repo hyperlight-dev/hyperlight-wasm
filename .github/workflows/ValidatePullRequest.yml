@@ -15,7 +15,6 @@ concurrency:
 permissions:
   pull-requests: read
   contents: read
-  packages: read
 
 jobs:
 
@@ -54,9 +53,6 @@ jobs:
     needs: 
       - docs-pr
     uses: ./.github/workflows/dep_build_wasm_examples.yml
-    permissions:
-      contents: read
-      packages: write # to push the image that builds wasm samples
     with: 
       docs_only: ${{needs.docs-pr.outputs.docs-only}}
   
@@ -68,6 +64,14 @@ jobs:
     with: 
       docs_only: ${{needs.docs-pr.outputs.docs-only}}
 
+  code-checks:
+    needs:
+      - docs-pr
+      - build-wasm-examples
+    uses: ./.github/workflows/dep_code_checks.yml
+    with:
+      docs_only: ${{needs.docs-pr.outputs.docs-only}}
+
     
   # Gate PR merges on this specific "join-job" which requires all other
   # jobs to run first. We need this job since we cannot gate on particular jobs
@@ -77,6 +81,7 @@ jobs:
     needs:
       - docs-pr
       - rust
+      - code-checks
       - spelling
       - build-wasm-examples
     if: always()

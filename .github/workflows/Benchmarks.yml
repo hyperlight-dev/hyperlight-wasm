@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 # The reason for default shell bash is because on our self-hosted windows runners,
 # the default shell is powershell, which doesn't work correctly together with `just` commands.
@@ -26,6 +25,7 @@ jobs:
   benchmark:
     needs:
       - build-wasm-examples
+    timeout-minutes: ${{ fromJSON(vars.BENCHMARKS_JOB_TIMEOUT || '60') }}
     strategy:
       # A lost self-hosted runner should not cancel benchmark artifacts from
       # otherwise healthy matrix jobs.
@@ -59,7 +59,7 @@ jobs:
       uses: actions/download-artifact@v5
       with:
         name: guest-modules-X64-lts
-        path: ./build/${{ matrix.config }}
+        path: .
 
     ### Benchmarks ###
 
@@ -76,11 +76,7 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Run Benchmarks
-      run: |
-        # the component model benchmark depends on the wasm wit component
-        just ensure-tools
-        just compile-wit
-        just bench-ci dev release
+      run: just bench-ci dev release
       working-directory: ./src/hyperlight_wasm
 
     - name: Upload Benchmarks
