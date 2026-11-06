@@ -56,6 +56,8 @@ jobs:
   # and latest release jobs share them.
   host:
     needs: wasm-examples
+    # Linux arm64 runs on 2-CPU VMs and builds release twice.
+    timeout-minutes: ${{ fromJSON(vars.PRIME_CACHES_JOB_TIMEOUT || '90') }}
     strategy:
       fail-fast: false
       matrix:

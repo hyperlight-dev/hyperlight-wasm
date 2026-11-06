@@ -25,6 +25,7 @@ jobs:
   benchmark:
     needs:
       - build-wasm-examples
+    timeout-minutes: ${{ fromJSON(vars.BENCHMARKS_JOB_TIMEOUT || '60') }}
     strategy:
       # A lost self-hosted runner should not cancel benchmark artifacts from
       # otherwise healthy matrix jobs.
