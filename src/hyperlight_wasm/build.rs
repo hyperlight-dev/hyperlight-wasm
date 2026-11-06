@@ -108,7 +108,9 @@ fn find_target_dir() -> PathBuf {
     target_dir.to_path_buf()
 }
 
-fn build_wasm_runtime() -> PathBuf {
+/// Build the guest runtime and return its binary path and component interface hash.
+/// The hash is `Some` when `WIT_WORLD` selects component mode and `None` for core modules.
+fn build_wasm_runtime() -> (PathBuf, Option<String>) {
     let profile = env::var_os("PROFILE").unwrap();
 
     // Get the current target directory.
@@ -127,6 +129,19 @@ fn build_wasm_runtime() -> PathBuf {
     println!("cargo::rerun-if-changed={}", runtime_dir.display());
     println!("cargo::rerun-if-env-changed=WIT_WORLD");
     println!("cargo::rerun-if-env-changed=WIT_WORLD_NAME");
+    let component_interface = env::var_os("WIT_WORLD").map(|path| {
+        let path = runtime_dir.join(path);
+        println!("cargo::rerun-if-changed={}", path.display());
+        let bytes = fs::read(path).expect("could not read WIT_WORLD");
+        let mut hash = blake3::Hasher::new();
+        hash.update(blake3::hash(&bytes).as_bytes());
+        // One file can hold several worlds. Unset selects the last one.
+        if let Ok(world) = env::var("WIT_WORLD_NAME") {
+            hash.update(b"\x01");
+            hash.update(world.as_bytes());
+        }
+        hash.finalize().to_string()
+    });
     // the PROFILE env var unfortunately only gives us 1 bit of "dev or release"
     let cargo_profile = if profile == "debug" { "dev" } else { "release" };
 
@@ -184,7 +199,7 @@ fn build_wasm_runtime() -> PathBuf {
             );
         }
 
-        path
+        (path, component_interface)
     } else {
         panic!(
             "could not find hyperlight-wasm-runtime after building it (expected {:?})",
@@ -194,7 +209,12 @@ fn build_wasm_runtime() -> PathBuf {
 }
 
 fn main() -> Result<()> {
-    let built_runtime = build_wasm_runtime();
+    let (built_runtime, component_interface) = build_wasm_runtime();
+
+    println!("cargo::rustc-check-cfg=cfg(component)");
+    if component_interface.is_some() {
+        println!("cargo::rustc-cfg=component");
+    }
 
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let wasm_runtime_resource = Path::new(&out_dir).join("hyperlight-wasm-runtime");
@@ -202,8 +222,10 @@ fn main() -> Result<()> {
     fs::copy(&built_runtime, &wasm_runtime_resource)?;
     let dest_path = Path::new(&out_dir).join("wasm_runtime_resource.rs");
     let contents = format!(
-        "pub (super) static WASM_RUNTIME: [u8; include_bytes!({name:?}).len()] = *include_bytes!({name:?});",
-        name = wasm_runtime_resource.as_os_str()
+        "pub (super) static WASM_RUNTIME: [u8; include_bytes!({name:?}).len()] = *include_bytes!({name:?});
+         pub (super) const WASM_RUNTIME_COMPONENT_INTERFACE: Option<&str> = {component_interface:?};",
+        name = wasm_runtime_resource.as_os_str(),
+        component_interface = component_interface.as_deref(),
     );
 
     fs::write(dest_path, contents).unwrap();

@@ -20,6 +20,7 @@ pub(crate) mod loaded_wasm_sandbox;
 pub(crate) mod metrics;
 /// A builder for a WasmSandbox.
 pub(crate) mod sandbox_builder;
+pub(crate) mod snapshot;
 /// A Wasm Sandbox that can load a module.
 pub(crate) mod wasm_sandbox;
 
