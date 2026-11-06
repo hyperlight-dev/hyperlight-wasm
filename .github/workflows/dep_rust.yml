@@ -130,6 +130,24 @@ jobs:
           "$llvm_bin/clang" --version
           echo "$llvm_bin" >> "$GITHUB_PATH"
 
+      # PrimeCaches writes these entries. Keep the steps before them in sync
+      # with its host job, because the key hashes toolchains and build env vars.
+      - name: Rust cache
+        if: matrix.hypervisor == 'hyperv' || (matrix.arch == 'arm64' && matrix.hypervisor == 'kvm')
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0  # v2.9.3
+        with:
+          prefix-key: v1-rust
+          shared-key: "${{ matrix.arch }}-${{ runner.os }}-${{ matrix.hypervisor }}-${{ matrix.config }}"
+          save-if: "false"
+
+      # Restores after rust-cache, which deletes the sysroot on a partial match.
+      - name: Restore sysroot cache
+        if: matrix.hypervisor == 'hyperv' || (matrix.arch == 'arm64' && matrix.hypervisor == 'kvm')
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: target/hyperlight-wasm-runtime/sysroot
+          key: sysroot-${{ matrix.arch }}-${{ runner.os }}-${{ matrix.hypervisor }}-${{ hashFiles('rust-toolchain.toml') }}
+
       - name: Download Wasm Modules
         uses: actions/download-artifact@v5
         with:
@@ -245,6 +263,22 @@ jobs:
         with:
           name: guest-modules-${{ matrix.arch }}-${{ matrix.wasmtime }}
           path: .
+
+      # Restores the entry PrimeCaches writes for the Windows release build jobs.
+      - name: Rust cache
+        if: matrix.hypervisor == 'hyperv' && matrix.arch == 'X64'
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0  # v2.9.3
+        with:
+          prefix-key: v1-rust
+          shared-key: "${{ matrix.arch }}-${{ runner.os }}-hyperv-release"
+          save-if: "false"
+
+      - name: Restore sysroot cache
+        if: matrix.hypervisor == 'hyperv' && matrix.arch == 'X64'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: target/hyperlight-wasm-runtime/sysroot
+          key: sysroot-${{ matrix.arch }}-${{ runner.os }}-hyperv-${{ hashFiles('rust-toolchain.toml') }}
 
       - name: Download benchmarks from "latest"
         run: just bench-download ${{ runner.os }} ${{ matrix.hypervisor }} ${{ matrix.cpu }} dev-latest

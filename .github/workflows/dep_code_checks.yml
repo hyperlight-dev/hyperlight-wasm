@@ -10,6 +10,13 @@ on:
         required: false
         type: string
         default: "false"
+      prime_cache:
+        description: >-
+          Run the checks from a cold target and save the caches. Skips them
+          when the caches are up to date.
+        required: false
+        type: boolean
+        default: false
 
 env:
   CARGO_TERM_COLOR: always
@@ -41,21 +48,67 @@ jobs:
           additional-toolchain-directory: src/tests/rust_guests
           just-version: 1.59.0
 
+      # Priming builds cold, so the entry holds only what this commit needs.
+      - name: Rust cache
+        id: rust-cache
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0  # v2.9.3
+        with:
+          prefix-key: v1-rust
+          shared-key: code-checks-linux
+          lookup-only: ${{ inputs.prime_cache }}
+          save-if: ${{ inputs.prime_cache }}
+          workspaces: |
+            . -> target
+            src/tests/rust_guests/rust_wasm_samples -> target
+            src/tests/rust_guests/component_sample -> target
+            src/tests/rust_guests/greeter_sample -> target
+
+      # Restores after rust-cache, which deletes the sysroots on a partial match.
+      - name: Restore sysroot cache
+        id: sysroot-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: |
+            target/sysroot
+            target/hyperlight-wasm-runtime/sysroot
+          key: sysroot-code-checks-linux-${{ hashFiles('rust-toolchain.toml') }}
+
+      - name: Check whether the caches are up to date
+        id: prime
+        if: inputs.prime_cache
+        run: echo "skip=${{ steps.rust-cache.outputs.cache-hit == 'true' && steps.sysroot-cache.outputs.cache-hit == 'true' }}" >> "$GITHUB_OUTPUT"
+
       # The examples compile against the WIT worlds in this artifact.
       - name: Download Wasm Modules
+        if: steps.prime.outputs.skip != 'true'
         uses: actions/download-artifact@v5
         with:
           name: guest-modules-X64-lts
           path: .
 
+      # Priming skips fmt, which fills no cache.
       - name: fmt
+        if: ${{ !inputs.prime_cache }}
         run: just fmt-check
 
       - name: clippy (debug)
+        if: steps.prime.outputs.skip != 'true'
         run: just clippy debug
 
       - name: clippy (release)
+        if: steps.prime.outputs.skip != 'true'
         run: just clippy release
+
+      # A job step, not a post-job step, so the save runs before rust-cache's
+      # post-job cleanup deletes the sysroots.
+      - name: Save sysroot cache
+        if: ${{ inputs.prime_cache && steps.sysroot-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: |
+            target/sysroot
+            target/hyperlight-wasm-runtime/sysroot
+          key: ${{ steps.sysroot-cache.outputs.cache-primary-key }}
 
   windows-checks:
     if: ${{ inputs.docs_only == 'false' }}
@@ -75,15 +128,59 @@ jobs:
           additional-toolchain-directory: src/tests/rust_guests
           just-version: 1.59.0
 
+      # Priming builds cold, so the entry holds only what this commit needs.
+      - name: Rust cache
+        id: rust-cache
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0  # v2.9.3
+        with:
+          prefix-key: v1-rust
+          shared-key: code-checks-windows
+          lookup-only: ${{ inputs.prime_cache }}
+          save-if: ${{ inputs.prime_cache }}
+          workspaces: |
+            . -> target
+            src/tests/rust_guests/rust_wasm_samples -> target
+            src/tests/rust_guests/component_sample -> target
+            src/tests/rust_guests/greeter_sample -> target
+
+      # Restores after rust-cache, which deletes the sysroots on a partial match.
+      - name: Restore sysroot cache
+        id: sysroot-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: |
+            target/sysroot
+            target/hyperlight-wasm-runtime/sysroot
+          key: sysroot-code-checks-windows-${{ hashFiles('rust-toolchain.toml') }}
+
+      - name: Check whether the caches are up to date
+        id: prime
+        if: inputs.prime_cache
+        run: echo "skip=${{ steps.rust-cache.outputs.cache-hit == 'true' && steps.sysroot-cache.outputs.cache-hit == 'true' }}" >> "$GITHUB_OUTPUT"
+
       # The examples compile against the WIT worlds in this artifact.
       - name: Download Wasm Modules
+        if: steps.prime.outputs.skip != 'true'
         uses: actions/download-artifact@v5
         with:
           name: guest-modules-X64-lts
           path: .
 
       - name: clippy (debug)
+        if: steps.prime.outputs.skip != 'true'
         run: just clippy debug
 
       - name: clippy (release)
+        if: steps.prime.outputs.skip != 'true'
         run: just clippy release
+
+      # A job step, not a post-job step, so the save runs before rust-cache's
+      # post-job cleanup deletes the sysroots.
+      - name: Save sysroot cache
+        if: ${{ inputs.prime_cache && steps.sysroot-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: |
+            target/sysroot
+            target/hyperlight-wasm-runtime/sysroot
+          key: ${{ steps.sysroot-cache.outputs.cache-primary-key }}
