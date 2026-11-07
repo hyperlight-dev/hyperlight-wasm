@@ -88,14 +88,16 @@ cargo run --example helloworld
 
 Hyperlight-Wasm has experimental support for running WebAssembly
 Component Model components, rather than core wasm modules.  In this
-mode, set the `WIT_WORLD` environment variable to point to
-a binary encoding of a component type (e.g. the result of running
+mode, set the `WIT_WORLD` environment variable to point to a text `.wit` file
+or a binary encoding of a component type (e.g. the result of running
 `wasm-tools component wit -w -o /path/to/output.wasm
 /path/to/input.wit`), which will ensure that the resultant library
 includes a guest binary that is specialised to load components with
-that type. Then, use `hyperlight_component_macro::host_bindgen!()` to
-generate bindings from the same component type in the host.  For a
-complete (albeit small) example of this, see [this
+that type. For text WIT, use
+`hyperlight_component_macro::host_bindgen!({ wit: "path/to/input.wit" })`
+to generate bindings from the same world in the host.
+`hyperlight_component_macro::host_bindgen!()` still uses `WIT_WORLD`
+for binary-encoded input. For a complete (albeit small) example of this, see [this
 example](https://aka.ms/hyperlight-wasm-sockets-sample).
 
 ### Selecting a specific world
@@ -121,7 +123,7 @@ world queue-world {
 To generate bindings for `http-world` instead of the default `queue-world`:
 
 ```
-WIT_WORLD=/path/to/output.wasm WIT_WORLD_NAME=http-world cargo build -p hyperlight-wasm
+WIT_WORLD=/path/to/input.wit WIT_WORLD_NAME=http-world cargo build -p hyperlight-wasm
 ```
 
 ### Debugging the macro
@@ -130,7 +132,7 @@ You can get more detailed error messages by expanding the Macro locally:
 
 ```
 cargo clean -p hyperlight-wasm
-WIT_WORLD=</path/to/output.wasm>  HYPERLIGHT_COMPONENT_MACRO_DEBUG=/tmp/guest.rs cargo build -p hyperlight-wasm
+WIT_WORLD=/path/to/input.wit HYPERLIGHT_COMPONENT_MACRO_DEBUG=/tmp/guest.rs cargo build -p hyperlight-wasm
 HYPERLIGHT_COMPONENT_MACRO_DEBUG=/tmp/host.rs cargo build
 ```
 
