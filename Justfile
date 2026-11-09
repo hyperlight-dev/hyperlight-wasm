@@ -1,6 +1,7 @@
+import 'c.just'
+
 default-target:= "debug"
 default-tag:= "latest"
-build-wasm-examples-command := if os() == "windows" { "./src/hyperlight_wasm/scripts/build-wasm-examples.bat" } else { "./src/hyperlight_wasm/scripts/build-wasm-examples.sh" }
 mkdir-arg := if os() == "windows" { "-Force" } else { "-p" }
 latest-release:= if os() == "windows" {"$(git tag -l --sort=v:refname | select -last 2 | select -first 1)"} else {`git tag -l --sort=v:refname | tail -n 2 | head -n 1`}
 wit-world := if os() == "windows" { "$env:WIT_WORLD=\"" + justfile_directory() + "\\src\\tests\\rust_guests\\component_sample\\wit\\component-world.wasm" + "\";" } else { "WIT_WORLD=" + justfile_directory() + "/src/tests/rust_guests/component_sample/wit/component-world.wasm" }
@@ -15,16 +16,24 @@ make-vendor-tar:
         --exclude-vcs-ignores \
         -C ./src wasm_runtime hyperlight_wasm_macro
 
-ensure-tools:
-    cargo install wasm-tools --locked --version 1.235.0
-    cargo install cargo-component --locked --version 0.21.1
-    cargo install wit-bindgen-cli --locked --version 0.58.0
-    cargo install cargo-hyperlight --locked
+wasm-tools-version := "1.235.0"
+cargo-component-version := "0.21.1"
+wit-bindgen-version := "0.58.0"
+cargo-hyperlight-version := "0.1.14"
+
+# Installs a crate unless `<command> --version` already reports the pinned version.
+[private]
+ensure-tool crate version command:
+    {{ if os() == "windows" { "if (-not ($(try { " + command + " --version 2>$null } catch {}) -like '*" + version + "*')) { cargo install --locked --force --version " + version + " " + crate + " }" } else { command + " --version 2>/dev/null | grep -qF '" + version + "' || cargo install --locked --force --version " + version + " " + crate } }}
+
+ensure-tools: (ensure-tool "wasm-tools" wasm-tools-version "wasm-tools") (ensure-tool "cargo-component" cargo-component-version "cargo component") (ensure-tool "wit-bindgen-cli" wit-bindgen-version "wit-bindgen") ensure-cargo-hyperlight
+
+ensure-cargo-hyperlight: (ensure-tool "cargo-hyperlight" cargo-hyperlight-version "cargo hyperlight")
 
 build-all target=default-target features="": (build target features) (build-examples target features) 
 
-build target=default-target features="": (fmt-check)
-    cargo build {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }} --verbose --profile={{ if target == "debug" {"dev"} else { target } }}
+build target=default-target features="":
+    cargo build -p hyperlight-wasm {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }} --verbose --profile={{ if target == "debug" {"dev"} else { target } }}
 
 mkdir-redist target=default-target:
     mkdir {{ mkdir-arg }} build
@@ -35,9 +44,6 @@ compile-wit:
     wasm-tools component wit ./src/tests/rust_guests/component_sample/wit/example.wit -w -o ./src/tests/rust_guests/component_sample/wit/component-world.wasm
 
 build-examples target=default-target features="": (build-wasm-examples target features) (build-rust-wasm-examples target features) (build-rust-component-examples target features)
-
-build-wasm-examples target=default-target features="": (compile-wit) 
-    {{ build-wasm-examples-command }} {{target}} {{features}}
 
 build-rust-wasm-examples target=default-target features="": (mkdir-redist target)
     rustup target add wasm32-unknown-unknown
@@ -100,8 +106,8 @@ arch := env("JUST_OVERRIDE_ARCH", arch())
 clippy-excluded-features := if arch == "x86_64" { "" } else { "gdb,trace_guest,crashdump" }
 clippy-runtime-features := if arch == "x86_64" { ",gdb,trace_guest" } else { "" }
 
-clippy target=default-target: (check target)
-    cargo clippy --workspace --exclude hyperlight-wasm-runtime --exclude hyperlight-wasm-macro --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --features "$(cargo metadata --format-version 1 --no-deps | jq -r '[.packages[]|.name as$pkg|.features|keys.[]|select(.!="default" and (IN($ARGS.positional[0]//" "|split(",")[])|not))|$pkg+"/"+.]|join(",")' --args {{clippy-excluded-features}})" -- -D warnings
+clippy target=default-target: ensure-cargo-hyperlight
+    cargo clippy --workspace --exclude hyperlight-wasm-runtime --exclude hyperlight-wasm-macro --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --features "$(cargo metadata --format-version 1 --no-deps | jq -r '[.packages[]|.name as$pkg|.features|keys[]|select(.!="default" and (IN($ARGS.positional[0]//" "|split(",")[])|not))|$pkg+"/"+.]|join(",")' --args {{clippy-excluded-features}})" -- -D warnings
     cd src/tests/rust_guests/rust_wasm_samples &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/tests/rust_guests/component_sample &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/tests/rust_guests/greeter_sample &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
@@ -120,7 +126,20 @@ test target=default-target features="":
     cargo test --workspace --exclude hyperlight-wasm-aot {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features" } else {"--no-default-features -F " + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }}
     cargo test --workspace --exclude hyperlight-wasm-aot test_metrics {{ if features =="" {''} else if features=="no-default-features" {"--no-default-features -F function_call_metrics" } else {"--no-default-features -F function_call_metrics," + features } }}  --profile={{ if target == "debug" {"dev"} else { target } }} -- --ignored 
 
-examples-modules target=default-target features="": (build-wasm-examples target features) (build-rust-wasm-examples target features)
+set-env-command := if os() == "windows" { "$env:" } else { "export " }
+# Cargo launches test and example binaries through the runner in this variable.
+no-run-runner-var := "CARGO_TARGET_" + uppercase(arch) + (if os() == "windows" { "_PC_WINDOWS_MSVC" } else if os() == "macos" { "_APPLE_DARWIN" } else { "_UNKNOWN_LINUX_GNU" }) + "_RUNNER"
+# Cargo runs `<runner> <binary> <args>`. Both forms exit 0 and ignore the rest.
+no-run-runner := if os() == "windows" { "cmd /c rem" } else { "true" }
+
+# Builds what a CI build job compiles, to fill the CI cache. Tests and examples build but do not run.
+prime-caches target=default-target features="":
+    just build {{ target }} {{ features }}
+    {{ set-env-command }}{{ no-run-runner-var }}='{{ no-run-runner }}'; just test {{ target }} {{ features }} && just examples-ci-prebuilt {{ target }} {{ features }}
+
+examples-modules target=default-target features="": (build-wasm-examples target features) (build-rust-wasm-examples target features) (run-examples-modules target features)
+
+run-examples-modules target=default-target features="":
     cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example helloworld
     cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example hostfuncs
     cargo run {{ if features =="" {''} else {"--no-default-features -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example rust_wasm_examples
@@ -130,13 +149,42 @@ examples-modules target=default-target features="": (build-wasm-examples target 
 
 examples-ci target=default-target features="": (examples-modules target features) (examples-components target features) (examples-pulley target features)
 
-examples-components target=default-target features="": (build-rust-component-examples target features) 
+# Runs the examples-ci examples on the modules build-ci-examples builds.
+examples-ci-prebuilt target=default-target features="": (run-examples-modules target features) (run-examples-components target features) (use-pulley-examples target) (run-examples-pulley target features)
+
+# Builds every module the CI build jobs load, for the given profiles. C modules build
+# in release only. Pulley builds go to build/<profile>/pulley.
+build-ci-examples features="" profiles="debug release": (build-wasm-examples "release" features)
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ " {{ profiles }} " == *" debug "* ]]; then
+        mkdir -p build/debug
+        cp build/release/*.aot build/debug/
+    fi
+    for target in {{ profiles }}; do
+        just build-pulley-rust-wasm-examples $target {{ features }}
+        just build-pulley-rust-component-examples $target {{ features }}
+        mkdir -p build/$target/pulley
+        mv build/$target/rust_wasm_samples.aot build/$target/component_sample.aot build/$target/pulley/
+        just build-rust-wasm-examples $target {{ features }}
+        just build-rust-component-examples $target {{ features }}
+    done
+
+[private]
+use-pulley-examples target=default-target:
+    {{ if os() == "windows" { "Copy-Item -Force" } else { "cp" } }} build/{{ target }}/pulley/*.aot build/{{ target }}/
+
+examples-components target=default-target features="": (build-rust-component-examples target features) (run-examples-components target features)
+
+run-examples-components target=default-target features="":
     {{ wit-world }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_example
     {{ wit-world-c }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example c-component
     {{ wit-world }} {{ wit-world-name-greeter }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_greeter_example
 
 # Test a component and a module compiled with pulley
-examples-pulley target=default-target features="": (build-pulley-rust-component-examples target features) (build-pulley-rust-wasm-examples target features)
+examples-pulley target=default-target features="": (build-pulley-rust-component-examples target features) (build-pulley-rust-wasm-examples target features) (run-examples-pulley target features)
+
+run-examples-pulley target=default-target features="":
     {{ wit-world }} cargo run {{ if features =="" {'-F pulley'} else {"--no-default-features -F kvm,pulley -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_example
     cargo run {{ if features =="" {'-F pulley'} else {"--no-default-features -F pulley -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example rust_wasm_examples
 

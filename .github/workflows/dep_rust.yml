@@ -34,6 +34,7 @@ jobs:
   # workflow
   build:
     if: ${{ inputs.docs_only == 'false' }}
+    timeout-minutes: ${{ fromJSON(vars.BUILD_TEST_JOB_TIMEOUT || '45') }}
     strategy:
         # Preserve completed shards when an ephemeral runner disconnects so a
         # failed-job rerun does not need to repeat the entire matrix.
@@ -102,21 +103,7 @@ jobs:
         uses: hyperlight-dev/ci-setup-workflow@v2.3.1
         with:
           rust-toolchain: "1.94"
-          additional-toolchain-directory: src/tests/rust_guests
           just-version: 1.59.0
-
-      - name: Add Nightly Rust
-        run: |
-          rustup toolchain install nightly
-          for target in $(rustup target list --installed); do
-              rustup target add $target --toolchain nightly
-          done
-          rustup target add wasm32-unknown-unknown  
-        shell: bash
-
-      - name: Add Nightly Rust Windows
-        if: runner.os == 'Windows'
-        run: rustup component add --toolchain nightly-x86_64-pc-windows-msvc rustfmt
 
       - name: Configure ARM64 libclang
         if: runner.os == 'Windows' && matrix.arch == 'arm64'
@@ -144,32 +131,32 @@ jobs:
           "$llvm_bin/clang" --version
           echo "$llvm_bin" >> "$GITHUB_PATH"
 
+      # PrimeCaches writes these entries. Keep the steps before them in sync
+      # with its host job, because the key hashes toolchains and build env vars.
+      - name: Rust cache
+        if: matrix.hypervisor == 'hyperv' || (matrix.arch == 'arm64' && matrix.hypervisor == 'kvm')
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0  # v2.9.3
+        with:
+          prefix-key: v1-rust
+          shared-key: "${{ matrix.arch }}-${{ runner.os }}-${{ matrix.hypervisor }}-${{ matrix.config }}"
+          save-if: "false"
+
+      # Restores after rust-cache, which deletes the sysroot on a partial match.
+      - name: Restore sysroot cache
+        if: matrix.hypervisor == 'hyperv' || (matrix.arch == 'arm64' && matrix.hypervisor == 'kvm')
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: target/hyperlight-wasm-runtime/sysroot
+          key: sysroot-${{ matrix.arch }}-${{ runner.os }}-${{ matrix.hypervisor }}-${{ hashFiles('rust-toolchain.toml') }}
+
       - name: Download Wasm Modules
         uses: actions/download-artifact@v5
         with:
           name: guest-modules-${{ matrix.arch }}-${{ matrix.wasmtime }}
-          path: ./build/${{ matrix.config }}
-
-      - name: Build Rust component model examples
-        run:  |
-          # this must be build before the formatting and other jobs run
-          # because the component model example depends on the wasm component built here
-          just ensure-tools
-          just compile-wit
-          just build-rust-component-examples ${{ matrix.config }} ${{ env.FEATURES }}
-      
-      - name: Fmt
-        run: just fmt-check
-
-      - name: Clippy
-        run: just clippy ${{ matrix.config }}
+          path: .
 
       - name: Build
         run:  just build ${{ matrix.config }} ${{ env.FEATURES }}
-        working-directory: ./src/hyperlight_wasm
-
-      - name: Build Rust Wasm examples
-        run:  just build-rust-wasm-examples ${{ matrix.config }} ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm
 
       - name: Test
@@ -191,7 +178,7 @@ jobs:
         shell: pwsh
 
       - name: Test Examples
-        run: just examples-ci ${{ matrix.config }} ${{ env.FEATURES }}
+        run: just examples-ci-prebuilt ${{ matrix.config }} ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm
         env:
           # required for gh cli when downloading
@@ -199,58 +186,28 @@ jobs:
 
   benchmark:
     if: ${{ inputs.docs_only == 'false' }}
+    timeout-minutes: ${{ fromJSON(vars.BENCHMARKS_JOB_TIMEOUT || '60') }}
     strategy:
       fail-fast: false
+      # x64 only, to keep the limited arm64 runners free for build jobs.
       matrix:
-        hypervisor: [hyperv, mshv3, kvm, hvf]
-        cpu: [amd, intel, apple, microsoft]
-        arch: [X64, arm64]
+        hypervisor: [hyperv, mshv3, kvm]
+        cpu: [amd, intel]
         wasmtime: [lts]
-        exclude:
-          # Latest testing: skip debug builds to reduce CI load
-          - cpu: apple
-            hypervisor: hyperv
-          - cpu: apple
-            hypervisor: mshv3
-          - cpu: microsoft
-            hypervisor: mshv3
-          - cpu: microsoft
-            hypervisor: kvm
-          - cpu: microsoft
-            hypervisor: hvf
-          - arch: X64
-            hypervisor: hvf
-          - cpu: amd
-            arch: arm64
-          - cpu: intel
-            arch: arm64
-          - cpu: apple
-            arch: X64
-          - cpu: microsoft
-            arch: X64
         include:
           - hypervisor: kvm
             cpu: amd
-            arch: X64
             wasmtime: latest
 
-    runs-on: ${{ fromJson(matrix.arch == 'X64'
-        && format('["self-hosted", "{0}", "X64", "1ES.Pool=hld-{1}-{2}", "JobId=benchmark-{3}-{4}-{5}-{6}"]',
-            matrix.hypervisor == 'hyperv' && 'Windows' || 'Linux',
-            matrix.hypervisor == 'hyperv' && 'win2025' || matrix.hypervisor == 'mshv3' && 'azlinux3-mshv' || matrix.hypervisor,
-            matrix.cpu,
-            matrix.wasmtime,
-            github.run_id,
-            github.run_number,
-            github.run_attempt)
-        || matrix.hypervisor == 'hyperv'
-        && format('["self-hosted", "Windows", "ARM64", "1ES.Pool=hl-windows-arm", "JobId=build-{0}-{1}-{2}"]',
-            github.run_id,
-            github.run_number,
-            github.run_attempt)
-        || format('["self-hosted", "{0}", "arm64", "{1}"]',
-            matrix.hypervisor == 'hvf' && 'macos' || 'Linux',
-            matrix.hypervisor)) }}
+    runs-on: ${{ fromJson(
+        format('["self-hosted", "{0}", "X64", "1ES.Pool=hld-{1}-{2}", "JobId=benchmark-{3}-{4}-{5}-{6}"]',
+          matrix.hypervisor == 'hyperv' && 'Windows' || 'Linux',
+          matrix.hypervisor == 'hyperv' && 'win2025' || matrix.hypervisor == 'mshv3' && 'azlinux3-mshv' || matrix.hypervisor,
+          matrix.cpu,
+          matrix.wasmtime,
+          github.run_id,
+          github.run_number,
+          github.run_attempt)) }}
     env:
       FEATURES: ${{ matrix.hypervisor != 'hyperv' && format('{0}{1}', matrix.hypervisor, matrix.wasmtime == 'latest' && ',wasmtime_latest' || '') || (matrix.wasmtime == 'latest' && 'wasmtime_latest' || '') }}
     steps:
@@ -261,22 +218,27 @@ jobs:
         with:
           rust-toolchain: "1.94"
 
-      - name: Install clang tools (macOS)
-        if: ${{ runner.os == 'macOS' }}
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: "1"
-          HOMEBREW_NO_INSTALL_UPGRADE: "1"
-        run: |
-          brew install llvm
-          llvm_bin="$(brew --prefix llvm)/bin"
-          "$llvm_bin/clang" --version
-          echo "$llvm_bin" >> "$GITHUB_PATH"
-
       - name: Download Wasm Modules
         uses: actions/download-artifact@v5
         with:
-          name: guest-modules-${{ matrix.arch }}-${{ matrix.wasmtime }}
-          path: ./build/release
+          name: guest-modules-X64-${{ matrix.wasmtime }}
+          path: .
+
+      # Restores the entry PrimeCaches writes for the Windows release build jobs.
+      - name: Rust cache
+        if: matrix.hypervisor == 'hyperv'
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0  # v2.9.3
+        with:
+          prefix-key: v1-rust
+          shared-key: "X64-${{ runner.os }}-hyperv-release"
+          save-if: "false"
+
+      - name: Restore sysroot cache
+        if: matrix.hypervisor == 'hyperv'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: target/hyperlight-wasm-runtime/sysroot
+          key: sysroot-X64-${{ runner.os }}-hyperv-${{ hashFiles('rust-toolchain.toml') }}
 
       - name: Download benchmarks from "latest"
         run: just bench-download ${{ runner.os }} ${{ matrix.hypervisor }} ${{ matrix.cpu }} dev-latest
@@ -286,8 +248,5 @@ jobs:
         working-directory: ./src/hyperlight_wasm
 
       - name: Run benchmarks
-        run: |
-          just ensure-tools
-          just compile-wit
-          just bench-ci dev release ${{ env.FEATURES }}
+        run: just bench-ci dev release ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm
