@@ -51,13 +51,13 @@ jobs:
     with:
       prime_cache: true
 
-  # Populate the host caches (key {arch}-{os}-{hypervisor}-{config}) used by
-  # dep_rust.yml. Release entries hold both wasmtime versions, because the LTS
-  # and latest release jobs share them.
+  # Populate the Windows host caches (key {arch}-{os}-{hypervisor}-{config})
+  # used by dep_rust.yml. Release entries hold both wasmtime versions, because
+  # the LTS and latest release jobs share them. Linux builds stay uncached to
+  # fit the repository cache quota.
   host:
     needs: wasm-examples
-    # Linux arm64 runs on 2-CPU VMs and builds release twice.
-    timeout-minutes: ${{ fromJSON(vars.PRIME_CACHES_JOB_TIMEOUT || '90') }}
+    timeout-minutes: ${{ fromJSON(vars.PRIME_CACHES_JOB_TIMEOUT || '45') }}
     strategy:
       fail-fast: false
       matrix:
@@ -74,12 +74,6 @@ jobs:
           - arch: arm64
             hypervisor: hyperv
             config: release
-          - arch: arm64
-            hypervisor: kvm
-            config: debug
-          - arch: arm64
-            hypervisor: kvm
-            config: release
     # Spread load across vendor pools: AMD when run_id ends in 0,2,4,6,8, Intel otherwise.
     runs-on: ${{ fromJson(matrix.arch == 'X64'
         && format('["self-hosted", "Windows", "X64", "1ES.Pool=hld-win2025-{0}", "JobId=prime-cache-{1}-{2}-{3}-{4}-{5}"]',
@@ -89,13 +83,11 @@ jobs:
             github.run_id,
             github.run_number,
             github.run_attempt)
-        || matrix.hypervisor == 'hyperv'
-        && format('["self-hosted", "Windows", "ARM64", "1ES.Pool=hl-windows-arm", "JobId=prime-cache-{0}-{1}-{2}-{3}"]',
+        || format('["self-hosted", "Windows", "ARM64", "1ES.Pool=hl-windows-arm", "JobId=prime-cache-{0}-{1}-{2}-{3}"]',
             matrix.config,
             github.run_id,
             github.run_number,
-            github.run_attempt)
-        || '["self-hosted", "Linux", "arm64", "kvm"]') }}
+            github.run_attempt)) }}
     env:
       JUST_OVERRIDE_ARCH: ${{ matrix.arch == 'X64' && 'x86_64' || 'aarch64' }}
     steps:
@@ -154,10 +146,9 @@ jobs:
       - name: Build host, tests and examples
         if: steps.prime.outputs.skip != 'true'
         run: |
-          features="${{ matrix.hypervisor == 'kvm' && 'kvm' || '' }}"
-          just prime-caches ${{ matrix.config }} $features
+          just prime-caches ${{ matrix.config }}
           if [ "${{ matrix.config }}" = release ]; then
-            just prime-caches release ${features:+$features,}wasmtime_latest
+            just prime-caches release wasmtime_latest
           fi
 
       # A job step, not a post-job step, so the save runs before rust-cache's
