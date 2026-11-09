@@ -168,6 +168,15 @@ jobs:
           name: guest-modules-X64-lts
           path: .
 
+      # rust-cache deletes the Windows surrogate that hyperlight-host builds
+      # outside OUT_DIR, but keeps its build script state. Remove once
+      # hyperlight-host includes https://github.com/hyperlight-dev/hyperlight/pull/2038.
+      - name: Invalidate cached Windows surrogate build
+        if: steps.prime.outputs.skip != 'true'
+        run: |
+          cargo clean -p hyperlight-host --profile dev
+          cargo clean -p hyperlight-host --profile release
+
       - name: clippy (debug)
         if: steps.prime.outputs.skip != 'true'
         run: just clippy debug

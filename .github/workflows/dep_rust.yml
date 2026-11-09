@@ -134,7 +134,7 @@ jobs:
       # PrimeCaches writes these entries. Keep the steps before them in sync
       # with its host job, because the key hashes toolchains and build env vars.
       - name: Rust cache
-        if: matrix.hypervisor == 'hyperv' || (matrix.arch == 'arm64' && matrix.hypervisor == 'kvm')
+        if: matrix.hypervisor == 'hyperv'
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0  # v2.9.3
         with:
           prefix-key: v1-rust
@@ -143,11 +143,18 @@ jobs:
 
       # Restores after rust-cache, which deletes the sysroot on a partial match.
       - name: Restore sysroot cache
-        if: matrix.hypervisor == 'hyperv' || (matrix.arch == 'arm64' && matrix.hypervisor == 'kvm')
+        if: matrix.hypervisor == 'hyperv'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: target/hyperlight-wasm-runtime/sysroot
           key: sysroot-${{ matrix.arch }}-${{ runner.os }}-${{ matrix.hypervisor }}-${{ hashFiles('rust-toolchain.toml') }}
+
+      # rust-cache deletes the Windows surrogate that hyperlight-host builds
+      # outside OUT_DIR, but keeps its build script state. Remove once
+      # hyperlight-host includes https://github.com/hyperlight-dev/hyperlight/pull/2038.
+      - name: Invalidate cached Windows surrogate build
+        if: matrix.hypervisor == 'hyperv'
+        run: cargo clean -p hyperlight-host --profile ${{ matrix.config == 'debug' && 'dev' || 'release' }}
 
       - name: Download Wasm Modules
         uses: actions/download-artifact@v5
@@ -239,6 +246,13 @@ jobs:
         with:
           path: target/hyperlight-wasm-runtime/sysroot
           key: sysroot-X64-${{ runner.os }}-hyperv-${{ hashFiles('rust-toolchain.toml') }}
+
+      # rust-cache deletes the Windows surrogate that hyperlight-host builds
+      # outside OUT_DIR, but keeps its build script state. Remove once
+      # hyperlight-host includes https://github.com/hyperlight-dev/hyperlight/pull/2038.
+      - name: Invalidate cached Windows surrogate build
+        if: matrix.hypervisor == 'hyperv'
+        run: cargo clean -p hyperlight-host --profile release
 
       - name: Download benchmarks from "latest"
         run: just bench-download ${{ runner.os }} ${{ matrix.hypervisor }} ${{ matrix.cpu }} dev-latest
