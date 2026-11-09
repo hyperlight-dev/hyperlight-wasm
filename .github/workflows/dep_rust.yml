@@ -149,6 +149,13 @@ jobs:
           path: target/hyperlight-wasm-runtime/sysroot
           key: sysroot-${{ matrix.arch }}-${{ runner.os }}-${{ matrix.hypervisor }}-${{ hashFiles('rust-toolchain.toml') }}
 
+      # rust-cache deletes the Windows surrogate that hyperlight-host builds
+      # outside OUT_DIR, but keeps its build script state. Remove once
+      # hyperlight-host includes https://github.com/hyperlight-dev/hyperlight/pull/2038.
+      - name: Invalidate cached Windows surrogate build
+        if: matrix.hypervisor == 'hyperv'
+        run: cargo clean -p hyperlight-host --profile ${{ matrix.config == 'debug' && 'dev' || 'release' }}
+
       - name: Download Wasm Modules
         uses: actions/download-artifact@v5
         with:
@@ -239,6 +246,13 @@ jobs:
         with:
           path: target/hyperlight-wasm-runtime/sysroot
           key: sysroot-X64-${{ runner.os }}-hyperv-${{ hashFiles('rust-toolchain.toml') }}
+
+      # rust-cache deletes the Windows surrogate that hyperlight-host builds
+      # outside OUT_DIR, but keeps its build script state. Remove once
+      # hyperlight-host includes https://github.com/hyperlight-dev/hyperlight/pull/2038.
+      - name: Invalidate cached Windows surrogate build
+        if: matrix.hypervisor == 'hyperv'
+        run: cargo clean -p hyperlight-host --profile release
 
       - name: Download benchmarks from "latest"
         run: just bench-download ${{ runner.os }} ${{ matrix.hypervisor }} ${{ matrix.cpu }} dev-latest
