@@ -19,13 +19,15 @@ use std::sync::Arc;
 
 use hyperlight_host::func::{ParameterTuple, SupportedReturnType};
 use hyperlight_host::hypervisor::InterruptHandle;
-use hyperlight_host::sandbox::snapshot::Snapshot;
 use hyperlight_host::sandbox::{Callable, SandboxStatus};
 use hyperlight_host::{Result, Sandbox, log_then_return, new_error};
 
 use super::metrics::METRIC_TOTAL_LOADED_WASM_SANDBOXES;
+use super::snapshot::Snapshot;
 use super::wasm_sandbox::WasmSandbox;
-use crate::sandbox::metrics::{METRIC_ACTIVE_LOADED_WASM_SANDBOXES, METRIC_SANDBOX_UNLOADS};
+use crate::sandbox::metrics::{
+    METRIC_ACTIVE_LOADED_WASM_SANDBOXES, METRIC_SANDBOX_LOADS, METRIC_SANDBOX_UNLOADS,
+};
 
 /// A sandbox that has both a Wasm engine and an arbitrary Wasm module
 /// loaded into memory.
@@ -42,7 +44,7 @@ pub struct LoadedWasmSandbox {
     // because of this we cannot implement drop without making inner an Option (alternatively we could make Sandbox Copy but that would introduce other issues)
     inner: Option<Sandbox>,
     // The state the sandbox was in before loading a wasm module. Used for transitioning back to a `WasmSandbox` (unloading the wasm module).
-    runtime_snapshot: Option<Arc<Snapshot>>,
+    runtime_snapshot: Option<Snapshot<WasmSandbox>>,
 }
 
 impl LoadedWasmSandbox {
@@ -86,14 +88,21 @@ impl LoadedWasmSandbox {
     /// Returns `Err(HyperlightError::PoisonedSandbox)` if the sandbox is in a
     /// poisoned state. Use [`restore()`](Self::restore) with a previously
     /// taken snapshot to recover before taking a new snapshot.
-    pub fn snapshot(&mut self) -> Result<Arc<Snapshot>> {
+    pub fn snapshot(&mut self) -> Result<Snapshot<LoadedWasmSandbox>> {
+        let runtime = self
+            .runtime_snapshot
+            .as_ref()
+            .ok_or_else(|| new_error!("No runtime snapshot"))?;
         match &mut self.inner {
-            Some(inner) => inner.snapshot(),
+            Some(inner) => Ok(Snapshot::loaded(inner.snapshot()?, runtime)),
             None => log_then_return!("No inner Sandbox to snapshot"),
         }
     }
 
     /// Restore the state of the sandbox to the state captured in the given snapshot.
+    ///
+    /// A later [`unload_module()`](Self::unload_module) returns to the runtime
+    /// state from before the given snapshot's module was loaded.
     ///
     /// This method clears the poisoned state if the sandbox was poisoned, making
     /// it usable again for guest function calls.
@@ -105,9 +114,14 @@ impl LoadedWasmSandbox {
     /// 1. Clear the poisoned state
     /// 2. Reset memory to the snapshot state
     /// 3. Allow subsequent [`call_guest_function()`](Self::call_guest_function) calls to succeed
-    pub fn restore(&mut self, snapshot: Arc<Snapshot>) -> Result<()> {
+    pub fn restore(&mut self, snapshot: Snapshot<LoadedWasmSandbox>) -> Result<()> {
+        let runtime = snapshot.runtime_snapshot();
         match &mut self.inner {
-            Some(inner) => inner.restore(snapshot),
+            Some(inner) => {
+                inner.restore(snapshot.inner())?;
+                self.runtime_snapshot = Some(runtime);
+                Ok(())
+            }
             None => log_then_return!("No inner Sandbox to restore"),
         }
     }
@@ -131,15 +145,15 @@ impl LoadedWasmSandbox {
             .take()
             .ok_or_else(|| new_error!("No snapshot of the WasmSandbox to unload"))?;
 
-        WasmSandbox::new_from_loaded(sandbox, snapshot).inspect(|_| {
-            metrics::counter!(METRIC_SANDBOX_UNLOADS).increment(1);
-        })
+        metrics::counter!(METRIC_SANDBOX_UNLOADS).increment(1);
+        Ok(WasmSandbox::dirty(sandbox, snapshot))
     }
 
     pub(super) fn new(
         inner: Sandbox,
-        runtime_snapshot: Arc<Snapshot>,
+        runtime_snapshot: Snapshot<WasmSandbox>,
     ) -> Result<LoadedWasmSandbox> {
+        metrics::counter!(METRIC_SANDBOX_LOADS).increment(1);
         metrics::gauge!(METRIC_ACTIVE_LOADED_WASM_SANDBOXES).increment(1);
         metrics::counter!(METRIC_TOTAL_LOADED_WASM_SANDBOXES).increment(1);
         Ok(LoadedWasmSandbox {

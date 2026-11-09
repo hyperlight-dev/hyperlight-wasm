@@ -70,3 +70,11 @@ pub extern "C" fn add(left: usize, right: usize) -> usize {
 pub extern "C" fn call_host_function(a: i32) -> i32 {
     hostfuncs::test_host_func(a)
 }
+
+#[no_mangle]
+pub extern "C" fn counter() -> i32 {
+    use std::sync::atomic::{AtomicI32, Ordering};
+
+    static COUNT: AtomicI32 = AtomicI32::new(0);
+    COUNT.fetch_add(1, Ordering::Relaxed) + 1
+}
