@@ -5,17 +5,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Prerelease] - Unreleased
 
+## [v0.16.0] - 2026-11
+
 ### Added
 
-* Add `Snapshot::save`, `Snapshot::load` and `Snapshot::checked_load` to save snapshots to disk and load them in another process.
-* Add `SandboxBuilder::from_snapshot` to create a sandbox from a snapshot.
-* Add `WasmSandbox::snapshot` and `WasmSandbox::restore`.
+* Add `Snapshot::save`, `Snapshot::load` and `Snapshot::checked_load` to save snapshots to disk and load them in another process. (#566)
+* Add `SandboxBuilder::from_snapshot` to create a sandbox from a snapshot. (#566)
+* Add `WasmSandbox::snapshot` and `WasmSandbox::restore`. (#566)
+* Add `SandboxBuilder` setters for the host-to-guest and guest-to-host buffers: `with_h2g_pool_pages`, `with_h2g_queue_size`, `with_h2g_buffer_size` and their `g2h` counterparts. (#561)
+* Support `Vec<Bytes>` arguments and results in module guest and host function calls. (#561)
+* Support aarch64 hosts and AOT compilation of aarch64 guests. (#562)
 
 ### Changed
 
-* Change `LoadedWasmSandbox::snapshot`, `LoadedWasmSandbox::restore` and `WasmSandbox::load_from_snapshot` to use `Snapshot<LoadedWasmSandbox>` instead of `Arc<Snapshot>`.
-* Make `unload_module` return to the snapshot's runtime state after `LoadedWasmSandbox::restore` or `WasmSandbox::load_from_snapshot`.
-* Count sandboxes created from snapshots in `sandbox_loads_total`.
+* Update Hyperlight dependencies to 0.18.0. (#561)
+* Change `LoadedWasmSandbox::snapshot`, `LoadedWasmSandbox::restore` and `WasmSandbox::load_from_snapshot` to use `Snapshot<LoadedWasmSandbox>` instead of `Arc<Snapshot>`. (#566)
+* Make `unload_module` return to the snapshot's runtime state after `LoadedWasmSandbox::restore` or `WasmSandbox::load_from_snapshot`. (#566)
+* Count sandboxes created from snapshots in `sandbox_loads_total`. (#566)
+
+### Deprecated
+
+* Deprecate `SandboxBuilder::with_guest_input_buffer_size` and `SandboxBuilder::with_guest_output_buffer_size`. Use the `h2g` and `g2h` setters. (#561)
+
+### Fixed
+
+* Fix a native build embedding the Pulley runtime after a Pulley build. (#551)
 
 ## [v0.15.0] - 2026-08
 
@@ -64,7 +78,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The Initial Hyperlight-wasm Release 🎉 
 
 
-[Prerelease]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.15.0...HEAD>
+[Prerelease]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.16.0...HEAD>
+[v0.16.0]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.15.0...v0.16.0>
 [v0.15.0]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.14.0...v0.15.0>
 [v0.14.0]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.12.0...v0.14.0>
 [v0.12.0]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.11.0...v0.12.0>
