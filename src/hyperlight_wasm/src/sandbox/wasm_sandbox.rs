@@ -730,9 +730,7 @@ mod tests {
     fn get_test_wasm_sandboxes_with_config(
         f: impl FnOnce(SandboxBuilder) -> SandboxBuilder,
     ) -> Result<Vec<SandboxTest>> {
-        let builder = SandboxBuilder::new()
-            .with_guest_scratch_size(0x2000)
-            .with_guest_heap_size(0x100000);
+        let builder = SandboxBuilder::new().with_guest_scratch_size(0x2000);
         let builder = f(builder);
 
         let mut sandboxes: Vec<SandboxTest> = Vec::new();

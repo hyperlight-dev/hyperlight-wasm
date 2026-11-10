@@ -176,10 +176,8 @@ impl Drop for ProtoWasmSandbox {
 ///
 /// * The Hyperlight default Host Print implementation is used.
 /// * The Sandbox will attempt to run in a hypervisor and will fail if no Hypervisor is available.
-/// * The Sandbox will have  a stack size of 8K and a heap size of 64K
+/// * The guest gets 2 MiB of scratch for its heap and stack.
 /// * All other Hyperlight configuration values will be set to their defaults.
-///
-/// This will result in a memory footprint for the VM backing the Sandbox of approximately 434K
 ///
 /// Use the `load_runtime` method to
 /// load the Wasm runtime and convert the returned `ProtoWasmSandbox`

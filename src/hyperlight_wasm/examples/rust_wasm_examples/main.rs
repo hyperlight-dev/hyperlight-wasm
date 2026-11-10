@@ -38,9 +38,7 @@ fn main() -> Result<()> {
             a + 1
         };
 
-        let mut proto_wasm_sandbox = SandboxBuilder::new()
-            .with_guest_heap_size(1280 * 1024)
-            .build()?;
+        let mut proto_wasm_sandbox = SandboxBuilder::new().build()?;
 
         proto_wasm_sandbox.register("TestHostFunc", host_func)?;
 

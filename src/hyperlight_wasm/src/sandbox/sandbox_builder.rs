@@ -23,11 +23,10 @@ use hyperlight_host::{
 use super::proto_wasm_sandbox::ProtoWasmSandbox;
 use super::snapshot::{Snapshot, SnapshotTarget};
 
-// use large minimum scratch/heap/input data sizes
+// use large minimum scratch/input data sizes
 // to deal with the size of wasmtime/wasi-libc aot artifacts
 pub const MIN_SCRATCH_SIZE: usize = 2 * 1024 * 1024;
 pub const MIN_INPUT_DATA_SIZE: usize = 192 * 1024;
-pub const MIN_HEAP_SIZE: u64 = 1024 * 1024;
 
 /// Builder state for a new sandbox.
 #[derive(Clone, Debug)]
@@ -102,7 +101,6 @@ impl SandboxBuilder<NewSandbox> {
     pub fn new() -> Self {
         let mut config = SandboxConfiguration::default();
         config.set_h2g_pool_pages(MIN_INPUT_DATA_SIZE / hyperlight_common::vmem::PAGE_SIZE);
-        config.set_heap_size(MIN_HEAP_SIZE);
         config.set_scratch_size(MIN_SCRATCH_SIZE);
         Self::with_source(NewSandbox, config)
     }
@@ -172,24 +170,13 @@ impl SandboxBuilder<NewSandbox> {
     }
 
     /// Set the guest scratch size in bytes.
-    /// The scratch region provides writable memory for the guest, including the
-    /// dynamically-sized stack. Increase this if your guest code needs deep
-    /// recursion or large local variables.
-    /// Values smaller than the default (288 KiB) are ignored.
+    /// The scratch region provides writable memory for the guest, including its
+    /// heap and dynamically-sized stack. If it is too small, the guest aborts
+    /// with a malloc failed error.
+    /// Values of 2 MiB or less are ignored.
     pub fn with_guest_scratch_size(mut self, guest_scratch_size: usize) -> Self {
         if guest_scratch_size > MIN_SCRATCH_SIZE {
             self.config.set_scratch_size(guest_scratch_size);
-        }
-        self
-    }
-
-    /// Set the guest heap size
-    /// This is the size of the heap that code executing in the guest can use.
-    /// If this value is too small then the guest will fail, usually with a malloc failed error
-    /// The default (and minimum) value for this is set to the value of the MIN_HEAP_SIZE const.
-    pub fn with_guest_heap_size(mut self, guest_heap_size: u64) -> Self {
-        if guest_heap_size > MIN_HEAP_SIZE {
-            self.config.set_heap_size(guest_heap_size);
         }
         self
     }
@@ -214,7 +201,7 @@ impl SandboxBuilder<NewSandbox> {
 /// use hyperlight_wasm::{LoadedWasmSandbox, SandboxBuilder, Snapshot};
 ///
 /// fn restore(snapshot: Snapshot<LoadedWasmSandbox>) {
-///     let _builder = SandboxBuilder::from_snapshot(snapshot).with_guest_heap_size(1 << 21);
+///     let _builder = SandboxBuilder::from_snapshot(snapshot).with_guest_scratch_size(1 << 23);
 /// }
 /// ```
 #[cfg(doctest)]

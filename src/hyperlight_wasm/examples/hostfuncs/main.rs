@@ -20,10 +20,7 @@ use hyperlight_wasm::SandboxBuilder;
 fn main() {
     // Create a Wasm Sandbox (this is running in the local Hypervisor)
 
-    let mut proto_wasm_sandbox = SandboxBuilder::new()
-        .with_guest_heap_size(0x70000)
-        .build()
-        .unwrap();
+    let mut proto_wasm_sandbox = SandboxBuilder::new().build().unwrap();
 
     // Create a host-provided function and register it on the WasmSandbox.
     let host_func = |a: i32| {
