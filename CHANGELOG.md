@@ -5,6 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Prerelease] - Unreleased
 
+### Added
+
+* Add `Snapshot::save`, `Snapshot::load` and `Snapshot::checked_load` to save snapshots to disk and load them in another process.
+* Add `SandboxBuilder::from_snapshot` to create a sandbox from a snapshot.
+* Add `WasmSandbox::snapshot` and `WasmSandbox::restore`.
+
+### Changed
+
+* Change `LoadedWasmSandbox::snapshot`, `LoadedWasmSandbox::restore` and `WasmSandbox::load_from_snapshot` to use `Snapshot<LoadedWasmSandbox>` instead of `Arc<Snapshot>`.
+* Make `unload_module` return to the snapshot's runtime state after `LoadedWasmSandbox::restore` or `WasmSandbox::load_from_snapshot`.
+* Count sandboxes created from snapshots in `sandbox_loads_total`.
+
 ## [v0.15.0] - 2026-08
 
 ### Changed

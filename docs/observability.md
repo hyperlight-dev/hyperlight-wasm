@@ -15,7 +15,7 @@ The following metrics are provided and are enabled by default:
 * `proto_wasm_sandboxes_total` - A counter indicating the total number of proto wasm sandboxes created during the lifetime of the process
 * `wasm_sandboxes_total` - A counter indicating the total number of wasm sandboxes created during the lifetime of the process
 * `loaded_wasm_sandboxes_total` - A counter indicating the total number of loaded wasm sandboxes created during the lifetime of the process
-* `sandbox_loads_total` - A counter indicating how many times a wasm sandbox has been loaded into a loaded wasm sandbox during the lifetime of the process
+* `sandbox_loads_total` - A counter indicating how many loaded wasm sandboxes have been created by loading a module or restoring a snapshot during the lifetime of the process
 * `sandbox_unloads_total` - A counter indicating how many times a loaded wasm sandbox has been unloaded into a wasm sandbox during the lifetime of the process
 
 

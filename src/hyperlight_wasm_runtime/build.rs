@@ -90,7 +90,9 @@ fn main() {
     println!("cargo::rerun-if-env-changed=WIT_WORLD");
     println!("cargo::rerun-if-env-changed=WIT_WORLD_NAME");
     println!("cargo::rustc-check-cfg=cfg(component)");
-    if env::var_os("WIT_WORLD").is_some() {
+    if let Some(path) = env::var_os("WIT_WORLD") {
+        let path = Path::new(&env::var_os("CARGO_MANIFEST_DIR").unwrap()).join(path);
+        println!("cargo::rerun-if-changed={}", path.display());
         println!("cargo::rustc-cfg=component");
     }
 

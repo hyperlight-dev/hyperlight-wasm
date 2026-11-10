@@ -14,11 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use hyperlight_host::func::HostFunction;
+use hyperlight_host::func::{HostFunction, ParameterTuple, Registerable, SupportedReturnType};
 use hyperlight_host::sandbox::SandboxConfiguration;
-use hyperlight_host::{GuestBinary, HyperlightError, Result, is_hypervisor_present};
+use hyperlight_host::{
+    GuestBinary, HostFunctions, HyperlightError, Result, Sandbox, is_hypervisor_present,
+};
 
 use super::proto_wasm_sandbox::ProtoWasmSandbox;
+use super::snapshot::{Snapshot, SnapshotTarget};
 
 // use large minimum scratch/heap/input data sizes
 // to deal with the size of wasmtime/wasi-libc aot artifacts
@@ -26,22 +29,28 @@ pub const MIN_SCRATCH_SIZE: usize = 2 * 1024 * 1024;
 pub const MIN_INPUT_DATA_SIZE: usize = 192 * 1024;
 pub const MIN_HEAP_SIZE: u64 = 1024 * 1024;
 
-/// A builder for WasmSandbox
+/// Builder state for a new sandbox.
+#[derive(Clone, Debug)]
+pub struct NewSandbox;
+
+/// Builder state for a sandbox built from a snapshot.
+pub struct SnapshotSource<T: SnapshotTarget> {
+    snapshot: Snapshot<T>,
+    host_functions: HostFunctions,
+}
+
+/// Builds a new sandbox or one from a snapshot.
 #[derive(Clone)]
-pub struct SandboxBuilder {
+pub struct SandboxBuilder<S = NewSandbox> {
+    source: S,
     config: SandboxConfiguration,
     host_print_fn: Option<HostFunction<i32, (String,)>>,
 }
 
-impl SandboxBuilder {
-    /// Create a new SandboxBuilder
-    pub fn new() -> Self {
-        let mut config: SandboxConfiguration = Default::default();
-        config.set_h2g_pool_pages(MIN_INPUT_DATA_SIZE / hyperlight_common::vmem::PAGE_SIZE);
-        config.set_heap_size(MIN_HEAP_SIZE);
-        config.set_scratch_size(MIN_SCRATCH_SIZE);
-
+impl<S> SandboxBuilder<S> {
+    fn with_source(source: S, config: SandboxConfiguration) -> Self {
         Self {
+            source,
             config,
             host_print_fn: None,
         }
@@ -76,6 +85,26 @@ impl SandboxBuilder {
     ) -> Self {
         self.host_print_fn = Some(host_print_fn.into());
         self
+    }
+
+    /// Enable or disable crashdump generation for the sandbox
+    /// When enabled, core dumps will be generated when the guest crashes
+    /// This requires the `crashdump` feature to be enabled
+    #[cfg(feature = "crashdump")]
+    pub fn with_crashdump_enabled(mut self, enabled: bool) -> Self {
+        self.config.set_guest_core_dump(enabled);
+        self
+    }
+}
+
+impl SandboxBuilder<NewSandbox> {
+    /// Configure a sandbox using the embedded runtime.
+    pub fn new() -> Self {
+        let mut config = SandboxConfiguration::default();
+        config.set_h2g_pool_pages(MIN_INPUT_DATA_SIZE / hyperlight_common::vmem::PAGE_SIZE);
+        config.set_heap_size(MIN_HEAP_SIZE);
+        config.set_scratch_size(MIN_SCRATCH_SIZE);
+        Self::with_source(NewSandbox, config)
     }
 
     /// Set the guest output buffer size
@@ -165,15 +194,6 @@ impl SandboxBuilder {
         self
     }
 
-    /// Enable or disable crashdump generation for the sandbox
-    /// When enabled, core dumps will be generated when the guest crashes
-    /// This requires the `crashdump` feature to be enabled
-    #[cfg(feature = "crashdump")]
-    pub fn with_crashdump_enabled(mut self, enabled: bool) -> Self {
-        self.config.set_guest_core_dump(enabled);
-        self
-    }
-
     /// Build the ProtoWasmSandbox
     pub fn build(self) -> Result<ProtoWasmSandbox> {
         if !is_hypervisor_present() {
@@ -190,7 +210,73 @@ impl SandboxBuilder {
     }
 }
 
-impl Default for SandboxBuilder {
+/// ```compile_fail
+/// use hyperlight_wasm::{LoadedWasmSandbox, SandboxBuilder, Snapshot};
+///
+/// fn restore(snapshot: Snapshot<LoadedWasmSandbox>) {
+///     let _builder = SandboxBuilder::from_snapshot(snapshot).with_guest_heap_size(1 << 21);
+/// }
+/// ```
+#[cfg(doctest)]
+struct SnapshotBuilderHasNoLayoutSetters;
+
+impl<T: SnapshotTarget> SandboxBuilder<SnapshotSource<T>> {
+    /// Create a builder that builds a sandbox from `snapshot`.
+    ///
+    /// Register every host function the guest imports before calling
+    /// [`build`](Self::build). Layout setters are unavailable because the snapshot
+    /// fixes the memory layout.
+    pub fn from_snapshot(snapshot: Snapshot<T>) -> Self {
+        Self::with_source(
+            SnapshotSource {
+                snapshot,
+                host_functions: HostFunctions::default(),
+            },
+            SandboxConfiguration::default(),
+        )
+    }
+
+    /// Register a host function the guest imports.
+    pub fn register<Args: ParameterTuple, Output: SupportedReturnType>(
+        &mut self,
+        name: impl AsRef<str>,
+        host_func: impl Into<HostFunction<Output, Args>>,
+    ) -> Result<()> {
+        self.register_host_function(name.as_ref(), host_func)
+    }
+
+    /// Build the sandbox from the snapshot.
+    ///
+    /// Fails if a host function the guest imports is missing or has a different
+    /// signature.
+    pub fn build(mut self) -> Result<T> {
+        if let Some(host_print_fn) = self.host_print_fn {
+            self.source
+                .host_functions
+                .register_host_function("HostPrint", host_print_fn)?;
+        }
+        let inner = Sandbox::from_snapshot(
+            self.source.snapshot.inner(),
+            self.source.host_functions,
+            Some(self.config),
+        )?;
+        self.source.snapshot.build(inner)
+    }
+}
+
+impl<T: SnapshotTarget> Registerable for SandboxBuilder<SnapshotSource<T>> {
+    fn register_host_function<Args: ParameterTuple, Output: SupportedReturnType>(
+        &mut self,
+        name: &str,
+        host_func: impl Into<HostFunction<Output, Args>>,
+    ) -> Result<()> {
+        self.source
+            .host_functions
+            .register_host_function(name, host_func)
+    }
+}
+
+impl Default for SandboxBuilder<NewSandbox> {
     fn default() -> Self {
         Self::new()
     }
