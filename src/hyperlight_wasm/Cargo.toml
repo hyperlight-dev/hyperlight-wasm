@@ -125,6 +125,8 @@ pulley = []
 trace_guest = ["hyperlight-host/trace_guest"]
 # Use latest wasmtime instead of the default LTS version in wasm_runtime
 wasmtime_latest = []
+# SandboxBuilder::with_runtime_file loads the guest runtime from a file
+experimental_runtime_file = []
 
 [[bench]]
 name = "benchmarks"

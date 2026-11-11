@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Prerelease] - Unreleased
 
+### Added
+
+* Add `SandboxBuilder::with_interrupt_vcpu_sigrtmin_offset` to change the signal that interrupts a guest on Linux.
+* Experimental: add the `experimental_runtime_file` feature, with `SandboxBuilder::with_runtime_file` to load the guest runtime from a file. Snapshots of such a sandbox cannot be saved.
+
 ### Changed
 
 * Update Hyperlight dependencies to 0.19.0.

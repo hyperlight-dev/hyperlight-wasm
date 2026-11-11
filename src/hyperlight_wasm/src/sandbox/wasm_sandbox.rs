@@ -182,9 +182,10 @@ pub struct WasmSandbox {
 
 const MAPPED_BINARY_VA: u64 = 0x1_0000_0000u64;
 impl WasmSandbox {
-    /// Snapshot a freshly initialized runtime and wrap it.
-    pub(super) fn new(mut inner: Sandbox) -> Result<Self> {
-        let snapshot = Snapshot::runtime(inner.snapshot()?);
+    /// Snapshot a freshly initialized runtime and wrap it. `runtime_file`
+    /// is whether the runtime was loaded from a file.
+    pub(super) fn new(mut inner: Sandbox, runtime_file: bool) -> Result<Self> {
+        let snapshot = Snapshot::runtime(inner.snapshot()?, runtime_file);
         Ok(Self::clean(inner, snapshot))
     }
 
@@ -627,6 +628,43 @@ mod tests {
             // TODO: Validate the output from the Wasm Modules.
             println!("({name}) Result {:?}", result);
         }
+    }
+
+    #[cfg(feature = "experimental_runtime_file")]
+    #[test]
+    fn test_runtime_file() {
+        let path = env::temp_dir().join(format!("hyperlight-wasm-runtime-{}", std::process::id()));
+        std::fs::write(&path, &super::super::WASM_RUNTIME[..]).unwrap();
+        let sandbox = SandboxBuilder::new().with_runtime_file(&path).build();
+        std::fs::remove_file(&path).unwrap();
+        let mut sandbox = sandbox.unwrap();
+        sandbox
+            .register(
+                "GetTimeSinceBootMicrosecond",
+                get_time_since_boot_microsecond,
+            )
+            .unwrap();
+        let helloworld_wasm = get_test_file_path("HelloWorld.aot").unwrap();
+        let mut loaded = sandbox
+            .load_runtime()
+            .unwrap()
+            .load_module(helloworld_wasm)
+            .unwrap();
+        let result: i32 = loaded
+            .call_guest_function("HelloWorld", "Message from Rust Test".to_string())
+            .unwrap();
+        assert_eq!(result, 0);
+
+        let snapshot = loaded.snapshot().unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let tag = hyperlight_host::sandbox::snapshot::OciTag::new("runtime-file").unwrap();
+        let err = snapshot.save(directory.path(), &tag).unwrap_err();
+        assert!(err.to_string().contains("runtime file"), "{err}");
+
+        let missing = SandboxBuilder::new()
+            .with_runtime_file(env::temp_dir().join("hyperlight-wasm-no-such-runtime"))
+            .build();
+        assert!(missing.is_err());
     }
 
     #[test]

@@ -101,6 +101,10 @@ struct SnapshotMetadata {
     hyperlight_wasm_version: String,
     component_interface: Option<String>,
     base_snapshot: Option<String>,
+    /// Whether the runtime came from a file. Its world is unknown, so the
+    /// snapshot cannot be saved.
+    #[serde(skip)]
+    runtime_file: bool,
 }
 
 impl SnapshotMetadata {
@@ -111,6 +115,7 @@ impl SnapshotMetadata {
             hyperlight_wasm_version: env!("CARGO_PKG_VERSION").to_owned(),
             component_interface: super::WASM_RUNTIME_COMPONENT_INTERFACE.map(str::to_owned),
             base_snapshot: None,
+            runtime_file: false,
         }
     }
 
@@ -234,6 +239,11 @@ impl<T: SnapshotTarget> Snapshot<T> {
     /// snapshot previously saved under `tag` unable to unload its module.
     pub fn save(&self, path: impl AsRef<Path>, tag: &OciTag) -> Result<OciDigest> {
         let path = path.as_ref();
+        if self.metadata.runtime_file {
+            return Err(new_error!(
+                "Snapshots of a sandbox with a runtime file cannot be saved"
+            ));
+        }
         if tag.as_str().ends_with(BASE_TAG_SUFFIX) {
             return Err(new_error!(
                 "Snapshot tags ending in '{}' are reserved by hyperlight-wasm",
@@ -320,8 +330,12 @@ impl<T: SnapshotTarget> Snapshot<T> {
 }
 
 impl Snapshot<WasmSandbox> {
-    pub(super) fn runtime(inner: Arc<CoreSnapshot>) -> Self {
-        Self::new(inner, (), SnapshotMetadata::runtime())
+    pub(super) fn runtime(inner: Arc<CoreSnapshot>, runtime_file: bool) -> Self {
+        let metadata = SnapshotMetadata {
+            runtime_file,
+            ..SnapshotMetadata::runtime()
+        };
+        Self::new(inner, (), metadata)
     }
 }
 
