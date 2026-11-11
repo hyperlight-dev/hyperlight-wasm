@@ -18,7 +18,7 @@ use super::wasm_sandbox::WasmSandbox;
 // Bump the version suffix when the metadata format changes.
 const METADATA_NAMESPACE: &str = "dev.hyperlight.hyperlight-wasm.snapshot.v1";
 // Bump when host calls or their argument and result encodings change.
-const GUEST_ABI_VERSION: u32 = 1;
+const GUEST_ABI_VERSION: u32 = 2;
 const BASE_TAG_SUFFIX: &str = ".hlwasm-base";
 const MAX_TAG_LENGTH: usize = 128;
 
@@ -357,9 +357,7 @@ mod tests {
     use crate::SandboxBuilder;
 
     fn runtime_sandbox() -> Result<WasmSandbox> {
-        let mut proto = SandboxBuilder::new()
-            .with_guest_heap_size(1280 * 1024)
-            .build()?;
+        let mut proto = SandboxBuilder::new().build()?;
         proto.register("TestHostFunc", |value: i32| value + 1)?;
         proto.load_runtime()
     }
@@ -610,9 +608,7 @@ mod tests {
 
     #[test]
     fn failed_runtime_restore_keeps_the_sandbox() -> Result<()> {
-        let mut proto = SandboxBuilder::new()
-            .with_guest_heap_size(1280 * 1024)
-            .build()?;
+        let mut proto = SandboxBuilder::new().build()?;
         proto.register("TestHostFunc", |value: i32| value + 1)?;
         proto.register("Extra", || 0i32)?;
         let foreign = proto.load_runtime()?.snapshot()?;
@@ -631,9 +627,7 @@ mod tests {
     fn restoring_loaded_state_replaces_the_unload_baseline() -> Result<()> {
         let snapshot = loaded_sandbox()?.snapshot()?;
         for load_from_runtime in [false, true] {
-            let mut proto = SandboxBuilder::new()
-                .with_guest_heap_size(1280 * 1024)
-                .build()?;
+            let mut proto = SandboxBuilder::new().build()?;
             proto.register("TestHostFunc", |value: i32| value + 1)?;
             proto.register("DestinationOnly", || 0i32)?;
             let runtime = proto.load_runtime()?;
@@ -726,7 +720,6 @@ mod tests {
         let bytes = std::fs::read(get_wasm_module_path("rust_wasm_samples.aot")?)?;
         // The module is sent through the transport, so the pool must hold it.
         let mut proto = SandboxBuilder::new()
-            .with_guest_heap_size(1280 * 1024)
             .with_h2g_pool_pages(128)
             .with_h2g_queue_size(128)
             .build()?;
@@ -884,7 +877,6 @@ mod tests {
             let directory = tempfile::tempdir()?;
             let module = get_wasm_module_path("component_sample.aot")?;
             let mut proto = SandboxBuilder::new()
-                .with_guest_heap_size(200_000_000)
                 .with_guest_scratch_size(100 * 1024 * 1024)
                 .build()?;
             let rt = bindings::register_host_functions(&mut proto, State)?;

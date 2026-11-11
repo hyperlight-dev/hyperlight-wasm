@@ -5,6 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Prerelease] - Unreleased
 
+### Changed
+
+* Update Hyperlight dependencies to 0.19.0.
+* Change component function names to `<instance>#<function>`. Generate host bindings with `hyperlight-component-macro` 0.19.
+
+### Removed
+
+* Remove `SandboxBuilder::with_guest_heap_size`. The guest heap uses scratch memory, so size it with `with_guest_scratch_size`.
+
 ## [v0.16.0] - 2026-11
 
 ### Added

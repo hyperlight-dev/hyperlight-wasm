@@ -389,7 +389,6 @@ mod tests {
     fn test_call_guest_functions_with_custom_config_multiple_times() {
         let mut sandbox = SandboxBuilder::new()
             .with_guest_scratch_size(32 * 1024)
-            .with_guest_heap_size(128 * 1024)
             .build()
             .unwrap();
 
