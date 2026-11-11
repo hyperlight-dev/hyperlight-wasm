@@ -183,6 +183,24 @@ run-examples-components target=default-target features="":
     {{ wit-world }} {{ wit-world-name-greeter }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_greeter_example
     {{ wit-world }} cargo test -p hyperlight-wasm-capi {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} -- --include-ignored
 
+# Builds the native libraries and a guest runtime for the component_sample example world, for the .NET tests
+dotnet-test-assets target=default-target features="": ensure-cargo-hyperlight
+    cargo build -p hyperlight-wasm-capi -p hyperlight-wasm-csharp-bindgen {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }}
+    {{ wit-world }} cargo hyperlight build {{ if features =~ "wasmtime_latest" {"--no-default-features -F wasmtime_latest"} else {""} }} --profile={{ if target == "debug" {"dev"} else { target } }} --manifest-path src/hyperlight_wasm_runtime/Cargo.toml --target-dir target/component-sample-runtime --locked
+
+# Runs the .NET tests. Needs the .NET 8 SDK or later.
+dotnet-test target=default-target features="": (build-rust-component-examples target features) (dotnet-test-prebuilt target features)
+
+# Runs the .NET tests on the component_sample component that build-ci-examples builds.
+dotnet-test-prebuilt target=default-target features="": (dotnet-test-assets target features)
+    dotnet test dotnet/tests/Hyperlight.Wasm.Tests -c {{ if target == "debug" {"Debug"} else {"Release"} }}
+
+# Packs the .NET packages for this machine's runtime identifier into dotnet/artifacts
+dotnet-pack target="release":
+    cargo build -p hyperlight-wasm-capi -p hyperlight-wasm-csharp-bindgen --profile={{ if target == "debug" {"dev"} else { target } }}
+    dotnet pack dotnet/src/Hyperlight.Wasm -c {{ if target == "debug" {"Debug"} else {"Release"} }} -o dotnet/artifacts
+    dotnet pack dotnet/src/Hyperlight.Wasm.Build -c {{ if target == "debug" {"Debug"} else {"Release"} }} -o dotnet/artifacts
+
 # Test a component and a module compiled with pulley
 examples-pulley target=default-target features="": (build-pulley-rust-component-examples target features) (build-pulley-rust-wasm-examples target features) (run-examples-pulley target features)
 

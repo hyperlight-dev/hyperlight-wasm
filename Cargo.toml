@@ -1,5 +1,5 @@
 [workspace]
-members = [ "src/hyperlight_wasm", "src/hyperlight_wasm_capi", "src/examples_common", "src/hyperlight_wasm_aot", "src/hyperlight_wasm_runtime", "src/hyperlight_wasm_macro" ]
+members = [ "src/hyperlight_wasm", "src/hyperlight_wasm_capi", "src/hyperlight_wasm_csharp_bindgen", "src/examples_common", "src/hyperlight_wasm_aot", "src/hyperlight_wasm_runtime", "src/hyperlight_wasm_macro" ]
 exclude = [ "src/tests/rust_guests/rust_wasm_samples", "src/tests/rust_guests/component_sample", "src/tests/rust_guests/greeter_sample" ]
 resolver = "2"
 
@@ -15,6 +15,7 @@ readme = "README.md"
 [workspace.dependencies]
 hyperlight-common = { version = "0.19.0", default-features = false }
 hyperlight-component-macro = "0.19.0"
+hyperlight-component-csharp = "0.19.0"
 hyperlight-component-util = "0.19.0"
 hyperlight-guest = "0.19.0"
 hyperlight-guest-bin = "0.19.0"
