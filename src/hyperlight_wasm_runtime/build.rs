@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::io::Write;
 use std::path::Path;
 use std::{env, fs};
 
@@ -78,7 +79,7 @@ fn main() {
     "#,
         version_number_string
     );
-    fs::write(dest_path, file_contents).unwrap();
+    fs::write(&dest_path, file_contents).unwrap();
 
     cfg.include("src/include");
     cfg.file("src/platform.c");
@@ -90,14 +91,50 @@ fn main() {
     println!("cargo::rerun-if-env-changed=WIT_WORLD");
     println!("cargo::rerun-if-env-changed=WIT_WORLD_NAME");
     println!("cargo::rustc-check-cfg=cfg(component)");
-    if let Some(path) = env::var_os("WIT_WORLD") {
+    let interface = env::var_os("WIT_WORLD").map(|path| {
         let path = Path::new(&env::var_os("CARGO_MANIFEST_DIR").unwrap()).join(path);
         println!("cargo::rerun-if-changed={}", path.display());
         println!("cargo::rustc-cfg=component");
-    }
+        component_interface(&path)
+    });
+    // The host reads this to check the runtime's version and world.
+    let identity = format!(
+        "{}\n{}",
+        env::var("CARGO_PKG_VERSION").unwrap(),
+        interface.unwrap_or_default()
+    );
+    let mut metadata = fs::OpenOptions::new()
+        .append(true)
+        .open(&dest_path)
+        .unwrap();
+    write!(
+        metadata,
+        r#"
+    #[used]
+    #[link_section = ".note_hyperlight_wasm_runtime"]
+    static RUNTIME_IDENTITY: [u8; {len}] = *b"{identity}";
+    "#,
+        len = identity.len(),
+        identity = identity.escape_default(),
+    )
+    .unwrap();
 
     cfg_aliases::cfg_aliases! {
         gdb: { all(feature = "gdb", debug_assertions) },
         pulley: { feature = "pulley" },
     }
+}
+
+/// Identifies the `WIT_WORLD` world, so hosts can check that a snapshot
+/// matches their bindings. Hashes the file and `WIT_WORLD_NAME`.
+fn component_interface(path: &Path) -> String {
+    let bytes = fs::read(path).expect("could not read WIT_WORLD");
+    let mut hash = blake3::Hasher::new();
+    hash.update(blake3::hash(&bytes).as_bytes());
+    // One file can hold several worlds. Unset selects the last one.
+    if let Ok(world) = env::var("WIT_WORLD_NAME") {
+        hash.update(b"\x01");
+        hash.update(world.as_bytes());
+    }
+    hash.finalize().to_string()
 }

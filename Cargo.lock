@@ -2104,6 +2104,7 @@ dependencies = [
 name = "hyperlight-wasm-runtime"
 version = "0.16.0"
 dependencies = [
+ "blake3",
  "bytes",
  "cargo_metadata",
  "cc",

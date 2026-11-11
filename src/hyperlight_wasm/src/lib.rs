@@ -23,6 +23,8 @@ extern crate alloc;
 
 /// provides details about the build
 pub mod build_info;
+#[cfg(feature = "experimental_runtime_file")]
+mod runtime_metadata;
 mod sandbox;
 
 use build_info::BuildInfo;

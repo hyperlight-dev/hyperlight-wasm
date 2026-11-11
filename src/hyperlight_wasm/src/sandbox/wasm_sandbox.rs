@@ -182,9 +182,10 @@ pub struct WasmSandbox {
 
 const MAPPED_BINARY_VA: u64 = 0x1_0000_0000u64;
 impl WasmSandbox {
-    /// Snapshot a freshly initialized runtime and wrap it.
-    pub(super) fn new(mut inner: Sandbox) -> Result<Self> {
-        let snapshot = Snapshot::runtime(inner.snapshot()?);
+    /// Snapshot a freshly initialized runtime and wrap it. `component_interface`
+    /// is the hash of the runtime's WIT world.
+    pub(super) fn new(mut inner: Sandbox, component_interface: Option<String>) -> Result<Self> {
+        let snapshot = Snapshot::runtime(inner.snapshot()?, component_interface);
         Ok(Self::clean(inner, snapshot))
     }
 
@@ -626,6 +627,79 @@ mod tests {
 
             // TODO: Validate the output from the Wasm Modules.
             println!("({name}) Result {:?}", result);
+        }
+    }
+
+    #[cfg(feature = "experimental_runtime_file")]
+    #[test]
+    fn test_runtime_file() {
+        let path = env::temp_dir().join(format!("hyperlight-wasm-runtime-{}", std::process::id()));
+        std::fs::write(&path, &super::super::WASM_RUNTIME[..]).unwrap();
+        let sandbox = SandboxBuilder::new().with_runtime_file(&path).build();
+        std::fs::remove_file(&path).unwrap();
+        let mut sandbox = sandbox.unwrap();
+        sandbox
+            .register(
+                "GetTimeSinceBootMicrosecond",
+                get_time_since_boot_microsecond,
+            )
+            .unwrap();
+        let helloworld_wasm = get_test_file_path("HelloWorld.aot").unwrap();
+        let mut loaded = sandbox
+            .load_runtime()
+            .unwrap()
+            .load_module(helloworld_wasm)
+            .unwrap();
+        let result: i32 = loaded
+            .call_guest_function("HelloWorld", "Message from Rust Test".to_string())
+            .unwrap();
+        assert_eq!(result, 0);
+
+        let snapshot = loaded.snapshot().unwrap();
+        drop(loaded);
+        let directory = tempfile::tempdir().unwrap();
+        let tag = hyperlight_host::sandbox::snapshot::OciTag::new("runtime-file").unwrap();
+        let digest = snapshot.save(directory.path(), &tag).unwrap();
+        let snapshot =
+            crate::Snapshot::<LoadedWasmSandbox>::checked_load(directory.path(), digest).unwrap();
+        let mut builder = SandboxBuilder::from_snapshot(snapshot);
+        builder
+            .register(
+                "GetTimeSinceBootMicrosecond",
+                get_time_since_boot_microsecond,
+            )
+            .unwrap();
+        let mut restored = builder.build().unwrap();
+        let result: i32 = restored
+            .call_guest_function("HelloWorld", "Message from Rust Test".to_string())
+            .unwrap();
+        assert_eq!(result, 0);
+
+        let missing = SandboxBuilder::new()
+            .with_runtime_file(env::temp_dir().join("hyperlight-wasm-no-such-runtime"))
+            .build();
+        assert!(missing.is_err());
+
+        // A runtime from another version, an ELF file without runtime
+        // metadata, and a file that is not ELF.
+        let mut other_version = super::super::WASM_RUNTIME.to_vec();
+        let section =
+            crate::runtime_metadata::section(&other_version, ".note_hyperlight_wasm_runtime")
+                .unwrap()
+                .unwrap();
+        let start = section.as_ptr() as usize - other_version.as_ptr() as usize;
+        other_version[start] = b'X';
+        let no_metadata = std::fs::read(env::current_exe().unwrap()).unwrap();
+        for (contents, error) in [
+            (other_version, "expected"),
+            (no_metadata, "invalid runtime file"),
+            (b"not a runtime".to_vec(), "invalid runtime file"),
+        ] {
+            std::fs::write(&path, contents).unwrap();
+            let result = SandboxBuilder::new().with_runtime_file(&path).build();
+            std::fs::remove_file(&path).unwrap();
+            let err = result.err().unwrap().to_string();
+            assert!(err.contains(error), "{err}");
         }
     }
 

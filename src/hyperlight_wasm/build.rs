@@ -30,6 +30,9 @@ use std::{env, fs};
 use anyhow::Result;
 use built::write_built_file;
 
+#[path = "src/runtime_metadata.rs"]
+mod runtime_metadata;
+
 fn get_wasm_runtime_manifest_path() -> PathBuf {
     // Use cargo metadata to obtain information about our dependencies
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
@@ -108,9 +111,8 @@ fn find_target_dir() -> PathBuf {
     target_dir.to_path_buf()
 }
 
-/// Build the guest runtime and return its binary path and component interface hash.
-/// The hash is `Some` when `WIT_WORLD` selects component mode and `None` for core modules.
-fn build_wasm_runtime() -> (PathBuf, Option<String>) {
+/// Build the guest runtime and return its binary path.
+fn build_wasm_runtime() -> PathBuf {
     let profile = env::var_os("PROFILE").unwrap();
 
     // Get the current target directory.
@@ -129,19 +131,12 @@ fn build_wasm_runtime() -> (PathBuf, Option<String>) {
     println!("cargo::rerun-if-changed={}", runtime_dir.display());
     println!("cargo::rerun-if-env-changed=WIT_WORLD");
     println!("cargo::rerun-if-env-changed=WIT_WORLD_NAME");
-    let component_interface = env::var_os("WIT_WORLD").map(|path| {
-        let path = runtime_dir.join(path);
-        println!("cargo::rerun-if-changed={}", path.display());
-        let bytes = fs::read(path).expect("could not read WIT_WORLD");
-        let mut hash = blake3::Hasher::new();
-        hash.update(blake3::hash(&bytes).as_bytes());
-        // One file can hold several worlds. Unset selects the last one.
-        if let Ok(world) = env::var("WIT_WORLD_NAME") {
-            hash.update(b"\x01");
-            hash.update(world.as_bytes());
-        }
-        hash.finalize().to_string()
-    });
+    if let Some(path) = env::var_os("WIT_WORLD") {
+        println!(
+            "cargo::rerun-if-changed={}",
+            runtime_dir.join(path).display()
+        );
+    }
     // the PROFILE env var unfortunately only gives us 1 bit of "dev or release"
     let cargo_profile = if profile == "debug" { "dev" } else { "release" };
 
@@ -199,7 +194,7 @@ fn build_wasm_runtime() -> (PathBuf, Option<String>) {
             );
         }
 
-        (path, component_interface)
+        path
     } else {
         panic!(
             "could not find hyperlight-wasm-runtime after building it (expected {:?})",
@@ -209,10 +204,10 @@ fn build_wasm_runtime() -> (PathBuf, Option<String>) {
 }
 
 fn main() -> Result<()> {
-    let (built_runtime, component_interface) = build_wasm_runtime();
+    let built_runtime = build_wasm_runtime();
 
     println!("cargo::rustc-check-cfg=cfg(component)");
-    if component_interface.is_some() {
+    if env::var_os("WIT_WORLD").is_some() {
         println!("cargo::rustc-cfg=component");
     }
 
@@ -220,6 +215,15 @@ fn main() -> Result<()> {
     let wasm_runtime_resource = Path::new(&out_dir).join("hyperlight-wasm-runtime");
     // Copy to OUT_DIR to preserve this runtime when other feature builds overwrite the shared binary.
     fs::copy(&built_runtime, &wasm_runtime_resource)?;
+    let wasm_runtime_bytes = fs::read(&wasm_runtime_resource)?;
+    let identity = runtime_metadata::identity(&wasm_runtime_bytes).map_err(anyhow::Error::msg)?;
+    anyhow::ensure!(
+        identity.version == env!("CARGO_PKG_VERSION"),
+        "hyperlight-wasm-runtime {} does not match hyperlight-wasm {}",
+        identity.version,
+        env!("CARGO_PKG_VERSION")
+    );
+    let component_interface = identity.component_interface;
     let dest_path = Path::new(&out_dir).join("wasm_runtime_resource.rs");
     let contents = format!(
         "pub (super) static WASM_RUNTIME: [u8; include_bytes!({name:?}).len()] = *include_bytes!({name:?});
@@ -230,34 +234,14 @@ fn main() -> Result<()> {
 
     fs::write(dest_path, contents).unwrap();
 
-    // get the wasmtime version number from the hyperlight-wasm-runtime metadata
-
-    let wasm_runtime_bytes = fs::read(&wasm_runtime_resource).unwrap();
-    let elf = goblin::elf::Elf::parse(&wasm_runtime_bytes).unwrap();
-
-    // the hyperlight-wasm-runtime binary has a section named .note_hyperlight_metadata that contains the wasmtime version number
-    // this section is added to the hyperlight-wasm-runtime binary by the build.rs script in the hyperlight-wasm-runtime crate
-    let section_name = ".note_hyperlight_metadata";
-    let wasmtime_version_number = if let Some(header) = elf.section_headers.iter().find(|hdr| {
-        if let Some(name) = elf.shdr_strtab.get_at(hdr.sh_name) {
-            name == section_name
-        } else {
-            false
-        }
-    }) {
-        let start = header.sh_offset as usize;
-        let size = header.sh_size as usize;
-        let end = start + size;
-        let metadata_bytes = &wasm_runtime_bytes[start..end];
-        // convert the metadata bytes to a string
-        if let Some(null_pos) = metadata_bytes.iter().position(|&b| b == 0) {
-            std::str::from_utf8(&metadata_bytes[..null_pos]).unwrap()
-        } else {
-            std::str::from_utf8(metadata_bytes).unwrap()
-        }
-    } else {
-        panic!(".note_hyperlight_metadata section not found in hyperlight-wasm-runtime binary");
-    };
+    // The runtime's build script stores its wasmtime version, padded with NULs.
+    let metadata_bytes =
+        runtime_metadata::section(&wasm_runtime_bytes, ".note_hyperlight_metadata")
+            .map_err(anyhow::Error::msg)?
+            .expect(
+                ".note_hyperlight_metadata section not found in hyperlight-wasm-runtime binary",
+            );
+    let wasmtime_version_number = std::str::from_utf8(metadata_bytes)?.trim_end_matches('\0');
 
     // write the build information to the built.rs file
     write_built_file()?;

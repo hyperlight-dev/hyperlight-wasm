@@ -37,6 +37,7 @@ tracing = { version = "0.1.44", default-features = false, features = ["attribute
 bytes = { version = "1", default-features = false }
 
 [build-dependencies]
+blake3 = "1.8"
 cfg_aliases = "0.2.1"
 cc = "1.2"
 cfg-if = { version = "1" }
