@@ -13,6 +13,7 @@ interface adder {
   add: func(left: u32, right: u32) -> u32;
   call-host: func(input: string) -> string;
   do-something: func(number: u32);
+  increment: func() -> u32;
 }
 
 interface host {
