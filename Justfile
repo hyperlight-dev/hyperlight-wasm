@@ -181,6 +181,7 @@ run-examples-components target=default-target features="":
     {{ wit-world }} cargo test -p hyperlight-wasm {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --lib snapshot::tests::component
     {{ wit-world-c }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example c-component
     {{ wit-world }} {{ wit-world-name-greeter }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_greeter_example
+    {{ wit-world }} cargo test -p hyperlight-wasm-capi {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} -- --include-ignored
 
 # Test a component and a module compiled with pulley
 examples-pulley target=default-target features="": (build-pulley-rust-component-examples target features) (build-pulley-rust-wasm-examples target features) (run-examples-pulley target features)

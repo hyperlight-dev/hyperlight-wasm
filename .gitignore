@@ -457,6 +457,7 @@ $RECYCLE.BIN/
 ## Hyperlight
 
 **/include/hyperlight*.h
+!src/hyperlight_wasm_capi/include/hyperlight_wasm.h
 **/include/printf.h
 **/native/HyperlightGuest.lib
 **/native/HyperlightGuest.pdb

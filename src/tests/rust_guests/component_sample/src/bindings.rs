@@ -124,10 +124,18 @@ pub mod exports {
                     #[cfg(target_arch = "wasm32")] _rt::run_ctors_once();
                     T::do_something(arg0 as u32);
                 }
+                #[doc(hidden)]
+                #[allow(non_snake_case)]
+                pub unsafe fn _export_increment_cabi<T: Guest>() -> i32 {
+                    #[cfg(target_arch = "wasm32")] _rt::run_ctors_once();
+                    let result0 = T::increment();
+                    _rt::as_i32(result0)
+                }
                 pub trait Guest {
                     fn add(left: u32, right: u32) -> u32;
                     fn call_host(input: _rt::String) -> _rt::String;
                     fn do_something(number: u32) -> ();
+                    fn increment() -> u32;
                 }
                 #[doc(hidden)]
                 macro_rules! __export_component_sample_example_adder_cabi {
@@ -148,7 +156,10 @@ pub mod exports {
                         "component-sample:example/adder#do-something")] unsafe extern "C"
                         fn export_do_something(arg0 : i32,) { unsafe {
                         $($path_to_types)*:: _export_do_something_cabi::<$ty > (arg0) } }
-                        };
+                        #[unsafe (export_name =
+                        "component-sample:example/adder#increment")] unsafe extern "C" fn
+                        export_increment() -> i32 { unsafe { $($path_to_types)*::
+                        _export_increment_cabi::<$ty > () } } };
                     };
                 }
                 #[doc(hidden)]
@@ -290,15 +301,16 @@ pub(crate) use __export_example_impl as export;
 )]
 #[doc(hidden)]
 #[allow(clippy::octal_escapes)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 380] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xfe\x01\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 399] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x91\x02\x01A\x02\x01\
 A\x04\x01B\x04\x01@\x01\x07messages\x01\0\x04\0\x05print\x01\0\x01@\x01\x05input\
 s\0s\x04\0\x0dhost-function\x01\x01\x03\0\x1dcomponent-sample:example/host\x05\0\
-\x01B\x06\x01@\x02\x04lefty\x05righty\0y\x04\0\x03add\x01\0\x01@\x01\x05inputs\0\
+\x01B\x08\x01@\x02\x04lefty\x05righty\0y\x04\0\x03add\x01\0\x01@\x01\x05inputs\0\
 s\x04\0\x09call-host\x01\x01\x01@\x01\x06numbery\x01\0\x04\0\x0cdo-something\x01\
-\x02\x04\0\x1ecomponent-sample:example/adder\x05\x01\x04\0\x20component-sample:e\
-xample/example\x04\0\x0b\x0d\x01\0\x07example\x03\0\0\0G\x09producers\x01\x0cpro\
-cessed-by\x02\x0dwit-component\x070.227.1\x10wit-bindgen-rust\x060.41.0";
+\x02\x01@\0\0y\x04\0\x09increment\x01\x03\x04\0\x1ecomponent-sample:example/adde\
+r\x05\x01\x04\0\x20component-sample:example/example\x04\0\x0b\x0d\x01\0\x07examp\
+le\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.227.1\x10\
+wit-bindgen-rust\x060.41.0";
 #[inline(never)]
 #[doc(hidden)]
 pub fn __link_custom_section_describing_imports() {
