@@ -7,6 +7,8 @@ latest-release:= if os() == "windows" {"$(git tag -l --sort=v:refname | select -
 wit-world := if os() == "windows" { "$env:WIT_WORLD=\"" + justfile_directory() + "\\src\\tests\\rust_guests\\component_sample\\wit\\component-world.wasm" + "\";" } else { "WIT_WORLD=" + justfile_directory() + "/src/tests/rust_guests/component_sample/wit/component-world.wasm" }
 wit-world-c := if os() == "windows" { "$env:WIT_WORLD=\"" + justfile_directory() + "\\src\\tests\\c_guests\\wasmsamples\\components\\runcomponent-world.wasm" + "\";" } else { "WIT_WORLD=" + justfile_directory() + "/src/tests/c_guests/wasmsamples/components/runcomponent-world.wasm" }
 wit-world-name-greeter := if os() == "windows" { "$env:WIT_WORLD_NAME=\"greeter-world\";" } else { "WIT_WORLD_NAME=greeter-world" }
+qjs-default-runtime := if os() == "windows" { "$env:COMPONENTIZE_QJS_OPT_SIZE=$null;" } else { "unset COMPONENTIZE_QJS_OPT_SIZE;" }
+qjs-opt-size-runtime := if os() == "windows" { "$env:COMPONENTIZE_QJS_OPT_SIZE=\"1\";" } else { "export COMPONENTIZE_QJS_OPT_SIZE=1;" }
 
 set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
 
@@ -76,6 +78,7 @@ check target=default-target:
     cd src/tests/rust_guests/rust_wasm_samples  && cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
     cd src/tests/rust_guests/component_sample  && cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
     cd src/tests/rust_guests/greeter_sample  && cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
+    cd src/hyperlight_wasm/examples/js-component && cargo check --locked --profile={{ if target == "debug" {"dev"} else { target } }}
     cd src/hyperlight_wasm_runtime && cargo hyperlight check --profile={{ if target == "debug" {"dev"} else { target } }}
     cd src/hyperlight_wasm_macro && cargo check --profile={{ if target == "debug" {"dev"} else { target } }}
 
@@ -84,6 +87,7 @@ fmt-check:
     cd src/tests/rust_guests/rust_wasm_samples && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
     cd src/tests/rust_guests/component_sample && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
     cd src/tests/rust_guests/greeter_sample && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
+    cd src/hyperlight_wasm/examples/js-component && cargo +nightly fmt -v --all -- --check
     cd src/hyperlight_wasm_runtime && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
     cd src/hyperlight_wasm_macro && rustup toolchain install nightly -c rustfmt && cargo +nightly fmt -v --all -- --check
 
@@ -93,6 +97,7 @@ fmt:
     cd src/tests/rust_guests/rust_wasm_samples &&  cargo +nightly fmt -v --all
     cd src/tests/rust_guests/component_sample &&  cargo +nightly fmt -v --all
     cd src/tests/rust_guests/greeter_sample &&  cargo +nightly fmt -v --all
+    cd src/hyperlight_wasm/examples/js-component && cargo +nightly fmt -v --all
     cd src/hyperlight_wasm_runtime && cargo +nightly fmt -v --all
     cd src/hyperlight_wasm_macro && cargo +nightly fmt -v --all
 
@@ -111,6 +116,7 @@ clippy target=default-target: ensure-cargo-hyperlight
     cd src/tests/rust_guests/rust_wasm_samples &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/tests/rust_guests/component_sample &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     cd src/tests/rust_guests/greeter_sample &&  cargo clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
+    cd src/hyperlight_wasm/examples/js-component && cargo clippy --locked --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --all-features -- -D warnings
     # hyperlight_wasm_runtime has mutually exclusive wasmtime features, so we run clippy for each separately with all other features
     cd src/hyperlight_wasm_runtime && cargo hyperlight clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --no-default-features --features wasmtime_latest{{clippy-runtime-features}},pulley -- -D warnings
     cd src/hyperlight_wasm_runtime && cargo hyperlight clippy --profile={{ if target == "debug" {"dev"} else { target } }} --all-targets --no-default-features --features wasmtime_lts{{clippy-runtime-features}} -- -D warnings
@@ -147,7 +153,11 @@ run-examples-modules target=default-target features="":
     cargo run {{ if features =="" {''} else {"--no-default-features -F function_call_metrics," + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example metrics
     cargo run {{ if features =="" {"--no-default-features --features kvm,mshv3"} else {"--no-default-features -F function_call_metrics," + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example metrics
 
-examples-ci target=default-target features="": (examples-modules target features) (examples-components target features) (examples-pulley target features)
+examples-ci target=default-target features="": (examples-modules target features) (examples-components target features) (examples-pulley target features) (examples-js-component target features)
+
+examples-js-component target=default-target features="":
+    {{ qjs-default-runtime }} cd src/hyperlight_wasm/examples/js-component && cargo run --locked {{ if features == "" {""} else {"--no-default-features -F " + features} }} --profile={{ if target == "debug" {"dev"} else { target } }}
+    {{ qjs-opt-size-runtime }} cd src/hyperlight_wasm/examples/js-component && cargo run --locked {{ if features == "" {""} else {"--no-default-features -F " + features} }} --profile={{ if target == "debug" {"dev"} else { target } }}
 
 # Runs the examples-ci examples on the modules build-ci-examples builds.
 examples-ci-prebuilt target=default-target features="": (run-examples-modules target features) (run-examples-components target features) (use-pulley-examples target) (run-examples-pulley target features)
