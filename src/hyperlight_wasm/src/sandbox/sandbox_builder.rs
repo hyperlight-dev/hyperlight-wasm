@@ -44,6 +44,8 @@ pub struct SandboxBuilder<S = NewSandbox> {
     source: S,
     config: SandboxConfiguration,
     host_print_fn: Option<HostFunction<i32, (String,)>>,
+    #[cfg(feature = "experimental_runtime_file")]
+    runtime_file: Option<std::path::PathBuf>,
 }
 
 impl<S> SandboxBuilder<S> {
@@ -52,6 +54,8 @@ impl<S> SandboxBuilder<S> {
             source,
             config,
             host_print_fn: None,
+            #[cfg(feature = "experimental_runtime_file")]
+            runtime_file: None,
         }
     }
 
@@ -93,6 +97,17 @@ impl<S> SandboxBuilder<S> {
     pub fn with_crashdump_enabled(mut self, enabled: bool) -> Self {
         self.config.set_guest_core_dump(enabled);
         self
+    }
+
+    /// Set the offset from `SIGRTMIN` of the signal used to interrupt a
+    /// running guest.
+    ///
+    /// Change it when the host process already uses `SIGRTMIN`. The .NET
+    /// runtime does, for example.
+    #[cfg(target_os = "linux")]
+    pub fn with_interrupt_vcpu_sigrtmin_offset(mut self, offset: u8) -> Result<Self> {
+        self.config.set_interrupt_vcpu_sigrtmin_offset(offset)?;
+        Ok(self)
     }
 }
 
@@ -181,15 +196,35 @@ impl SandboxBuilder<NewSandbox> {
         self
     }
 
+    /// Load the guest runtime from `path` instead of using the one built
+    /// into this crate. Experimental.
+    ///
+    /// The runtime must be built by the same version of hyperlight-wasm.
+    /// A runtime built with `WIT_WORLD` set can only load components of
+    /// that world. Snapshots of the sandbox cannot be saved.
+    #[cfg(feature = "experimental_runtime_file")]
+    pub fn with_runtime_file(mut self, path: impl Into<std::path::PathBuf>) -> Self {
+        self.runtime_file = Some(path.into());
+        self
+    }
+
     /// Build the ProtoWasmSandbox
     pub fn build(self) -> Result<ProtoWasmSandbox> {
         if !is_hypervisor_present() {
             return Err(HyperlightError::NoHypervisorFound());
         }
 
-        let guest_binary = GuestBinary::Buffer(super::WASM_RUNTIME.to_vec());
+        #[cfg(feature = "experimental_runtime_file")]
+        let (guest_binary, runtime_file) = match self.runtime_file {
+            Some(path) => (GuestBinary::FilePath(path), true),
+            None => (GuestBinary::Buffer(super::WASM_RUNTIME.to_vec()), false),
+        };
+        #[cfg(not(feature = "experimental_runtime_file"))]
+        let (guest_binary, runtime_file) =
+            (GuestBinary::Buffer(super::WASM_RUNTIME.to_vec()), false);
 
-        let mut proto_wasm_sandbox = ProtoWasmSandbox::new(Some(self.config), guest_binary)?;
+        let mut proto_wasm_sandbox =
+            ProtoWasmSandbox::new(Some(self.config), guest_binary, runtime_file)?;
         if let Some(host_print_fn) = self.host_print_fn {
             proto_wasm_sandbox.register_print(host_print_fn)?;
         }
