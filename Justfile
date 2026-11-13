@@ -152,8 +152,8 @@ examples-ci target=default-target features="": (examples-modules target features
 # Runs the examples-ci examples on the modules build-ci-examples builds.
 examples-ci-prebuilt target=default-target features="": (run-examples-modules target features) (run-examples-components target features) (use-pulley-examples target) (run-examples-pulley target features)
 
-# Builds every module the CI build jobs load, for the given profiles. C modules build
-# in release only. Pulley builds go to build/<profile>/pulley.
+# Builds every module the CI build jobs load, and the .NET tests' guest runtime, for the
+# given profiles. C modules build in release only. Pulley builds go to build/<profile>/pulley.
 build-ci-examples features="" profiles="debug release": (build-wasm-examples "release" features)
     #!/usr/bin/env bash
     set -euo pipefail
@@ -168,6 +168,7 @@ build-ci-examples features="" profiles="debug release": (build-wasm-examples "re
         mv build/$target/rust_wasm_samples.aot build/$target/component_sample.aot build/$target/pulley/
         just build-rust-wasm-examples $target {{ features }}
         just build-rust-component-examples $target {{ features }}
+        just build-component-sample-runtime $target {{ features }}
     done
 
 [private]
@@ -183,15 +184,18 @@ run-examples-components target=default-target features="":
     {{ wit-world }} {{ wit-world-name-greeter }} cargo run {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} --example component_greeter_example
     {{ wit-world }} cargo test -p hyperlight-wasm-capi {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }} -- --include-ignored
 
-# Builds the native libraries and a guest runtime for the component_sample example world, for the .NET tests
-dotnet-test-assets target=default-target features="": ensure-cargo-hyperlight
+# Builds the native libraries for the .NET tests
+dotnet-test-assets target=default-target features="":
     cargo build -p hyperlight-wasm-capi -p hyperlight-wasm-csharp-bindgen {{ if features =="" {''} else {"--no-default-features -F kvm -F " + features } }} --profile={{ if target == "debug" {"dev"} else { target } }}
-    {{ wit-world }} cargo hyperlight build {{ if features =~ "wasmtime_latest" {"--no-default-features -F wasmtime_latest"} else {""} }} --profile={{ if target == "debug" {"dev"} else { target } }} --manifest-path src/hyperlight_wasm_runtime/Cargo.toml --target-dir target/component-sample-runtime --locked
+
+# Builds a guest runtime for the component_sample example world into build/<target>/component-sample-runtime
+build-component-sample-runtime target=default-target features="":
+    cargo run -p hyperlight-wasm-aot -- experimental-build-runtime src/tests/rust_guests/component_sample/wit/example.wit build/{{ target }}/component-sample-runtime --world example --target-dir target/component-sample-runtime {{ if target == "debug" {"--debug"} else {""} }} {{ if features =~ "wasmtime_latest" {"--wasmtime-version latest"} else {""} }}
 
 # Runs the .NET tests. Needs the .NET 8 SDK or later.
-dotnet-test target=default-target features="": (build-rust-component-examples target features) (dotnet-test-prebuilt target features)
+dotnet-test target=default-target features="": (build-rust-component-examples target features) (build-component-sample-runtime target features) (dotnet-test-prebuilt target features)
 
-# Runs the .NET tests on the component_sample component that build-ci-examples builds.
+# Runs the .NET tests on the component and runtime that build-ci-examples builds.
 dotnet-test-prebuilt target=default-target features="": (dotnet-test-assets target features)
     dotnet test dotnet/tests/Hyperlight.Wasm.Tests -c {{ if target == "debug" {"Debug"} else {"Release"} }}
 

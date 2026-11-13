@@ -54,7 +54,8 @@ jobs:
               build/*/pulley/*.aot
               src/tests/rust_guests/component_sample/wit/component-world.wasm
               src/tests/c_guests/wasmsamples/components/runcomponent-world.wasm
-            key: wasm-modules-${{ matrix.arch.name }}-${{ matrix.wasmtime_version.name }}-${{ hashFiles('src/tests/**', 'src/hyperlight_wasm_aot/**', 'Cargo.lock', '.cargo/config.toml', 'rust-toolchain.toml', 'Justfile', 'c.just', '.github/workflows/dep_build_wasm_examples.yml') }}
+              build/*/component-sample-runtime
+            key: wasm-modules-${{ matrix.arch.name }}-${{ matrix.wasmtime_version.name }}-${{ hashFiles('src/tests/**', 'src/hyperlight_wasm_aot/**', 'src/hyperlight_wasm_runtime/**', 'src/hyperlight_wasm_macro/**', 'Cargo.lock', '.cargo/config.toml', 'rust-toolchain.toml', 'Justfile', 'c.just', '.github/workflows/dep_build_wasm_examples.yml') }}
         - name: Remove default clang
           if: steps.modules-cache.outputs.cache-hit != 'true'
           run: sudo rm /usr/bin/clang
@@ -106,6 +107,7 @@ jobs:
               build/*/pulley/*.aot
               src/tests/rust_guests/component_sample/wit/component-world.wasm
               src/tests/c_guests/wasmsamples/components/runcomponent-world.wasm
+              build/*/component-sample-runtime
             key: ${{ steps.modules-cache.outputs.cache-primary-key }}
         # Build jobs compile examples against the WIT worlds, so they ship with the modules.
         - name: Upload Wasm Modules (wasmtime ${{ matrix.wasmtime_version.name }})
@@ -118,3 +120,4 @@ jobs:
               build/*/pulley/*.aot
               src/tests/rust_guests/component_sample/wit/component-world.wasm
               src/tests/c_guests/wasmsamples/components/runcomponent-world.wasm
+              build/*/component-sample-runtime
