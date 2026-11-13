@@ -2090,10 +2090,13 @@ dependencies = [
 name = "hyperlight-wasm-aot"
 version = "0.16.0"
 dependencies = [
+ "cargo-hyperlight",
  "cargo-util-schemas",
  "cargo_metadata",
  "clap",
+ "hyperlight-wasm-runtime",
  "object 0.39.1",
+ "tar",
  "wasmtime 36.0.18",
  "wasmtime 47.0.4",
 ]

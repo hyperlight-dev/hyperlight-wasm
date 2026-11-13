@@ -15,7 +15,8 @@ limitations under the License.
 */
 
 use std::fmt::Display;
-use std::path::Path;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 use cargo_metadata::{MetadataCommand, Package};
 use cargo_util_schemas::manifest::PackageName;
@@ -100,6 +101,149 @@ enum Commands {
         #[arg(long, value_enum, default_value = "lts")]
         wasmtime_version: WasmtimeVersion,
     },
+
+    /// Experimental: build a guest runtime for a WIT world
+    ///
+    /// Needs rustup and clang. Builds with Rust 1.94.1 unless RUSTUP_TOOLCHAIN is
+    /// set. Use a runtime with hosts and precompiled components from this version
+    /// of hyperlight-wasm.
+    ExperimentalBuildRuntime {
+        /// The `.wit` file or wasm-encoded WIT package that defines the world
+        wit: PathBuf,
+
+        /// The output file path
+        output: PathBuf,
+
+        /// The world to build for. Defaults to the last world in the package.
+        #[arg(long)]
+        world: Option<String>,
+
+        /// Build with debug info and optimizations disabled
+        #[arg(long)]
+        debug: bool,
+
+        /// Wasmtime version the runtime uses. Precompile components with the same version.
+        #[arg(long, value_enum, default_value = "lts")]
+        wasmtime_version: WasmtimeVersion,
+
+        /// Directory for build artifacts, reused by later builds
+        #[arg(long, default_value = "target/hyperlight-wasm-runtime")]
+        target_dir: PathBuf,
+    },
+}
+
+// Only one variant is built, chosen by build.rs.
+#[allow(dead_code)]
+enum RuntimeSource {
+    /// The runtime's manifest in a checkout.
+    Path(&'static str),
+    /// The top-level directory name and a tar of the runtime crate.
+    Archive(&'static str, &'static [u8]),
+}
+
+include!(concat!(env!("OUT_DIR"), "/runtime_source.rs"));
+
+type BoxError = Box<dyn std::error::Error>;
+
+/// The toolchain that builds the runtime when `RUSTUP_TOOLCHAIN` is unset.
+/// Keep it in sync with rust-toolchain.toml.
+const RUNTIME_TOOLCHAIN: &str = "1.94.1";
+
+/// Returns the runtime's manifest, extracting an embedded source into `target_dir`.
+fn runtime_manifest(target_dir: &Path) -> Result<PathBuf, BoxError> {
+    match RUNTIME_SOURCE {
+        RuntimeSource::Path(manifest) => Ok(PathBuf::from(manifest)),
+        RuntimeSource::Archive(prefix, archive) => {
+            let parent = target_dir.join("source");
+            let source = parent.join(prefix);
+            // The marker shows that an earlier extraction finished.
+            let marker = source.join(".hyperlight-wasm-aot-extracted");
+            if !marker.exists() {
+                if source.exists() {
+                    fs::remove_dir_all(&source)?;
+                }
+                tar::Archive::new(archive).unpack(&parent)?;
+                // Keep Cargo from treating an enclosing project as the workspace.
+                let manifest = source.join("Cargo.toml");
+                let mut contents = fs::read_to_string(&manifest)?;
+                contents.push_str("\n[workspace]\n");
+                fs::write(&manifest, contents)?;
+                fs::write(&marker, "")?;
+            }
+            Ok(source.join("Cargo.toml"))
+        }
+    }
+}
+
+fn build_runtime(
+    wit: &Path,
+    output: &Path,
+    world: Option<&str>,
+    debug: bool,
+    wasmtime_version: WasmtimeVersion,
+    target_dir: &Path,
+) -> Result<(), BoxError> {
+    // The runtime resolves a relative WIT_WORLD against its own manifest.
+    let wit = wit
+        .canonicalize()
+        .map_err(|e| format!("could not read {}: {e}", wit.display()))?;
+    let manifest = runtime_manifest(target_dir)?;
+    let target = format!("{}-hyperlight-none", std::env::consts::ARCH);
+    let (profile, profile_dir) = if debug {
+        ("dev", "debug")
+    } else {
+        ("release", "release")
+    };
+
+    // Stable Rust 1.95 and later reject the guest's custom target. cargo-hyperlight
+    // also adds rust-src only when RUSTUP_TOOLCHAIN is set in this process.
+    if std::env::var_os("RUSTUP_TOOLCHAIN").is_none() {
+        // SAFETY: the process has not started other threads.
+        unsafe { std::env::set_var("RUSTUP_TOOLCHAIN", RUNTIME_TOOLCHAIN) };
+    }
+
+    let mut cmd = cargo_hyperlight::cargo()?;
+    cmd.env_clear_cargo()
+        .arg("build")
+        .arg("--profile")
+        .arg(profile)
+        .arg("--target")
+        .arg(&target)
+        .arg("--target-dir")
+        .arg(target_dir)
+        .arg("--manifest-path")
+        .arg(&manifest)
+        .arg("--locked")
+        .env("WIT_WORLD", &wit);
+    match world {
+        Some(world) => cmd.env("WIT_WORLD_NAME", world),
+        None => cmd.env_remove("WIT_WORLD_NAME"),
+    };
+    if wasmtime_version == WasmtimeVersion::Latest {
+        cmd.args(["--no-default-features", "--features", "wasmtime_latest"]);
+    }
+    cmd.status()?;
+
+    let built = target_dir
+        .join(&target)
+        .join(profile_dir)
+        .join("hyperlight-wasm-runtime");
+    if let Some(parent) = output.parent().filter(|p| !p.as_os_str().is_empty()) {
+        fs::create_dir_all(parent)?;
+    }
+    fs::copy(&built, output).map_err(|e| {
+        format!(
+            "could not copy {} to {}: {e}",
+            built.display(),
+            output.display()
+        )
+    })?;
+    println!(
+        "Built guest runtime for {}: {}",
+        wit.display(),
+        output.display()
+    );
+    Ok(())
 }
 
 /// Precompile bytes using the LTS wasmtime version
@@ -354,6 +498,26 @@ fn main() {
                     let bytes = std::fs::read(&file).unwrap();
                     detect_and_deserialize_lts(&bytes, debug, &file);
                 }
+            }
+        }
+        Commands::ExperimentalBuildRuntime {
+            wit,
+            output,
+            world,
+            debug,
+            wasmtime_version,
+            target_dir,
+        } => {
+            if let Err(e) = build_runtime(
+                &wit,
+                &output,
+                world.as_deref(),
+                debug,
+                wasmtime_version,
+                &target_dir,
+            ) {
+                eprintln!("Error - {e}");
+                std::process::exit(1);
             }
         }
     }

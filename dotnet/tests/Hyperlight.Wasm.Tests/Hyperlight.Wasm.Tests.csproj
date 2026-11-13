@@ -29,14 +29,10 @@
     <HyperlightWit Include="$(RepoRoot)src/tests/rust_guests/component_sample/wit/example.wit" World="example" Namespace="Hyperlight.Wasm.Tests.Sample" />
   </ItemGroup>
 
-  <!-- Built by `just dotnet-test-assets`. -->
-  <PropertyGroup>
-    <HyperlightGuestArch Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">aarch64</HyperlightGuestArch>
-    <HyperlightGuestArch Condition="'$(HyperlightGuestArch)' == ''">x86_64</HyperlightGuestArch>
-  </PropertyGroup>
+  <!-- Built by `just build-rust-component-examples` and `just build-component-sample-runtime`. -->
   <ItemGroup>
     <None Include="$(RepoRoot)build/$(HyperlightCargoProfile)/component_sample.aot" Link="assets/component_sample.aot" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)target/component-sample-runtime/$(HyperlightGuestArch)-hyperlight-none/$(HyperlightCargoProfile)/hyperlight-wasm-runtime" Link="assets/component-sample-runtime" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)build/$(HyperlightCargoProfile)/component-sample-runtime" Link="assets/component-sample-runtime" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <Import Project="../../src/Hyperlight.Wasm.Build/build/Hyperlight.Wasm.Build.targets" />

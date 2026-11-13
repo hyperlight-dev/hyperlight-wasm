@@ -44,7 +44,7 @@ uint sum = component.Adder.Add(1, 2);
 
 ## Guest runtime and components
 
-A component needs a guest runtime built for its WIT world, because the runtime's guest bindings are generated when it is compiled. Building a runtime needs Rust and a hyperlight-wasm checkout of the same version as the packages:
+A component needs a guest runtime built for its WIT world, because the runtime's guest bindings are generated when it is compiled. Building a runtime needs Rust. From a hyperlight-wasm checkout of the same version as the packages:
 
 ```sh
 wasm-tools component wit example.wit -w -o example-world.wasm
@@ -53,6 +53,15 @@ WIT_WORLD=example-world.wasm cargo hyperlight build --release \
 ```
 
 Precompile the component with `hyperlight-wasm-aot compile --component`. The runtime, the AOT tool and the packages must come from the same hyperlight-wasm version.
+
+### Building the runtime without a checkout
+
+Experimental: the `experimental-build-runtime` subcommand of `hyperlight-wasm-aot` builds the runtime without a hyperlight-wasm checkout. It needs rustup and clang, and builds with Rust 1.94.1 unless `RUSTUP_TOOLCHAIN` is set:
+
+```sh
+cargo install --locked hyperlight-wasm-aot
+hyperlight-wasm-aot experimental-build-runtime example.wit example-runtime --world example
+```
 
 ## Sandboxes
 
