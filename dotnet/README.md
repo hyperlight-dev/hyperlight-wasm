@@ -8,14 +8,14 @@ Run WebAssembly components in Hyperlight micro VMs from .NET, with typed binding
 * `Hyperlight.Wasm` is the runtime library. It wraps the native `hyperlight-wasm-capi` library.
 * `Hyperlight.Wasm.Build` generates C# from WIT at build time, which needs no Rust toolchain. It can also build the guest runtime and components. Visual Studio builds need Visual Studio 2026 or later.
 
-Both target .NET 10 or later. The packages hold native libraries for the runtime identifier they were packed on.
+Both target .NET 10 or later. The published packages hold native libraries for linux-x64, win-x64 and osx-arm64. Release versions end in `-preview`. Development builds of `main` are attached to the `dev-latest` GitHub release. To use one, download both `.nupkg` files into a directory and add it as a package source with `dotnet nuget add source <directory>`.
 
 ## Usage
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="Hyperlight.Wasm" Version="0.16.0-preview" />
-  <PackageReference Include="Hyperlight.Wasm.Build" Version="0.16.0-preview" />
+  <PackageReference Include="Hyperlight.Wasm" Version="0.17.0-preview" />
+  <PackageReference Include="Hyperlight.Wasm.Build" Version="0.17.0-preview" />
   <HyperlightWit Include="wit/example.wit" World="example" />
 </ItemGroup>
 ```
@@ -49,6 +49,8 @@ Both steps use `hyperlight-wasm-aot`, which needs rustup and clang. Its runtime 
 ```sh
 cargo install --locked hyperlight-wasm-aot --version <version>
 ```
+
+For development packages, the `dev-latest` release notes give the commands that install it from their commit. The `repository` element of a package's `.nuspec` also holds its commit.
 
 ### Building them with the project
 
@@ -93,7 +95,7 @@ Hyperlight runs a helper process, `hyperlight_surrogate_<hash>.exe`, for each sa
 
 ```sh
 just dotnet-test         # builds the native libraries and test component, then runs the tests
-just dotnet-pack         # packs both packages into dotnet/artifacts
+just dotnet-pack         # packs both packages for this machine's runtime identifier into dotnet/artifacts
 ```
 
 `HyperlightNativeDir` overrides where the projects find the native libraries.

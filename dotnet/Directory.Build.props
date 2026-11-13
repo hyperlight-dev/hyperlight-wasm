@@ -10,9 +10,13 @@
     <VersionPrefix>$([System.Text.RegularExpressions.Regex]::Match('$(_HyperlightCargoToml)', '(?&lt;=\[workspace\.package\][^\[]*\nversion\s*=\s*")[^"]+').Value)</VersionPrefix>
     <VersionSuffix>preview</VersionSuffix>
     <Authors>The Hyperlight Authors</Authors>
+    <Copyright>Copyright The Hyperlight Authors</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/hyperlight-dev/hyperlight-wasm</PackageProjectUrl>
     <RepositoryUrl>https://github.com/hyperlight-dev/hyperlight-wasm</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- Deterministic builds with source paths that Source Link maps to the repository. -->
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
     <!-- Cargo output for the native libraries. -->
     <HyperlightCargoProfile Condition="'$(HyperlightCargoProfile)' == '' and '$(Configuration)' == 'Release'">release</HyperlightCargoProfile>
     <HyperlightCargoProfile Condition="'$(HyperlightCargoProfile)' == ''">debug</HyperlightCargoProfile>
@@ -22,5 +26,9 @@
     <HyperlightNativeSuffix Condition="$([MSBuild]::IsOSPlatform('Linux'))">.so</HyperlightNativeSuffix>
     <HyperlightNativeSuffix Condition="$([MSBuild]::IsOSPlatform('OSX'))">.dylib</HyperlightNativeSuffix>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="/" Visible="false" />
+  </ItemGroup>
 
 </Project>
