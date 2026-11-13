@@ -12,19 +12,26 @@
     <InternalsVisibleTo Include="Hyperlight.Wasm.Tests" />
   </ItemGroup>
 
-  <!-- The native library is copied next to referencing apps and packed for the build machine's runtime identifier. -->
+  <!-- The native library is copied next to referencing apps and packed for the build machine's runtime identifier.
+       With HyperlightNativeRuntimesDir set, every runtime in it is packed instead. -->
   <PropertyGroup>
     <HyperlightCapiLibrary>$(HyperlightNativeDir)$(HyperlightNativePrefix)hyperlight_wasm_capi$(HyperlightNativeSuffix)</HyperlightCapiLibrary>
   </PropertyGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(HyperlightNativeRuntimesDir)' == ''">
     <None Include="$(HyperlightCapiLibrary)"
           Link="$(HyperlightNativePrefix)hyperlight_wasm_capi$(HyperlightNativeSuffix)"
           CopyToOutputDirectory="PreserveNewest"
           Pack="true"
           PackagePath="runtimes/$(HyperlightNativeRid)/native/" />
   </ItemGroup>
+  <ItemGroup Condition="'$(HyperlightNativeRuntimesDir)' != ''">
+    <None Include="$(HyperlightNativeRuntimesDir)**/libhyperlight_wasm_capi.so;$(HyperlightNativeRuntimesDir)**/hyperlight_wasm_capi.dll;$(HyperlightNativeRuntimesDir)**/libhyperlight_wasm_capi.dylib"
+          Pack="true"
+          PackagePath="runtimes/%(RecursiveDir)"
+          Visible="false" />
+  </ItemGroup>
 
-  <Target Name="CheckHyperlightNativeLibrary" BeforeTargets="PrepareForBuild;GenerateNuspec">
+  <Target Name="CheckHyperlightNativeLibrary" BeforeTargets="PrepareForBuild;GenerateNuspec" Condition="'$(HyperlightNativeRuntimesDir)' == ''">
     <Error Condition="!Exists('$(HyperlightCapiLibrary)')"
            Text="Missing '$(HyperlightCapiLibrary)'. Build it with `cargo build -p hyperlight-wasm-capi --profile $(HyperlightCargoProfile)`, using `dev` for debug, or set HyperlightNativeDir." />
   </Target>

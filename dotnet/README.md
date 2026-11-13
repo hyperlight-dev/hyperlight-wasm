@@ -8,7 +8,7 @@ Run WebAssembly components in Hyperlight micro VMs from .NET, with typed binding
 * `Hyperlight.Wasm` is the runtime library. It wraps the native `hyperlight-wasm-capi` library.
 * `Hyperlight.Wasm.Build` generates C# from WIT at build time. It needs no Rust toolchain.
 
-Both target .NET 8 or later. The packages hold native libraries for the runtime identifier they were packed on.
+Both target .NET 8 or later. The published packages hold native libraries for linux-x64 and win-x64.
 
 ## Usage
 
@@ -90,7 +90,7 @@ Hyperlight runs a helper process, `hyperlight_surrogate_<hash>.exe`, for each sa
 
 ```sh
 just dotnet-test   # builds the native libraries, a test runtime and component, then runs the tests
-just dotnet-pack   # packs both packages into dotnet/artifacts
+just dotnet-pack   # packs both packages for this machine's runtime identifier into dotnet/artifacts
 ```
 
 `HyperlightNativeDir` overrides where the projects find the native libraries.
