@@ -518,7 +518,7 @@ pub unsafe extern "C" fn hlw_result_set(result: *mut hlw_result, data: *const u8
 /// `name_len` readable bytes. `func` must be null or safe to call with `env`
 /// from any thread until `finalizer` runs, and must return null or an error
 /// from `hlw_error_new`. `finalizer` must be null or safe to call once with
-/// `env` from any thread.
+/// `env` from any thread, and must not call into `sandbox`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn hlw_sandbox_register(
     sandbox: *mut hlw_sandbox,

@@ -196,7 +196,8 @@ void hlw_result_set(hlw_result *result, const uint8_t *data, size_t len);
  * Must be called before the component is loaded. `finalizer`, which may be
  * NULL, is called with `env` when the sandbox no longer needs it. It is
  * also called if registration fails. `env` must be usable, and `finalizer`
- * callable, from any thread.
+ * callable, from any thread. `finalizer` must not call into `sandbox`,
+ * because it can run while the sandbox is in use.
  */
 hlw_error *hlw_sandbox_register(hlw_sandbox *sandbox, const char *name,
                                 size_t name_len, size_t nargs,
