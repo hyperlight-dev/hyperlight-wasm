@@ -22,13 +22,22 @@
   <ItemGroup>
     <None Include="build/**" Pack="true" PackagePath="build/" />
     <None Include="$(OutputPath)$(AssemblyName).dll" Pack="true" PackagePath="tasks/$(TargetFramework)/" Visible="false" />
+  </ItemGroup>
+  <!-- Packs the build machine's library, or every runtime in HyperlightNativeRuntimesDir when it is set. -->
+  <ItemGroup Condition="'$(HyperlightNativeRuntimesDir)' == ''">
     <None Include="$(HyperlightBindgenNative)"
           Pack="true"
           PackagePath="tasks/$(TargetFramework)/runtimes/$(HyperlightNativeRid)/native/"
           Visible="false" />
   </ItemGroup>
+  <ItemGroup Condition="'$(HyperlightNativeRuntimesDir)' != ''">
+    <None Include="$(HyperlightNativeRuntimesDir)**/libhyperlight_wasm_csharp_bindgen.so;$(HyperlightNativeRuntimesDir)**/hyperlight_wasm_csharp_bindgen.dll;$(HyperlightNativeRuntimesDir)**/libhyperlight_wasm_csharp_bindgen.dylib"
+          Pack="true"
+          PackagePath="tasks/$(TargetFramework)/runtimes/%(RecursiveDir)"
+          Visible="false" />
+  </ItemGroup>
 
-  <Target Name="CheckHyperlightNativeLibrary" BeforeTargets="GenerateNuspec">
+  <Target Name="CheckHyperlightNativeLibrary" BeforeTargets="GenerateNuspec" Condition="'$(HyperlightNativeRuntimesDir)' == ''">
     <Error Condition="!Exists('$(HyperlightBindgenNative)')"
            Text="Missing '$(HyperlightBindgenNative)'. Build it with `cargo build -p hyperlight-wasm-csharp-bindgen --profile $(HyperlightCargoProfile)`, using `dev` for debug, or set HyperlightNativeDir." />
   </Target>

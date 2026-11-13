@@ -7,17 +7,89 @@ on:
 
 permissions:
   contents: write
-  id-token: write  # Required for crates.io trusted publishing
+  id-token: write  # Required for crates.io and NuGet trusted publishing
 
 jobs:
   
   benchmarks:
     uses: ./.github/workflows/Benchmarks.yml
 
+  # Builds the native libraries of the experimental .NET packages.
+  dotnet-native:
+    strategy:
+      matrix:
+        rid: [linux-x64, win-x64]
+    runs-on: ${{ matrix.rid == 'win-x64' && fromJSON(format('["self-hosted", "Windows", "X64", "1ES.Pool=hld-win2025-amd", "JobId=dotnet-native-{0}-{1}-{2}"]', github.run_id, github.run_number, github.run_attempt)) || 'ubuntu-24.04' }}
+    steps:
+    - uses: actions/checkout@v5
+    - name: Hyperlight setup
+      uses: hyperlight-dev/ci-setup-workflow@v2.3.1
+      with:
+          rust-toolchain: "1.94"
+          just-version: 1.59.0
+    - name: Build native libraries
+      run: just dotnet-native
+    - name: Upload native libraries
+      uses: actions/upload-artifact@v4
+      with:
+        name: dotnet-native-${{ matrix.rid }}
+        path: dotnet/native/
+        if-no-files-found: error
+
+  # Packs the experimental .NET packages with every native library.
+  dotnet-pack:
+    needs: [ dotnet-native ]
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v5
+    - uses: extractions/setup-just@v3
+      with:
+        just-version: "1.59.0"
+    - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73  # v6.1.0
+      with:
+        dotnet-version: 8.0.x
+    - name: Download native libraries
+      uses: actions/download-artifact@v5
+      with:
+        pattern: dotnet-native-*
+        merge-multiple: true
+        path: dotnet/native
+    - name: Pack
+      # Release packages take hyperlight-wasm's version with the preview suffix from
+      # Directory.Build.props. Other builds are development builds of the next minor release.
+      run: |
+        version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "hyperlight-wasm") | .version')
+        if [[ "${{ github.ref }}" == refs/heads/release/* ]]; then
+          just dotnet-pack-prebuilt "$version"
+        else
+          IFS=. read -r major minor _ <<< "$version"
+          just dotnet-pack-prebuilt "$major.$((minor + 1)).0" "dev.${{ github.run_number }}"
+        fi
+      env:
+        # Reading metadata needs no particular toolchain.
+        RUSTUP_TOOLCHAIN: stable
+      shell: bash
+    - name: Check native libraries in packages
+      run: |
+        check() {
+          unzip -l $1 | grep -qF "$2" || { echo "::error::$1 is missing $2"; exit 1; }
+        }
+        check "dotnet/artifacts/Hyperlight.Wasm.[0-9]*.nupkg" runtimes/linux-x64/native/libhyperlight_wasm_capi.so
+        check "dotnet/artifacts/Hyperlight.Wasm.[0-9]*.nupkg" runtimes/win-x64/native/hyperlight_wasm_capi.dll
+        check "dotnet/artifacts/Hyperlight.Wasm.Build.*.nupkg" runtimes/linux-x64/native/libhyperlight_wasm_csharp_bindgen.so
+        check "dotnet/artifacts/Hyperlight.Wasm.Build.*.nupkg" runtimes/win-x64/native/hyperlight_wasm_csharp_bindgen.dll
+      shell: bash
+    - name: Upload packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: dotnet-packages
+        path: dotnet/artifacts/*.nupkg
+        if-no-files-found: error
+
   publish:
     # see https://github.com/orgs/community/discussions/26286#discussioncomment-3251208 for why we need to check the ref
     if: ${{ contains(github.ref, 'refs/heads/release/') }} ||  ${{ github.ref=='refs/heads/main' }}
-    needs: [ benchmarks ]
+    needs: [ benchmarks, dotnet-pack ]
     # LLVM 18 has no apt.llvm.org packages for Ubuntu 26.04.
     runs-on: ubuntu-24.04
     steps:
@@ -47,6 +119,11 @@ jobs:
         for BENCHMARK in benchmarks_*; do
           tar -zcvf $BENCHMARK.tar.gz $BENCHMARK
         done
+    - name: Download .NET packages
+      uses: actions/download-artifact@v5
+      with:
+        name: dotnet-packages
+        path: dotnet-packages
     - name: Create pre-release
       if: ${{ github.ref=='refs/heads/main' }}
       run:  |
@@ -54,7 +131,7 @@ jobs:
         ls -alR
         gh release delete dev-latest -y --cleanup-tag  || true
         gh release create dev-latest -t "Latest Development Build From Dev Branch" --latest=false -p \
-            benchmarks_*.tar.gz
+            benchmarks_*.tar.gz dotnet-packages/*.nupkg
       env:
         GH_TOKEN: ${{ github.token }}
       shell: bash
@@ -64,7 +141,7 @@ jobs:
         echo "PWD: $PWD"
         ls -alR
         gh release create v${{ env.HYPERLIGHTWASM_VERSION }} -t "Release v${{ env.HYPERLIGHTWASM_VERSION }}" --generate-notes \
-            benchmarks_*.tar.gz
+            benchmarks_*.tar.gz dotnet-packages/*.nupkg
       env:
         GH_TOKEN: ${{ github.token }}
       shell: bash
@@ -97,4 +174,22 @@ jobs:
         publish_if_needed hyperlight-wasm
       env:
         CARGO_REGISTRY_TOKEN: ${{ steps.crates-io-auth.outputs.token }}
+      shell: bash
+
+    - name: Set up .NET
+      if: ${{ contains(github.ref, 'refs/heads/release/') }}
+      uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73  # v6.1.0
+      with:
+        dotnet-version: 8.0.x
+    - name: Authenticate with NuGet
+      if: ${{ contains(github.ref, 'refs/heads/release/') }}
+      uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841  # v1
+      id: nuget-login
+      with:
+        user: ${{ vars.NUGET_USER }}
+    - name: Publish to NuGet
+      if: ${{ contains(github.ref, 'refs/heads/release/') }}
+      run: dotnet nuget push "dotnet-packages/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" --skip-duplicate
+      env:
+        NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
       shell: bash
