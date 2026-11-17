@@ -17,6 +17,7 @@ limitations under the License.
 mod hostfuncs {
 
     mod host {
+        #[link(wasm_import_module = "env")]
         extern "C" {
             #[link_name = "TestHostFunc"]
             pub(super) fn test_host_func(a: i32) -> i32;
