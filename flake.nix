@@ -96,9 +96,9 @@
               sha256 = "sha256-qqF33vNuAdU5vua96VKVIwuc43j4EFeEXbjQ6+l4mO4=";
             };
             nightly = {
-              date = "2026-09-22";
+              date = "2026-11-01";
               channel = "nightly";
-              sha256 = "sha256-7qsyGDZErke6MdrngELbKaqs1Xgx8ols/e/HIygUIXg=";
+              sha256 = "sha256-2wqUa1sFNg8sdadO5YXcUSwpoBek+e+viCiSqnpUbdM=";
             };
             "1.89" = {
               date = "2025-08-07";
@@ -187,7 +187,7 @@
             # and a subsequent copy of the same file to the same place will
             # fail. Hack around this issue by making any existing vendored
             # files writable before a build can be run
-            find "$(base_cargo metadata --format-version 1 | jq -r '.target_directory')" \( -path '*/build/libgit2-sys-*/out/include' -or -path '*/sysroot/include' -or -path '*/libwit_bindgen_cabi*' \) -print0 | xargs -r -0 chmod u+w -R
+            find "$(base_cargo metadata --format-version 1 | jq -r '.target_directory')" \( -path '*/build/libgit2-sys-*/out/include' -or -path '*/build/libgit2-sys/*/out/include' -or -path '*/sysroot/include' -or -path '*/libwit_bindgen_cabi*' -or -path '*/build/hyperlight-libc-*/include' -or -path '*/build/hyperlight-libc/*/out/include' \) -print0 | xargs -r -0 chmod u+w -R
           '';
 
           # Hyperlight scripts use cargo in a bunch of ways that don't
@@ -200,14 +200,21 @@
           rustup-like-wrapper = name: pkgs.writeShellScriptBin name
             (let
               clause = name: toolchain: ''
-                +${name}) base="${toolchain.rust}"; shift 1; ;;
-                +${name}-${toolchain.rust.toolchainVersionAttrs.date}) base="${toolchain.rust}"; shift 1; ;;
+                +${name}) base="${toolchain.rust}"; shift $shift; ;;
+                +${name}-${toolchain.rust.toolchainVersionAttrs.date}) base="${toolchain.rust}"; shift $shift; ;;
               '';
               clauses = lib.strings.concatStringsSep "\n"
                 (lib.mapAttrsToList clause toolchains);
             in ''
               base="${toolchains.stable.rust}"
               ${materialiseDeps}
+              if [ -v RUSTUP_TOOLCHAIN ]; then
+                shift=0
+                case +''${RUSTUP_TOOLCHAIN} in
+                  ${clauses}
+                esac
+              fi
+              shift=1
               case "$1" in
                 ${clauses}
                 install) exit 0; ;;
@@ -248,6 +255,33 @@
             };
             doCheck = false;
           };
+
+          # TODO: replace with Nix toolchain when nixos/nixpkgs#537433 is done
+          wasi-sdk-bin = stdenvNoCC.mkDerivation (finalAttrs: let
+            major = lib.versions.major finalAttrs.version;
+            arch = if pkgs.stdenv.buildPlatform.isAarch64 then "arm64" else
+              if pkgs.stdenv.buildPlatform.isx86_64 then "x86_64" else
+                builtins.throw "wasi-sdk not supported on ${pkgs.stdenv.buildPlatform.system}";
+            os = if pkgs.stdenv.buildPlatform.isLinux then "linux" else
+              if pkgs.stdenv.buildPlatform.isDarwin then "macos" else
+                builtins.throw "wasi-sdk not supported on ${pkgs.stdenv.buildPlatform.system}";
+          in {
+            pname = "wasi-sdk";
+            version = "25.0";
+            src = pkgs.fetchurl {
+              url = "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${major}/wasi-sdk-${finalAttrs.version}-${arch}-${os}.tar.gz";
+              hash = "sha256-R/zK2LJJjyI54F4RFcP/xlK/N+feL4j7ZLLWY8l2zi0=";
+            };
+            nativeBuildInputs = [
+              autoPatchelfHook
+            ];
+            buildInputs = [
+              stdenv.cc.cc.lib
+            ];
+            installPhase = ''
+              cp -r . $out
+            '';
+      });
         in (buildRustPackageClang (mkDerivationAttrs: {
           pname = "hyperlight";
           version = "0.0.0";
@@ -289,6 +323,8 @@
           LIBCLANG_PATH = "${pkgs.llvmPackages_18.libclang.lib}/lib";
           # Use unwrapped clang for compiling guests
           HYPERLIGHT_GUEST_clang = "${clang.cc}/bin/clang";
+          # Use wasi-sdk built for Nix cross toolchain
+          WASI_SDK_PATH = "${wasi-sdk-bin}";
 
           RUST_NIGHTLY = "${toolchains.nightly.rust}";
           # Set this through shellHook rather than nativeBuildInputs to be
