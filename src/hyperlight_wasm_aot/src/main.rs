@@ -21,23 +21,6 @@ use clap::{Parser, Subcommand, ValueEnum};
 use object::read::elf::ElfFile64;
 use object::{Architecture, Endianness, FileFlags, Object};
 
-#[derive(Debug)]
-enum SupportedTarget {
-    X86_64UnknownNone,
-    AArch64UnknownNone,
-    WasmtimePulley64,
-}
-
-impl Display for SupportedTarget {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SupportedTarget::X86_64UnknownNone => write!(f, "x86_64-unknown-none"),
-            SupportedTarget::AArch64UnknownNone => write!(f, "aarch64-unknown-none"),
-            SupportedTarget::WasmtimePulley64 => write!(f, "pulley64"),
-        }
-    }
-}
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
 enum WasmtimeVersion {
     Lts,
@@ -80,7 +63,7 @@ impl Config {
 
 macro_rules! wv {
     (@impl [] [$($acc:tt)*] $v:ident, $($_:tt)*) => {
-        match $v {
+        match &mut $v {
             $($acc)*
         }
     };
@@ -89,7 +72,7 @@ macro_rules! wv {
     };
     (@impl [$variant:ident $module:ident $($scope:tt)*] [$($acc:tt)*] $v:ident, $($x:tt)*) => {
         wv!(@impl [$($scope)*] [$($acc)*
-          WasmtimeVersioned::$variant(ref mut $v) => {
+          WasmtimeVersioned::$variant($v) => {
               #[allow(unused)]
               use $module as w;
               $($x)*
@@ -129,6 +112,65 @@ macro_rules! wvwv {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
+enum SupportedTarget {
+    X86_64UnknownHyperlight,
+    AArch64UnknownHyperlight,
+    WasmtimePulley64,
+}
+impl SupportedTarget {
+    fn wasmtime_target(self) -> String {
+        match self {
+            SupportedTarget::X86_64UnknownHyperlight => "x86_64-unknown-hyperlight".to_string(),
+            SupportedTarget::AArch64UnknownHyperlight => "aarch64-unknown-hyperlight".to_string(),
+            SupportedTarget::WasmtimePulley64 => "pulley64".to_string(),
+        }
+    }
+    fn apply_wasmtime_config(self, mut config: &mut Config) {
+        wv!(config.target(&self.wasmtime_target()).unwrap());
+        if let SupportedTarget::X86_64UnknownHyperlight = self {
+            // Enable x86_float_abi_ok only for the latest Wasmtime version.
+            // Safety:
+            // - If using the new upstream x86_64-unknown-hyperlight
+            //   targets, they are hard float already
+            // - Otherwise, we use cargo-hyperlight to build the
+            //   guest, which sets the Rust target to be compiled with
+            //   the hard-float ABI manually via `-Zbuild-std` and a
+            //   custom target JSON configuration See
+            //   https://github.com/bytecodealliance/wasmtime/pull/11553
+            unsafe {
+                wv!(latest, config.x86_float_abi_ok(true));
+            }
+        }
+    }
+}
+impl Display for SupportedTarget {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.wasmtime_target())
+    }
+}
+
+#[derive(Clone, Copy, Parser)]
+struct TargetSelection {
+    /// Pre-compile for the pulley64 target
+    #[arg(long)]
+    pulley: bool,
+}
+
+impl From<TargetSelection> for SupportedTarget {
+    fn from(ts: TargetSelection) -> SupportedTarget {
+        if ts.pulley {
+            Self::WasmtimePulley64
+        } else {
+            #[cfg(target_arch = "x86_64")]
+            let target = Self::X86_64UnknownHyperlight;
+            #[cfg(target_arch = "aarch64")]
+            let target = Self::AArch64UnknownHyperlight;
+            target
+        }
+    }
+}
+
 #[derive(Parser)]
 #[command(name = "hyperlight-wasm-aot")]
 #[command(version = env!("CARGO_PKG_VERSION"))]
@@ -160,9 +202,8 @@ enum Commands {
         #[arg(long)]
         minimal: bool,
 
-        /// Pre-compile for the pulley64 target
-        #[arg(long)]
-        pulley: bool,
+        #[command(flatten)]
+        target_selection: TargetSelection,
 
         /// Wasmtime version used for precompilation
         #[arg(long, value_enum, default_value = "lts")]
@@ -194,7 +235,7 @@ fn main() {
             component,
             debug,
             minimal,
-            pulley,
+            target_selection,
             wasmtime_version,
         } => {
             let outfile = match output {
@@ -206,15 +247,7 @@ fn main() {
                 }
             };
 
-            let target = if pulley {
-                SupportedTarget::WasmtimePulley64
-            } else {
-                #[cfg(target_arch = "x86_64")]
-                let target = SupportedTarget::X86_64UnknownNone;
-                #[cfg(target_arch = "aarch64")]
-                let target = SupportedTarget::AArch64UnknownNone;
-                target
-            };
+            let target = target_selection.into();
 
             if debug {
                 println!(
@@ -322,29 +355,7 @@ fn main() {
 fn get_config(wv: WasmtimeVersion, debug: bool, minimal: bool, target: &SupportedTarget) -> Config {
     let mut config = Config::new(wv);
 
-    // Compile for the pulley64 target if specified
-    match target {
-        SupportedTarget::X86_64UnknownNone => {
-            wv!(config.target("x86_64-unknown-none").unwrap());
-            // Enable x86_float_abi_ok only for the latest Wasmtime version.
-            // Safety:
-            // - If using the new upstream x86_64-unknown-hyperlight
-            //   targets, they are hard float already
-            // - Otherwise, we use cargo-hyperlight to build the guest, which
-            //   sets the Rust target to be compiled with the hard-float ABI manually via
-            //   `-Zbuild-std` and a custom target JSON configuration
-            //   See https://github.com/bytecodealliance/wasmtime/pull/11553
-            unsafe {
-                wv!(latest, config.x86_float_abi_ok(true));
-            }
-        }
-        SupportedTarget::AArch64UnknownNone => {
-            wv!(config.target("aarch64-unknown-none").unwrap());
-        }
-        SupportedTarget::WasmtimePulley64 => {
-            wv!(config.target("pulley64").unwrap());
-        }
-    }
+    target.apply_wasmtime_config(&mut config);
 
     // Enable the default features for the Wasmtime engine.
     if debug {
@@ -374,11 +385,8 @@ fn get_aot_target(bytes: &[u8]) -> Result<SupportedTarget, String> {
 
     if let Ok(elf) = ElfFile64::<Endianness>::parse(bytes) {
         match elf.architecture() {
-            Architecture::X86_64 => Ok(SupportedTarget::X86_64UnknownNone),
-            Architecture::Aarch64 => Ok(SupportedTarget::AArch64UnknownNone),
-            Architecture::S390x => {
-                Err("Unsupported architecture S390x in AOT compiled file".to_string())
-            }
+            Architecture::X86_64 => Ok(SupportedTarget::X86_64UnknownHyperlight),
+            Architecture::Aarch64 => Ok(SupportedTarget::AArch64UnknownHyperlight),
             Architecture::Riscv64 => {
                 let e_flags = match elf.flags() {
                     FileFlags::Elf { e_flags, .. } => e_flags,
