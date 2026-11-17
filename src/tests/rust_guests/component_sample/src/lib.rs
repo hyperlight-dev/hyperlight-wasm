@@ -1,6 +1,10 @@
 #[allow(warnings)]
 #[rustfmt::skip]
-mod bindings;
+mod bindings {
+    wit_bindgen::generate!({
+        world: "example",
+    });
+}
 
 use bindings::component_sample::example::host::{host_function, print};
 use bindings::exports::component_sample::example::adder::Guest;
