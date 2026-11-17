@@ -2085,6 +2085,7 @@ dependencies = [
  "cargo_metadata",
  "clap",
  "object 0.39.1",
+ "rustc_version",
  "wasmtime 36.0.18",
  "wasmtime 47.0.4",
 ]

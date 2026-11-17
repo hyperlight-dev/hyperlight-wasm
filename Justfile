@@ -17,7 +17,6 @@ make-vendor-tar:
         -C ./src wasm_runtime hyperlight_wasm_macro
 
 wasm-tools-version := "1.235.0"
-cargo-component-version := "0.21.1"
 wit-bindgen-version := "0.58.0"
 cargo-hyperlight-version := "0.1.14"
 
@@ -26,7 +25,7 @@ cargo-hyperlight-version := "0.1.14"
 ensure-tool crate version command:
     {{ if os() == "windows" { "if (-not ($(try { " + command + " --version 2>$null } catch {}) -like '*" + version + "*')) { cargo install --locked --force --version " + version + " " + crate + " }" } else { command + " --version 2>/dev/null | grep -qF '" + version + "' || cargo install --locked --force --version " + version + " " + crate } }}
 
-ensure-tools: (ensure-tool "wasm-tools" wasm-tools-version "wasm-tools") (ensure-tool "cargo-component" cargo-component-version "cargo component") (ensure-tool "wit-bindgen-cli" wit-bindgen-version "wit-bindgen") ensure-cargo-hyperlight
+ensure-tools: (ensure-tool "wasm-tools" wasm-tools-version "wasm-tools") (ensure-tool "wit-bindgen-cli" wit-bindgen-version "wit-bindgen") ensure-cargo-hyperlight
 
 ensure-cargo-hyperlight: (ensure-tool "cargo-hyperlight" cargo-hyperlight-version "cargo hyperlight")
 
@@ -56,19 +55,15 @@ build-pulley-rust-wasm-examples target=default-target features="": (mkdir-redist
     cargo run -p hyperlight-wasm-aot compile --pulley {{ if features =~ "gdb" {"--debug"} else {""} }} {{ if features =~ "wasmtime_latest" {"--wasmtime-version latest"} else {""} }} ./src/tests/rust_guests/rust_wasm_samples/target/wasm32-unknown-unknown/{{ target }}/rust_wasm_samples.wasm ./build/{{ target }}/rust_wasm_samples.aot
 
 build-rust-component-examples target=default-target features="": (compile-wit)
-    # use cargo component so we don't get all the wasi imports https://github.com/bytecodealliance/cargo-component?tab=readme-ov-file#relationship-with-wasm32-wasip2
-    # we also explicitly target wasm32-unknown-unknown since cargo component might try to pull in wasi imports https://github.com/bytecodealliance/cargo-component/issues/290
     rustup target add wasm32-unknown-unknown
-    cd ./src/tests/rust_guests/component_sample && cargo component build --target wasm32-unknown-unknown --profile={{ if target == "debug" {"dev"} else { target } }}
+    cd ./src/tests/rust_guests/component_sample && cargo build --profile={{ if target == "debug" {"dev"} else { target } }}
     cargo run -p hyperlight-wasm-aot compile {{ if features =~ "gdb" {"--debug"} else {""} }} {{ if features =~ "wasmtime_latest" {"--wasmtime-version latest"} else {""} }} --component ./src/tests/rust_guests/component_sample/target/wasm32-unknown-unknown/{{ target }}/component_sample.wasm ./build/{{ target }}/component_sample.aot
-    cd ./src/tests/rust_guests/greeter_sample && cargo component build --target wasm32-unknown-unknown --profile={{ if target == "debug" {"dev"} else { target } }}
+    cd ./src/tests/rust_guests/greeter_sample && cargo build --profile={{ if target == "debug" {"dev"} else { target } }}
     cargo run -p hyperlight-wasm-aot compile {{ if features =~ "gdb" {"--debug"} else {""} }} {{ if features =~ "wasmtime_latest" {"--wasmtime-version latest"} else {""} }} --component ./src/tests/rust_guests/greeter_sample/target/wasm32-unknown-unknown/{{ target }}/greeter_sample.wasm ./build/{{ target }}/greeter_sample.aot
 
 build-pulley-rust-component-examples target=default-target features="": (compile-wit)
-    # use cargo component so we don't get all the wasi imports https://github.com/bytecodealliance/cargo-component?tab=readme-ov-file#relationship-with-wasm32-wasip2
-    # we also explicitly target wasm32-unknown-unknown since cargo component might try to pull in wasi imports https://github.com/bytecodealliance/cargo-component/issues/290
     rustup target add wasm32-unknown-unknown
-    cd ./src/tests/rust_guests/component_sample && cargo component build --target wasm32-unknown-unknown --profile={{ if target == "debug" {"dev"} else { target } }}
+    cd ./src/tests/rust_guests/component_sample && cargo build --profile={{ if target == "debug" {"dev"} else { target } }}
     cargo run -p hyperlight-wasm-aot compile --pulley {{ if features =~ "gdb" {"--debug"} else {""} }} {{ if features =~ "wasmtime_latest" {"--wasmtime-version latest"} else {""} }} --component ./src/tests/rust_guests/component_sample/target/wasm32-unknown-unknown/{{ target }}/component_sample.wasm ./build/{{ target }}/component_sample.aot
 
 check target=default-target:
