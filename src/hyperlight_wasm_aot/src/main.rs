@@ -262,18 +262,7 @@ fn main() {
         } => {
             match wasmtime_version {
                 WasmtimeVersion::Latest => {
-                    // get the wasmtime version used by hyperlight-wasm-aot
-                    let metadata = MetadataCommand::new().exec().unwrap();
-                    let package_name = PackageName::new("wasmtime".to_string()).unwrap();
-                    let wasmtime_package: Option<&Package> = metadata
-                        .packages
-                        .iter()
-                        .filter(|p| p.name == package_name)
-                        .find(|p| p.version.major > 36);
-                    let version_number = match wasmtime_package {
-                        Some(pkg) => pkg.version.clone(),
-                        None => panic!("latest wasmtime dependency not found"),
-                    };
+                    let version_number = std::env!("WASMTIME_LATEST_VERSION");
                     if debug {
                         println!(
                             "Checking Wasmtime version used to compile debug info enabled file: {} (latest wasmtime)",
