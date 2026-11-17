@@ -394,6 +394,8 @@ fn dicachesync(_base: *mut u8, _len: usize) {
 
             dsb ish
 
+            msr nzcv, xzr
+
             mov {tmp}, {addr}
 
         4:  ic ivau, {tmp}
