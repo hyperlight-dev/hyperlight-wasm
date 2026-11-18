@@ -1872,6 +1872,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "hyperlight-component-csharp"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "acddba0f6ad911efacdd3a6d2d176693f8a898c2a80384e218d238e9be1a91da"
+dependencies = [
+ "hyperlight-component-util",
+]
+
+[[package]]
 name = "hyperlight-component-macro"
 version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2090,6 +2099,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "hyperlight-wasm-capi"
+version = "0.16.0"
+dependencies = [
+ "examples_common",
+ "hyperlight-wasm",
+]
+
+[[package]]
+name = "hyperlight-wasm-csharp-bindgen"
+version = "0.16.0"
+dependencies = [
+ "hyperlight-component-csharp",
+]
+
+[[package]]
 name = "hyperlight-wasm-macro"
 version = "0.16.0"
 dependencies = [
@@ -2104,6 +2128,7 @@ dependencies = [
 name = "hyperlight-wasm-runtime"
 version = "0.16.0"
 dependencies = [
+ "blake3",
  "bytes",
  "cargo_metadata",
  "cc",

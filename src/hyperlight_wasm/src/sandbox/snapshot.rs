@@ -40,9 +40,12 @@ const MAX_TAG_LENGTH: usize = 128;
 /// # Portability
 ///
 /// A snapshot loads only on the CPU architecture, CPU vendor, and hypervisor
-/// it was saved on. A component snapshot also needs the `WIT_WORLD` file and
-/// `WIT_WORLD_NAME` that hyperlight-wasm was built with. Loading rejects a
-/// mismatch.
+/// it was saved on. A component snapshot also needs the `WIT_WORLD` input
+/// and `WIT_WORLD_NAME` that hyperlight-wasm was built with, byte for byte.
+/// Loading rejects a mismatch. With a runtime file, the world is the one the
+/// runtime was built for. A host built with `experimental_runtime_file` and
+/// without `WIT_WORLD` has no bindings of its own, so it loads snapshots of
+/// any world.
 ///
 /// # Examples
 ///
@@ -103,6 +106,13 @@ struct SnapshotMetadata {
     base_snapshot: Option<String>,
 }
 
+/// Whether a snapshot of the world `saved` suits a host built for the world
+/// `host`. A host built for runtime files without `WIT_WORLD`, such as the C
+/// API, uses no generated bindings, so it accepts any world.
+fn interface_matches(saved: Option<&str>, host: Option<&str>, runtime_files: bool) -> bool {
+    (runtime_files && host.is_none()) || saved == host
+}
+
 impl SnapshotMetadata {
     fn runtime() -> Self {
         Self {
@@ -123,7 +133,11 @@ impl SnapshotMetadata {
                 GUEST_ABI_VERSION
             ));
         }
-        if self.component_interface.as_deref() != super::WASM_RUNTIME_COMPONENT_INTERFACE {
+        if !interface_matches(
+            self.component_interface.as_deref(),
+            super::WASM_RUNTIME_COMPONENT_INTERFACE,
+            cfg!(feature = "experimental_runtime_file"),
+        ) {
             return Err(new_error!(
                 "Snapshot module/component interface does not match this host"
             ));
@@ -320,8 +334,12 @@ impl<T: SnapshotTarget> Snapshot<T> {
 }
 
 impl Snapshot<WasmSandbox> {
-    pub(super) fn runtime(inner: Arc<CoreSnapshot>) -> Self {
-        Self::new(inner, (), SnapshotMetadata::runtime())
+    pub(super) fn runtime(inner: Arc<CoreSnapshot>, component_interface: Option<String>) -> Self {
+        let metadata = SnapshotMetadata {
+            component_interface,
+            ..SnapshotMetadata::runtime()
+        };
+        Self::new(inner, (), metadata)
     }
 }
 
@@ -387,15 +405,26 @@ mod tests {
                 .contains("guest ABI")
         );
 
-        let mut invalid = metadata;
-        invalid.component_interface = Some("different-interface".to_owned());
-        assert!(
-            invalid
-                .validate()
-                .unwrap_err()
-                .to_string()
-                .contains("interface")
+        let mut other = metadata;
+        other.component_interface = Some("different-interface".to_owned());
+        let expected = interface_matches(
+            Some("different-interface"),
+            super::super::WASM_RUNTIME_COMPONENT_INTERFACE,
+            cfg!(feature = "experimental_runtime_file"),
         );
+        assert_eq!(other.validate().is_ok(), expected);
+    }
+
+    #[test]
+    fn interface_check_depends_on_host_world() {
+        for runtime_files in [false, true] {
+            assert!(interface_matches(Some("a"), Some("a"), runtime_files));
+            assert!(!interface_matches(Some("a"), Some("b"), runtime_files));
+            assert!(!interface_matches(None, Some("a"), runtime_files));
+            assert!(interface_matches(None, None, runtime_files));
+        }
+        assert!(!interface_matches(Some("a"), None, false));
+        assert!(interface_matches(Some("a"), None, true));
     }
 
     #[test]
@@ -904,6 +933,38 @@ mod tests {
             let sb = wrapped.sb.unload_module()?.load_module(&module)?;
             let mut wrapped = bindings::ExampleSandbox { sb, rt: wrapped.rt };
             assert_eq!(ExampleExports::adder(&mut wrapped).add(4, 3)?, 7);
+            Ok(())
+        }
+
+        /// Loading checks the world this host was built for, so the save and
+        /// load succeed only if the runtime file records the same world.
+        #[cfg(feature = "experimental_runtime_file")]
+        #[test]
+        fn persists_component_from_runtime_file() -> Result<()> {
+            let directory = tempfile::tempdir()?;
+            let runtime = directory.path().join("runtime");
+            std::fs::write(&runtime, &super::super::super::WASM_RUNTIME[..])?;
+            let mut proto = SandboxBuilder::new()
+                .with_runtime_file(&runtime)
+                .with_guest_scratch_size(100 * 1024 * 1024)
+                .build()?;
+            let _rt = bindings::register_host_functions(&mut proto, State)?;
+            let mut sb = proto
+                .load_runtime()?
+                .load_module(get_wasm_module_path("component_sample.aot")?)?;
+            let digest = sb
+                .snapshot()?
+                .save(directory.path(), &OciTag::new("component")?)?;
+            drop(sb);
+
+            let snapshot = Snapshot::<LoadedWasmSandbox>::checked_load(directory.path(), digest)?;
+            let mut builder = SandboxBuilder::from_snapshot(snapshot);
+            let rt = bindings::register_host_functions(&mut builder, State)?;
+            let mut wrapped = bindings::ExampleSandbox {
+                sb: builder.build()?,
+                rt,
+            };
+            assert_eq!(ExampleExports::adder(&mut wrapped).add(1, 2)?, 3);
             Ok(())
         }
     }

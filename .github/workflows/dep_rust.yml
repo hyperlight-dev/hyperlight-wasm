@@ -170,6 +170,16 @@ jobs:
         run:  just test ${{ matrix.config }} ${{ env.FEATURES }}
         working-directory: ./src/hyperlight_wasm
 
+      # Runs before Test Examples, which replaces the native components in
+      # build/<profile> with Pulley ones.
+      - name: Set up .NET
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73  # v6.1.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Test .NET packages
+        run: just dotnet-test-prebuilt ${{ matrix.config }} ${{ env.FEATURES }}
+
       - name: Install github-cli (Windows)
         if: runner.os == 'Windows'
         run: |

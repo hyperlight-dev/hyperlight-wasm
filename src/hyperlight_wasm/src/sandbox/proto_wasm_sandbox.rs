@@ -36,6 +36,7 @@ use crate::build_info::BuildInfo;
 pub struct ProtoWasmSandbox {
     pub(super) inner: Option<UninitializedSandbox>,
     host_function_definitions: HashMap<String, HostFunctionDefinition>,
+    component_interface: Option<String>,
 }
 
 impl Registerable for ProtoWasmSandbox {
@@ -74,9 +75,13 @@ impl ProtoWasmSandbox {
     /// `LoadedWasmSandbox` returned from the `load_module` method on the `WasmSandbox`, you can
     /// use the `max_execution_time` and `max_wait_for_cancellation`
     /// fields in the `SandboxConfiguration` struct.
+    ///
+    /// `component_interface` is the hash of the runtime's WIT world, which
+    /// its snapshots record.
     pub(super) fn new(
         cfg: Option<SandboxConfiguration>,
         guest_binary: GuestBinary,
+        component_interface: Option<String>,
     ) -> Result<Self> {
         BuildInfo::log();
         let inner = UninitializedSandbox::new(guest_binary, cfg)?;
@@ -87,6 +92,7 @@ impl ProtoWasmSandbox {
         Ok(Self {
             inner: Some(inner),
             host_function_definitions,
+            component_interface,
         })
     }
 
@@ -124,7 +130,7 @@ impl ProtoWasmSandbox {
             ));
         }
 
-        WasmSandbox::new(sandbox)
+        WasmSandbox::new(sandbox, self.component_interface.take())
     }
 
     /// Register the given host function `host_func` with `self` under

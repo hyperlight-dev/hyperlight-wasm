@@ -136,6 +136,15 @@ WIT_WORLD=</path/to/output.wasm>  HYPERLIGHT_COMPONENT_MACRO_DEBUG=/tmp/guest.rs
 HYPERLIGHT_COMPONENT_MACRO_DEBUG=/tmp/host.rs cargo build
 ```
 
+### Other languages
+
+These are experimental.
+
+* [`src/hyperlight_wasm_capi`](src/hyperlight_wasm_capi) is a C API. Its header is `include/hyperlight_wasm.h`.
+* [`dotnet`](dotnet) has .NET packages with C# bindings generated from WIT.
+
+Both load a guest runtime built for the component's world from a file.
+
 
 ## Code of Conduct
 
