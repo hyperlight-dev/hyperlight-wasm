@@ -1,0 +1,28 @@
+package example:hello;
+
+interface host {
+    print: func(message: string);
+}
+
+interface guest {
+    record word-report {
+        count: u32,
+        longest: string,
+        joined: string,
+    }
+
+    record invoice {
+        subtotal: f64,
+        tax: f64,
+        total: f64,
+    }
+
+    greet: func(name: string) -> string;
+    describe-words: func(words: list<string>) -> word-report;
+    invoice-total: func(amounts: list<f64>, tax-rate: f64) -> result<invoice, string>;
+}
+
+world hello {
+    import host;
+    export guest;
+}

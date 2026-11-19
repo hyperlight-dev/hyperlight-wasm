@@ -1,0 +1,27 @@
+[package]
+name = "hyperlight-wasm-componentize-qjs-example"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+hyperlight-common = { version = "0.18.0", default-features = false }
+hyperlight-component-macro = "0.18.0"
+hyperlight-host = { version = "0.18.0", default-features = false }
+hyperlight-wasm = { path = "../..", default-features = false }
+
+[build-dependencies]
+anyhow = "1.0"
+componentize-qjs = { version = "0.4.5", default-features = false }
+tokio = { version = "1", default-features = false, features = ["rt"] }
+# AOT output must match the selected Wasmtime patch version in hyperlight-wasm-runtime.
+wasmtime_aot = { package = "wasmtime", version = "=36.0.14", default-features = false, features = ["component-model", "cranelift", "runtime"] }
+wasmtime_aot_latest = { package = "wasmtime", version = "=47.0.4", default-features = false, features = ["anyhow", "component-model", "cranelift", "runtime"], optional = true }
+
+[features]
+default = ["hyperlight-wasm/default"]
+kvm = ["hyperlight-wasm/kvm"]
+mshv3 = ["hyperlight-wasm/mshv3"]
+wasmtime_latest = ["hyperlight-wasm/wasmtime_latest", "dep:wasmtime_aot_latest"]
