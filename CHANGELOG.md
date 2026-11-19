@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 * Experimental: add the `experimental_runtime_file` feature, with `SandboxBuilder::with_runtime_file` to load the guest runtime from a file.
 * Experimental: add the `hyperlight-wasm-capi` crate, a C API that calls component functions with arguments and results in Hyperlight's component wire format. It is not published.
 * Experimental: add the `Hyperlight.Wasm` and `Hyperlight.Wasm.Build` .NET packages, which run components from .NET with typed C# bindings generated from WIT at build time. See `dotnet/README.md`. They are not published.
+* Experimental: add `hyperlight-wasm-aot experimental-build-runtime`, which builds a guest runtime for a WIT world. `Hyperlight.Wasm.Build` runs it for `HyperlightWit` items with `Runtime` set, and precompiles `HyperlightComponent` items. `HyperlightWasmtimeVersion` selects the Wasmtime version for both.
+* Accept a `.wit` file or a directory of `.wit` files in `WIT_WORLD` when building the guest runtime. `host_bindgen!()` without arguments still needs a wasm-encoded package.
 
 ### Changed
 

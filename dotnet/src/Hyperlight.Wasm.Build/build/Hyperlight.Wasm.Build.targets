@@ -34,4 +34,70 @@
     </ItemGroup>
   </Target>
 
+  <!-- Visual Studio skips MSBuild when no known input changed. -->
+  <ItemGroup>
+    <UpToDateCheckInput Include="@(HyperlightWit);@(HyperlightComponent)" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <HyperlightWasmAot Condition="'$(HyperlightWasmAot)' == ''">hyperlight-wasm-aot</HyperlightWasmAot>
+    <HyperlightRuntimeTargetDirectory Condition="'$(HyperlightRuntimeTargetDirectory)' == ''">$(BaseIntermediateOutputPath)hyperlight-wasm-runtime/</HyperlightRuntimeTargetDirectory>
+    <HyperlightWasmtimeVersion Condition="'$(HyperlightWasmtimeVersion)' == ''">lts</HyperlightWasmtimeVersion>
+  </PropertyGroup>
+
+  <!-- Cargo skips the build when nothing changed. Design-time builds skip it because it takes minutes. -->
+  <Target Name="BuildHyperlightRuntimes" Condition="'$(DesignTimeBuild)' != 'true'">
+    <ItemGroup>
+      <_HyperlightRuntime Include="@(HyperlightWit)" Condition="'%(HyperlightWit.Runtime)' != ''">
+        <!-- A trailing backslash before a closing quote escapes the quote on Windows. -->
+        <WitPath>$([System.String]::Copy('%(FullPath)').TrimEnd('\/'))</WitPath>
+        <WorldArgument Condition="'%(HyperlightWit.World)' != ''">--world &quot;%(HyperlightWit.World)&quot;</WorldArgument>
+      </_HyperlightRuntime>
+    </ItemGroup>
+    <Error Condition="'@(_HyperlightRuntime->'%(Runtime)'->Distinct()->Count())' != '@(_HyperlightRuntime->Count())'"
+           Text="HyperlightWit items must have distinct Runtime names." />
+    <Exec Condition="'@(_HyperlightRuntime)' != ''"
+          Command="&quot;$(HyperlightWasmAot)&quot; experimental-build-runtime &quot;%(_HyperlightRuntime.WitPath)&quot; &quot;$(IntermediateOutputPath)HyperlightRuntimes/%(_HyperlightRuntime.Runtime)&quot; %(_HyperlightRuntime.WorldArgument) --wasmtime-version $(HyperlightWasmtimeVersion) --target-dir &quot;$(HyperlightRuntimeTargetDirectory.TrimEnd('\/'))&quot;" />
+  </Target>
+
+  <!-- Records the package, AOT tool, Wasmtime version and component paths, so components recompile when any changes. -->
+  <Target Name="StampHyperlightWasmAot" Condition="'@(HyperlightComponent)' != '' and '$(DesignTimeBuild)' != 'true'">
+    <Error Condition="'@(HyperlightComponent->'%(Filename)'->Distinct()->Count())' != '@(HyperlightComponent->Count())'"
+           Text="HyperlightComponent items must have distinct file names, because each compiles to its name with .aot." />
+    <Exec Command="&quot;$(HyperlightWasmAot)&quot; --version" ConsoleToMSBuild="true" StandardOutputImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_HyperlightWasmAotVersion" />
+    </Exec>
+    <PropertyGroup>
+      <_HyperlightWasmAotTime Condition="Exists('$(HyperlightWasmAot)')">$([System.IO.File]::GetLastWriteTime('$(HyperlightWasmAot)').Ticks)</_HyperlightWasmAotTime>
+    </PropertyGroup>
+    <MakeDir Directories="$(IntermediateOutputPath)HyperlightComponents" />
+    <WriteLinesToFile File="$(IntermediateOutputPath)HyperlightComponents/aot.stamp"
+                      Lines="$(MSBuildThisFileFullPath);$(_HyperlightWasmAotVersion);$(_HyperlightWasmAotTime);$(HyperlightWasmtimeVersion);@(HyperlightComponent->'%(FullPath)')"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true" />
+  </Target>
+
+  <Target Name="CompileHyperlightComponents"
+          Condition="'$(DesignTimeBuild)' != 'true'"
+          DependsOnTargets="StampHyperlightWasmAot"
+          Inputs="@(HyperlightComponent);$(IntermediateOutputPath)HyperlightComponents/aot.stamp"
+          Outputs="@(HyperlightComponent->'$(IntermediateOutputPath)HyperlightComponents/%(Filename).aot')">
+    <Exec Command="&quot;$(HyperlightWasmAot)&quot; compile --component --wasmtime-version $(HyperlightWasmtimeVersion) &quot;%(HyperlightComponent.FullPath)&quot; &quot;$(IntermediateOutputPath)HyperlightComponents/%(HyperlightComponent.Filename).aot&quot;" />
+  </Target>
+
+  <Target Name="CopyHyperlightArtifacts"
+          BeforeTargets="AssignTargetPaths"
+          DependsOnTargets="BuildHyperlightRuntimes;CompileHyperlightComponents">
+    <ItemGroup>
+      <None Include="@(HyperlightWit->'$(IntermediateOutputPath)HyperlightRuntimes/%(Runtime)')"
+            Condition="'%(HyperlightWit.Runtime)' != ''"
+            Link="%(HyperlightWit.Runtime)"
+            CopyToOutputDirectory="PreserveNewest" />
+      <None Include="@(HyperlightComponent->'$(IntermediateOutputPath)HyperlightComponents/%(Filename).aot')"
+            Link="%(HyperlightComponent.Filename).aot"
+            CopyToOutputDirectory="PreserveNewest" />
+      <FileWrites Include="$(IntermediateOutputPath)HyperlightRuntimes/**;$(IntermediateOutputPath)HyperlightComponents/**" />
+    </ItemGroup>
+  </Target>
+
 </Project>

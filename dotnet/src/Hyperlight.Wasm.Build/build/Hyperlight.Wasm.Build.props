@@ -3,15 +3,22 @@
   <!--
     List WIT inputs as HyperlightWit items:
 
-      <HyperlightWit Include="wit/policy.wit" World="policy" Namespace="MyApp.Policy" />
+      <HyperlightWit Include="wit/policy.wit" World="policy" Namespace="MyApp.Policy" Runtime="policy-runtime" />
 
     World selects a world when the package has several. Namespace defaults to
-    the project's root namespace.
+    the project's root namespace. Runtime names a guest runtime for the world
+    that the build creates in the output directory with hyperlight-wasm-aot.
+
+    List components to precompile into <name>.aot in the output directory as
+    HyperlightComponent items:
+
+      <HyperlightComponent Include="policy.wasm" />
   -->
   <ItemDefinitionGroup>
     <HyperlightWit>
       <World></World>
       <Namespace></Namespace>
+      <Runtime></Runtime>
     </HyperlightWit>
   </ItemDefinitionGroup>
 

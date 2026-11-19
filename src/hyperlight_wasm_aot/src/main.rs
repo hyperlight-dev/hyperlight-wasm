@@ -15,7 +15,8 @@ limitations under the License.
 */
 
 use std::fmt::Display;
-use std::path::Path;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 use cargo_metadata::{MetadataCommand, Package};
 use cargo_util_schemas::manifest::PackageName;
@@ -100,6 +101,193 @@ enum Commands {
         #[arg(long, value_enum, default_value = "lts")]
         wasmtime_version: WasmtimeVersion,
     },
+
+    /// Experimental: build a guest runtime for a WIT world
+    ///
+    /// Needs rustup and clang. Builds with Rust 1.94.1 unless RUSTUP_TOOLCHAIN is
+    /// set. Use a runtime with hosts and precompiled components from this version
+    /// of hyperlight-wasm.
+    ExperimentalBuildRuntime {
+        /// The `.wit` file, directory of `.wit` files or wasm-encoded WIT package that defines the world
+        wit: PathBuf,
+
+        /// The output file path
+        output: PathBuf,
+
+        /// The world to build for. Defaults to the last world in the package.
+        #[arg(long)]
+        world: Option<String>,
+
+        /// Wasmtime version the runtime uses. Precompile components with the same version.
+        #[arg(long, value_enum, default_value = "lts")]
+        wasmtime_version: WasmtimeVersion,
+
+        /// Directory for build artifacts, reused by later builds. Runs of this command that share it run one at a time.
+        #[arg(long, default_value = "target/hyperlight-wasm-runtime")]
+        target_dir: PathBuf,
+    },
+}
+
+// Only one variant is built, chosen by build.rs.
+#[allow(dead_code)]
+enum RuntimeSource {
+    /// The runtime's manifest in a checkout.
+    Path(&'static str),
+    /// The top-level directory name and a tar of the runtime crate.
+    Archive(&'static str, &'static [u8]),
+}
+
+include!(concat!(env!("OUT_DIR"), "/runtime_source.rs"));
+
+type BoxError = Box<dyn std::error::Error>;
+
+/// The toolchain that builds the runtime when `RUSTUP_TOOLCHAIN` is unset.
+/// Keep it in sync with rust-toolchain.toml.
+const RUNTIME_TOOLCHAIN: &str = "1.94.1";
+
+/// Returns the runtime's manifest, extracting an embedded source into `target_dir`.
+/// The caller holds the lock on `target_dir`.
+fn runtime_manifest(target_dir: &Path) -> Result<PathBuf, BoxError> {
+    match RUNTIME_SOURCE {
+        RuntimeSource::Path(manifest) => Ok(PathBuf::from(manifest)),
+        RuntimeSource::Archive(prefix, archive) => {
+            const MARKER: &str = ".hyperlight-wasm-aot-extracted";
+            let parent = target_dir.join("source");
+            let source = parent.join(prefix);
+            // The marker shows that an earlier extraction finished.
+            let marker = source.join(MARKER);
+            if !marker.exists() {
+                if source.exists() {
+                    fs::remove_dir_all(&source)?;
+                }
+                tar::Archive::new(archive).unpack(&parent)?;
+                // Keep Cargo from treating an enclosing project as the workspace.
+                let manifest = source.join("Cargo.toml");
+                let mut contents = fs::read_to_string(&manifest)?;
+                contents.push_str("\n[workspace]\n");
+                fs::write(&manifest, contents)?;
+                fs::write(&marker, "")?;
+            }
+            Ok(source.join("Cargo.toml"))
+        }
+    }
+}
+
+/// Writes `bytes` to a sibling temporary file, then renames it to `path`, so
+/// an interrupted write never leaves a partial file at `path`.
+fn write_atomic(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    // The process ID keeps concurrent writers and existing files apart.
+    let mut tmp = path.as_os_str().to_owned();
+    tmp.push(format!(".{}.tmp", std::process::id()));
+    let tmp = PathBuf::from(tmp);
+    fs::write(&tmp, bytes)
+        .and_then(|()| fs::rename(&tmp, path))
+        .inspect_err(|_| {
+            let _ = fs::remove_file(&tmp);
+        })
+}
+
+/// Waits for exclusive use of `target_dir`, which lasts until the returned file is dropped.
+fn lock_target_dir(target_dir: &Path) -> Result<fs::File, BoxError> {
+    fs::create_dir_all(target_dir)?;
+    let lock = fs::File::options()
+        .create(true)
+        .write(true)
+        .truncate(false)
+        .open(target_dir.join(".hyperlight-wasm-aot.lock"))?;
+    match lock.try_lock() {
+        Ok(()) => {}
+        Err(fs::TryLockError::WouldBlock) => {
+            eprintln!(
+                "Waiting for another runtime build in {}",
+                target_dir.display()
+            );
+            lock.lock()?;
+        }
+        Err(fs::TryLockError::Error(e)) => return Err(e.into()),
+    }
+    Ok(lock)
+}
+
+fn build_runtime(
+    wit: &Path,
+    output: &Path,
+    world: Option<&str>,
+    wasmtime_version: WasmtimeVersion,
+    target_dir: &Path,
+) -> Result<(), BoxError> {
+    // The runtime resolves a relative WIT_WORLD against its own manifest. Keep
+    // symlinked names, since the guest macro picks the parser by extension.
+    let wit =
+        std::path::absolute(wit).map_err(|e| format!("could not read {}: {e}", wit.display()))?;
+    // Cargo runs from the runtime source, so pass it the same directory this
+    // process locks and copies from.
+    let target_dir = &std::path::absolute(target_dir)?;
+    // Every build in `target_dir` writes the same binary path, so hold the
+    // lock until this build's binary is copied.
+    let _lock = lock_target_dir(target_dir)?;
+    let manifest = runtime_manifest(target_dir)?;
+    let target = format!("{}-hyperlight-none", std::env::consts::ARCH);
+
+    let mut cmd = cargo_hyperlight::cargo()?;
+    // Cargo reads `.cargo/config.toml` from its working directory upward, so
+    // run it from the runtime source, not the caller's project.
+    cmd.env_clear_cargo()
+        .current_dir(
+            manifest
+                .parent()
+                .ok_or("runtime manifest has no directory")?,
+        )
+        .arg("build")
+        .arg("--release")
+        .arg("--target")
+        .arg(&target)
+        .arg("--target-dir")
+        .arg(target_dir)
+        .arg("--manifest-path")
+        .arg(&manifest)
+        .arg("--locked")
+        .env("WIT_WORLD", &wit);
+    match world {
+        Some(world) => cmd.env("WIT_WORLD_NAME", world),
+        None => cmd.env_remove("WIT_WORLD_NAME"),
+    };
+    // Stable Rust 1.95 and later reject the guest's custom target.
+    if std::env::var_os("RUSTUP_TOOLCHAIN").is_none() {
+        cmd.env("RUSTUP_TOOLCHAIN", RUNTIME_TOOLCHAIN);
+    }
+    if wasmtime_version == WasmtimeVersion::Latest {
+        cmd.args(["--no-default-features", "--features", "wasmtime_latest"]);
+    }
+    // `{:#}` keeps the causes, such as why sysroot preparation failed.
+    cmd.status().map_err(|e| format!("{e:#}"))?;
+
+    let built = target_dir
+        .join(&target)
+        .join("release")
+        .join("hyperlight-wasm-runtime");
+    let copy_error = |e: std::io::Error| {
+        format!(
+            "could not copy {} to {}: {e}",
+            built.display(),
+            output.display()
+        )
+    };
+    let built_bytes = fs::read(&built).map_err(copy_error)?;
+    // An unchanged runtime keeps its timestamp, so later build steps can skip it.
+    // A changed one gets a new timestamp, even when Cargo reused an older binary.
+    if fs::read(output).ok().as_ref() != Some(&built_bytes) {
+        if let Some(parent) = output.parent().filter(|p| !p.as_os_str().is_empty()) {
+            fs::create_dir_all(parent)?;
+        }
+        write_atomic(output, &built_bytes).map_err(copy_error)?;
+    }
+    println!(
+        "Built guest runtime for {}: {}",
+        wit.display(),
+        output.display()
+    );
+    Ok(())
 }
 
 /// Precompile bytes using the LTS wasmtime version
@@ -222,7 +410,7 @@ fn main() {
                     } else {
                         engine.precompile_module(&bytes).unwrap()
                     };
-                    std::fs::write(outfile, serialized).unwrap();
+                    write_atomic(Path::new(&outfile), &serialized).unwrap();
                 }
                 WasmtimeVersion::Lts => {
                     let target_name = if pulley {
@@ -251,7 +439,7 @@ fn main() {
                     let bytes = std::fs::read(&input).unwrap();
                     let serialized =
                         precompile_bytes_lts(&bytes, debug, minimal, pulley, component);
-                    std::fs::write(outfile, serialized).unwrap();
+                    write_atomic(Path::new(&outfile), &serialized).unwrap();
                 }
             }
         }
@@ -354,6 +542,24 @@ fn main() {
                     let bytes = std::fs::read(&file).unwrap();
                     detect_and_deserialize_lts(&bytes, debug, &file);
                 }
+            }
+        }
+        Commands::ExperimentalBuildRuntime {
+            wit,
+            output,
+            world,
+            wasmtime_version,
+            target_dir,
+        } => {
+            if let Err(e) = build_runtime(
+                &wit,
+                &output,
+                world.as_deref(),
+                wasmtime_version,
+                &target_dir,
+            ) {
+                eprintln!("Error - {e}");
+                std::process::exit(1);
             }
         }
     }

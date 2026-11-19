@@ -6,7 +6,7 @@
 Run WebAssembly components in Hyperlight micro VMs from .NET, with typed bindings generated from WIT.
 
 * `Hyperlight.Wasm` is the runtime library. It wraps the native `hyperlight-wasm-capi` library.
-* `Hyperlight.Wasm.Build` generates C# from WIT at build time. It needs no Rust toolchain. Visual Studio builds need Visual Studio 2026 or later.
+* `Hyperlight.Wasm.Build` generates C# from WIT at build time, which needs no Rust toolchain. It can also build the guest runtime and components. Visual Studio builds need Visual Studio 2026 or later.
 
 Both target .NET 10 or later. The packages hold native libraries for the runtime identifier they were packed on.
 
@@ -42,15 +42,29 @@ uint sum = component.Adder.Add(1, 2);
 
 ## Guest runtime and components
 
-A component needs a guest runtime built for its WIT world, because the runtime's guest bindings are generated when it is compiled. Building a runtime needs Rust and a hyperlight-wasm checkout of the same version as the packages:
+A component needs a guest runtime built for its WIT world, because the runtime's guest bindings are generated when it is compiled. Components must be precompiled. The runtime, the precompiled component and the packages must come from the same hyperlight-wasm version.
+
+Both steps use `hyperlight-wasm-aot`, which needs rustup and clang. Its runtime build is experimental, and uses Rust 1.94.1 unless `RUSTUP_TOOLCHAIN` is set. Install the packages' version without the `-preview` suffix:
 
 ```sh
-wasm-tools component wit example.wit -w -o example-world.wasm
-WIT_WORLD=example-world.wasm cargo hyperlight build --release \
-    --manifest-path src/hyperlight_wasm_runtime/Cargo.toml --target-dir target/example-runtime
+cargo install --locked hyperlight-wasm-aot --version <version>
 ```
 
-Precompile the component with `hyperlight-wasm-aot compile --component`. The runtime, the AOT tool and the packages must come from the same hyperlight-wasm version.
+### Building them with the project
+
+Set `Runtime` on a `HyperlightWit` item and list components as `HyperlightComponent` items. The build then creates the runtime and `<name>.aot` in the output directory. The first runtime build takes several minutes. `HyperlightWasmAot` sets the tool's path, and `HyperlightWasmtimeVersion` selects `lts`, the default, or `latest`.
+
+```xml
+<HyperlightWit Include="wit/example.wit" World="example" Runtime="example-runtime" />
+<HyperlightComponent Include="example.wasm" />
+```
+
+### Building them by hand
+
+```sh
+hyperlight-wasm-aot experimental-build-runtime example.wit example-runtime --world example
+hyperlight-wasm-aot compile --component example.wasm example.aot
+```
 
 ## Sandboxes
 
@@ -78,8 +92,8 @@ Hyperlight runs a helper process, `hyperlight_surrogate_<hash>.exe`, for each sa
 ## Development
 
 ```sh
-just dotnet-test   # builds the native libraries, a test runtime and component, then runs the tests
-just dotnet-pack   # packs both packages into dotnet/artifacts
+just dotnet-test         # builds the native libraries and test component, then runs the tests
+just dotnet-pack         # packs both packages into dotnet/artifacts
 ```
 
 `HyperlightNativeDir` overrides where the projects find the native libraries.

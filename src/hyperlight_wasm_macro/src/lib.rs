@@ -27,14 +27,28 @@ mod wasmguest;
 /// wasmtime linker for component imports (which are implemented by
 /// calling to the Hyperlight host).
 ///
+/// `WIT_WORLD` is a `.wit` file, a directory of `.wit` files or a
+/// wasm-encoded WIT package.
+///
 /// If the WIT file contains multiple worlds, set the `WIT_WORLD_NAME`
 /// environment variable to select a specific world by name. If not set,
 /// the last world in the file will be used.
 #[proc_macro]
 pub fn wasm_guest_bindgen(_: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let path = std::env::var_os("WIT_WORLD").unwrap();
+    let path = std::path::PathBuf::from(std::env::var_os("WIT_WORLD").unwrap());
     let world_name = std::env::var("WIT_WORLD_NAME").ok();
-    util::read_wit_type_from_file(path, world_name, |kebab_name, ct| {
+    let source = if path
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("wit"))
+        || std::path::Path::new(&std::env::var_os("CARGO_MANIFEST_DIR").unwrap())
+            .join(&path)
+            .is_dir()
+    {
+        util::WitSource::Wit(path)
+    } else {
+        util::WitSource::Wasm(path)
+    };
+    util::read_wit_type(source, world_name, |kebab_name, ct| {
         let decls = emit::run_state(true, true, |s| {
             // Emit type/trait definitions for all instances in the world
             rtypes::emit_toplevel(s, &kebab_name, ct);

@@ -26,18 +26,10 @@
     <ProjectReference Include="../../src/Hyperlight.Wasm.Build/Hyperlight.Wasm.Build.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
+  <!-- The build creates the runtime and compiles the component that `just build-rust-component-examples` builds. -->
   <ItemGroup>
-    <HyperlightWit Include="$(RepoRoot)src/tests/rust_guests/component_sample/wit/example.wit" World="example" Namespace="Hyperlight.Wasm.Tests.Sample" />
-  </ItemGroup>
-
-  <!-- Built by `just dotnet-test-assets`. -->
-  <PropertyGroup>
-    <HyperlightGuestArch Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">aarch64</HyperlightGuestArch>
-    <HyperlightGuestArch Condition="'$(HyperlightGuestArch)' == ''">x86_64</HyperlightGuestArch>
-  </PropertyGroup>
-  <ItemGroup>
-    <None Include="$(RepoRoot)build/$(HyperlightCargoProfile)/component_sample.aot" Link="assets/component_sample.aot" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)target/component-sample-runtime/$(HyperlightGuestArch)-hyperlight-none/$(HyperlightCargoProfile)/hyperlight-wasm-runtime" Link="assets/component-sample-runtime" CopyToOutputDirectory="PreserveNewest" />
+    <HyperlightWit Include="$(RepoRoot)src/tests/rust_guests/component_sample/wit/" World="example" Namespace="Hyperlight.Wasm.Tests.Sample" Runtime="component-sample-runtime" />
+    <HyperlightComponent Include="$(RepoRoot)src/tests/rust_guests/component_sample/target/wasm32-unknown-unknown/$(HyperlightCargoProfile)/component_sample.wasm" />
   </ItemGroup>
 
   <Import Project="../../src/Hyperlight.Wasm.Build/build/Hyperlight.Wasm.Build.targets" />

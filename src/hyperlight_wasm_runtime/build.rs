@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::{env, fs};
 
 use cargo_metadata::{CargoOpt, MetadataCommand};
@@ -126,15 +126,71 @@ fn main() {
 }
 
 /// Identifies the `WIT_WORLD` world, so hosts can check that a snapshot
-/// matches their bindings. Hashes the file and `WIT_WORLD_NAME`.
+/// matches their bindings. Hashes the file, or the files a directory's WIT
+/// package is read from, and `WIT_WORLD_NAME`.
 fn component_interface(path: &Path) -> String {
-    let bytes = fs::read(path).expect("could not read WIT_WORLD");
     let mut hash = blake3::Hasher::new();
-    hash.update(blake3::hash(&bytes).as_bytes());
+    if path.is_dir() {
+        hash.update(b"\x02");
+        hash_package_dir(&mut hash, path, true);
+    } else {
+        hash_file(&mut hash, path);
+    }
     // One file can hold several worlds. Unset selects the last one.
     if let Ok(world) = env::var("WIT_WORLD_NAME") {
         hash.update(b"\x01");
         hash.update(world.as_bytes());
     }
     hash.finalize().to_string()
+}
+
+fn hash_file(hash: &mut blake3::Hasher, path: &Path) {
+    let bytes = fs::read(path).expect("could not read WIT_WORLD");
+    hash.update(blake3::hash(&bytes).as_bytes());
+}
+
+fn hash_name(hash: &mut blake3::Hasher, name: &str) {
+    hash.update(&(name.len() as u64).to_le_bytes());
+    hash.update(name.as_bytes());
+}
+
+fn sorted_entries(dir: &Path) -> Vec<PathBuf> {
+    let mut entries = fs::read_dir(dir)
+        .and_then(|d| {
+            d.map(|e| e.map(|e| e.path()))
+                .collect::<Result<Vec<_>, _>>()
+        })
+        .expect("could not read WIT_WORLD");
+    entries.sort();
+    entries
+}
+
+/// Hashes the files wit-parser reads for a package directory: its `*.wit`
+/// files and, at the top level, the packages in `deps`.
+fn hash_package_dir(hash: &mut blake3::Hasher, dir: &Path, top_level: bool) {
+    for entry in sorted_entries(dir) {
+        let name = entry.file_name().unwrap().to_string_lossy();
+        if !entry.is_dir() && name.ends_with(".wit") {
+            hash_name(hash, &name);
+            hash_file(hash, &entry);
+        }
+    }
+    let deps = dir.join("deps");
+    if !top_level || !deps.is_dir() {
+        return;
+    }
+    hash.update(b"\x03");
+    for entry in sorted_entries(&deps) {
+        let name = entry.file_name().unwrap().to_string_lossy();
+        if entry.is_dir() {
+            hash_name(hash, &format!("{name}/"));
+            hash_package_dir(hash, &entry, false);
+        } else if matches!(
+            entry.extension().and_then(|e| e.to_str()),
+            Some("wit" | "wat" | "wasm")
+        ) {
+            hash_name(hash, &name);
+            hash_file(hash, &entry);
+        }
+    }
 }
