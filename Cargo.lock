@@ -319,9 +319,9 @@ dependencies = [
 
 [[package]]
 name = "cargo-hyperlight"
-version = "0.1.14"
+version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c52f1c9d4b6173aefb66fdc2e3e112ddb359fe2fbdbaafe1b9ba25f7ac578b39"
+checksum = "cca0d3b8a8a79c7d55aecb3f68afe40675e70871ec7056f30fecee82cff1b877"
 dependencies = [
  "anyhow",
  "clap",
@@ -329,7 +329,7 @@ dependencies = [
  "const_format",
  "glob",
  "libc",
- "object 0.39.1",
+ "object 0.40.0",
  "os_str_bytes",
  "proc-macro2",
  "quote",
@@ -339,6 +339,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "toml",
  "which",
 ]
 
@@ -2090,10 +2091,13 @@ dependencies = [
 name = "hyperlight-wasm-aot"
 version = "0.16.0"
 dependencies = [
+ "cargo-hyperlight",
  "cargo-util-schemas",
  "cargo_metadata",
  "clap",
+ "hyperlight-wasm-runtime",
  "object 0.39.1",
+ "tar",
  "wasmtime 36.0.18",
  "wasmtime 47.0.4",
 ]
@@ -2836,6 +2840,15 @@ dependencies = [
  "crc32fast",
  "hashbrown 0.17.1",
  "indexmap",
+ "memchr",
+]
+
+[[package]]
+name = "object"
+version = "0.40.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd229a0361b9d0d4396176e02d65897f487eebeab7caa6d443855ee152ca0b9c"
+dependencies = [
  "memchr",
 ]
 

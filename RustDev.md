@@ -26,6 +26,10 @@ wasm-tools component wit -w -o world.wasm world.wit
 export WIT_WORLD=$(readlink -f world.wasm)
 ```
 
+The guest binary also accepts a `.wit` file or a directory of `.wit`
+files in `WIT_WORLD`. `host_bindgen!()` without arguments reads
+`WIT_WORLD` too and needs the binary encoding.
+
 ## `ProtoWasmSandbox` vs `WasmSandbox` vs `LoadedWasmSandbox`
 
 The three primary APIs with which you'll be interacting are [`ProtoWasmSandbox`](./src/hyperlight_wasm/src/sandbox/proto_wasm_sandbox.rs), [`WasmSandbox`](./src/hyperlight_wasm/src/sandbox/wasm_sandbox.rs) and [`LoadedWasmSandbox`](./src/hyperlight_wasm/src/sandbox/loaded_wasm_sandbox.rs). These are three different Rust `struct`s that provide a type-safe way to ensure the current state of the system.

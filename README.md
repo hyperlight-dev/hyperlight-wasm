@@ -95,7 +95,9 @@ a binary encoding of a component type (e.g. the result of running
 `wasm-tools component wit -w -o /path/to/output.wasm
 /path/to/input.wit`), which will ensure that the resultant library
 includes a guest binary that is specialised to load components with
-that type. Then, use `hyperlight_component_macro::host_bindgen!()` to
+that type. The guest binary also accepts a `.wit` file or a directory of
+`.wit` files, but `host_bindgen!()` without arguments needs the binary
+encoding. Then, use `hyperlight_component_macro::host_bindgen!()` to
 generate bindings from the same component type in the host.  For a
 complete (albeit small) example of this, see [this
 example](https://aka.ms/hyperlight-wasm-sockets-sample).

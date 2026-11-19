@@ -10,7 +10,7 @@ namespace Hyperlight.Wasm.Tests;
 
 public sealed class ComponentTests
 {
-    private static readonly string Assets = Path.Combine(AppContext.BaseDirectory, "assets");
+    private static readonly string Assets = AppContext.BaseDirectory;
     private static readonly string Runtime = Path.Combine(Assets, "component-sample-runtime");
     private static readonly string Component = Path.Combine(Assets, "component_sample.aot");
 
@@ -334,7 +334,7 @@ public sealed class SignalTests
     [Fact]
     public async Task GcSuspendsSpinningThreadAfterSandboxLoads()
     {
-        var assets = Path.Combine(AppContext.BaseDirectory, "assets");
+        var assets = AppContext.BaseDirectory;
         using var sandbox = new WasmSandbox(
             Path.Combine(assets, "component-sample-runtime"),
             new SandboxOptions { ScratchSize = 100 << 20 });
