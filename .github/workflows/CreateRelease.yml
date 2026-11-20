@@ -7,12 +7,100 @@ on:
 
 permissions:
   contents: write
-  id-token: write  # Required for crates.io trusted publishing
+  id-token: write  # Required for crates.io and NuGet trusted publishing
 
 jobs:
   
   benchmarks:
     uses: ./.github/workflows/Benchmarks.yml
+
+  # Builds the native libraries of the experimental .NET packages.
+  dotnet-native:
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        rid: [linux-x64, win-x64, osx-arm64]
+    runs-on: ${{ matrix.rid == 'win-x64' && fromJSON(format('["self-hosted", "Windows", "X64", "1ES.Pool=hld-win2025-amd", "JobId=dotnet-native-{0}-{1}-{2}"]', github.run_id, github.run_number, github.run_attempt)) || matrix.rid == 'osx-arm64' && 'macos-15' || 'ubuntu-24.04' }}
+    steps:
+    - uses: actions/checkout@v5
+    - name: Hyperlight setup
+      uses: hyperlight-dev/ci-setup-workflow@v2.3.1
+      with:
+          just-version: 1.59.0
+    # The runner image ships LLVM 18, the version the Linux setup installs.
+    - name: Use LLVM 18 (macOS)
+      if: runner.os == 'macOS'
+      run: echo /opt/homebrew/opt/llvm@18/bin >> "$GITHUB_PATH"
+    - name: Build native libraries
+      run: just dotnet-native
+      env:
+        # Links the C runtime into the DLLs, so they load without the Visual C++ Redistributable.
+        CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: -Ctarget-feature=+crt-static
+      # pwsh steps on the self-hosted Windows runners can pass when a recipe fails.
+      shell: bash
+    - name: Upload native libraries
+      uses: actions/upload-artifact@v4
+      with:
+        name: dotnet-native-${{ matrix.rid }}
+        path: dotnet/native/
+        if-no-files-found: error
+
+  # Packs the experimental .NET packages with every native library.
+  dotnet-pack:
+    needs: [ dotnet-native ]
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.pack.outputs.version }}
+    steps:
+    - uses: actions/checkout@v5
+    - uses: extractions/setup-just@v3
+      with:
+        just-version: "1.59.0"
+    - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73  # v6.1.0
+      with:
+        dotnet-version: 10.0.x
+    - name: Download native libraries
+      uses: actions/download-artifact@v5
+      with:
+        pattern: dotnet-native-*
+        merge-multiple: true
+        path: dotnet/native
+    - name: Pack
+      id: pack
+      # Release packages take hyperlight-wasm's version with the preview suffix.
+      # Other builds are development builds of the next minor release.
+      run: |
+        version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "hyperlight-wasm") | .version')
+        if [[ "$GITHUB_REF" == refs/heads/release/* ]]; then
+          if [[ "$version" != "${GITHUB_REF#refs/heads/release/v}" ]]; then
+            echo "::error::hyperlight-wasm is version $version, but the branch is ${GITHUB_REF#refs/heads/}"
+            exit 1
+          fi
+          package_version=$version-preview
+        else
+          IFS=. read -r major minor _ <<< "$version"
+          package_version=$major.$((minor + 1)).0-dev.$GITHUB_RUN_NUMBER
+        fi
+        just dotnet-pack-prebuilt "$package_version"
+        echo "version=$package_version" >> "$GITHUB_OUTPUT"
+      env:
+        # Reading metadata needs no particular toolchain.
+        RUSTUP_TOOLCHAIN: stable
+      shell: bash
+    - name: Upload packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: dotnet-packages
+        path: |
+          dotnet/artifacts/Hyperlight.Wasm.${{ steps.pack.outputs.version }}.nupkg
+          dotnet/artifacts/Hyperlight.Wasm.${{ steps.pack.outputs.version }}.snupkg
+          dotnet/artifacts/Hyperlight.Wasm.Build.${{ steps.pack.outputs.version }}.nupkg
+        if-no-files-found: error
 
   publish:
     # see https://github.com/orgs/community/discussions/26286#discussioncomment-3251208 for why we need to check the ref
@@ -97,4 +185,73 @@ jobs:
         publish_if_needed hyperlight-wasm
       env:
         CARGO_REGISTRY_TOKEN: ${{ steps.crates-io-auth.outputs.token }}
+      shell: bash
+
+  # A separate job, so a .NET failure cannot block the crates.io release.
+  publish-dotnet:
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
+    needs: [ publish, dotnet-pack ]
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    env:
+      VERSION: ${{ needs.dotnet-pack.outputs.version }}
+    steps:
+    - name: Download .NET packages
+      uses: actions/download-artifact@v5
+      with:
+        name: dotnet-packages
+        path: dotnet-packages
+    - name: Set up .NET
+      if: startsWith(github.ref, 'refs/heads/release/')
+      uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73  # v6.1.0
+      with:
+        dotnet-version: 10.0.x
+    - name: Authenticate with NuGet
+      if: startsWith(github.ref, 'refs/heads/release/')
+      uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841  # v1.2.0
+      id: nuget-login
+      with:
+        user: ${{ vars.NUGET_USER }}
+    # The symbol package is pushed on its own, so a retry pushes it even when its package exists.
+    - name: Publish to NuGet
+      if: startsWith(github.ref, 'refs/heads/release/')
+      run: |
+        push() {
+          dotnet nuget push "dotnet-packages/$1" --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" --skip-duplicate "${@:2}"
+        }
+        push "Hyperlight.Wasm.$VERSION.nupkg" --no-symbols
+        push "Hyperlight.Wasm.Build.$VERSION.nupkg" --no-symbols
+        push "Hyperlight.Wasm.$VERSION.snupkg"
+      env:
+        NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+      shell: bash
+    - name: Attach packages to the release
+      run: |
+        files=(
+          "dotnet-packages/Hyperlight.Wasm.$VERSION.nupkg"
+          "dotnet-packages/Hyperlight.Wasm.$VERSION.snupkg"
+          "dotnet-packages/Hyperlight.Wasm.Build.$VERSION.nupkg"
+        )
+        if [[ "$GITHUB_REF" == refs/heads/release/* ]]; then
+          gh release upload "v${GITHUB_REF#refs/heads/release/v}" --repo "$GITHUB_REPOSITORY" --clobber "${files[@]}"
+          exit 0
+        fi
+        # Each run on main recreates dev-latest, so only the run for main's head attaches to it.
+        if [[ "$(gh api "repos/$GITHUB_REPOSITORY/commits/main" -q .sha)" != "$GITHUB_SHA" ]]; then
+          echo "::notice::main is past $GITHUB_SHA. The run for main's head publishes dev-latest."
+          exit 0
+        fi
+        gh release upload dev-latest --repo "$GITHUB_REPOSITORY" --clobber "${files[@]}"
+        # The AOT compiler builds runtimes from the source it was installed from, so the clone must stay.
+        printf '%s\n' \
+          "Development build of $GITHUB_SHA. Install the matching AOT compiler from a clone that you keep:" \
+          "" \
+          '```sh' \
+          "git clone https://github.com/$GITHUB_REPOSITORY hyperlight-wasm" \
+          "git -C hyperlight-wasm checkout $GITHUB_SHA" \
+          "cargo install --locked --path hyperlight-wasm/src/hyperlight_wasm_aot" \
+          '```' |
+          gh release edit dev-latest --repo "$GITHUB_REPOSITORY" --notes-file -
+      env:
+        GH_TOKEN: ${{ github.token }}
       shell: bash

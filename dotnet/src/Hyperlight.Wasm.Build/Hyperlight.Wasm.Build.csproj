@@ -23,13 +23,21 @@
   <ItemGroup>
     <None Include="build/**" Pack="true" PackagePath="build/" />
     <None Include="$(OutputPath)$(AssemblyName).dll" Pack="true" PackagePath="tasks/$(TargetFramework)/" Visible="false" />
+  </ItemGroup>
+  <!-- Packs the build machine's library, or the published runtimes staged by `just dotnet-native` when HyperlightNativeRuntimesDir is set. -->
+  <ItemGroup Condition="'$(HyperlightNativeRuntimesDir)' == ''">
     <None Include="$(HyperlightBindgenNative)"
           Pack="true"
           PackagePath="tasks/$(TargetFramework)/runtimes/$(HyperlightNativeRid)/native/"
           Visible="false" />
   </ItemGroup>
+  <ItemGroup Condition="'$(HyperlightNativeRuntimesDir)' != ''">
+    <None Include="$(HyperlightNativeRuntimesDir)linux-x64/native/libhyperlight_wasm_csharp_bindgen.so" Pack="true" PackagePath="tasks/$(TargetFramework)/runtimes/linux-x64/native/" Visible="false" />
+    <None Include="$(HyperlightNativeRuntimesDir)win-x64/native/hyperlight_wasm_csharp_bindgen.dll" Pack="true" PackagePath="tasks/$(TargetFramework)/runtimes/win-x64/native/" Visible="false" />
+    <None Include="$(HyperlightNativeRuntimesDir)osx-arm64/native/libhyperlight_wasm_csharp_bindgen.dylib" Pack="true" PackagePath="tasks/$(TargetFramework)/runtimes/osx-arm64/native/" Visible="false" />
+  </ItemGroup>
 
-  <Target Name="CheckHyperlightNativeLibrary" BeforeTargets="GenerateNuspec">
+  <Target Name="CheckHyperlightNativeLibrary" BeforeTargets="GenerateNuspec" Condition="'$(HyperlightNativeRuntimesDir)' == ''">
     <Error Condition="!Exists('$(HyperlightBindgenNative)')"
            Text="Missing '$(HyperlightBindgenNative)'. Build it with `cargo build -p hyperlight-wasm-csharp-bindgen --profile $(HyperlightCargoProfile)`, using `dev` for debug, or set HyperlightNativeDir." />
   </Target>

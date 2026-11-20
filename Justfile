@@ -222,6 +222,24 @@ dotnet-pack target="release":
     dotnet pack dotnet/src/Hyperlight.Wasm -c {{ if target == "debug" {"Debug"} else {"Release"} }} -o dotnet/artifacts
     dotnet pack dotnet/src/Hyperlight.Wasm.Build -c {{ if target == "debug" {"Debug"} else {"Release"} }} -o dotnet/artifacts
 
+dotnet-rid := (if os() == "windows" { "win" } else if os() == "macos" { "osx" } else { "linux" }) + (if arch == "x86_64" { "-x64" } else { "-arm64" })
+native-lib-prefix := if os() == "windows" { "" } else { "lib" }
+native-lib-suffix := if os() == "windows" { ".dll" } else if os() == "macos" { ".dylib" } else { ".so" }
+
+# Builds the .NET packages' native libraries in release and copies them to dotnet/native/runtimes/<rid>/native
+dotnet-native:
+    cargo build -p hyperlight-wasm-capi -p hyperlight-wasm-csharp-bindgen --release
+    mkdir {{ mkdir-arg }} dotnet/native/runtimes/{{ dotnet-rid }}/native
+    {{ if os() == "windows" { "Copy-Item -Force" } else { "cp" } }} target/release/{{ native-lib-prefix }}hyperlight_wasm_capi{{ native-lib-suffix }} dotnet/native/runtimes/{{ dotnet-rid }}/native/
+    {{ if os() == "windows" { "Copy-Item -Force" } else { "cp" } }} target/release/{{ native-lib-prefix }}hyperlight_wasm_csharp_bindgen{{ native-lib-suffix }} dotnet/native/runtimes/{{ dotnet-rid }}/native/
+
+# Packs version `version` of the .NET packages with the linux-x64, win-x64 and osx-arm64 libraries staged in dotnet/native/runtimes into dotnet/artifacts
+dotnet-pack-prebuilt version: (dotnet-pack-project "Hyperlight.Wasm" version) (dotnet-pack-project "Hyperlight.Wasm.Build" version)
+
+[private]
+dotnet-pack-project project version:
+    dotnet pack dotnet/src/{{ project }} -c Release -o dotnet/artifacts -p:HyperlightNativeRuntimesDir={{ justfile_directory() }}/dotnet/native/runtimes/ -p:Version={{ version }}
+
 # Test a component and a module compiled with pulley
 examples-pulley target=default-target features="": (build-pulley-rust-component-examples target features) (build-pulley-rust-wasm-examples target features) (run-examples-pulley target features)
 

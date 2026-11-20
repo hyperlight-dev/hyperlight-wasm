@@ -6,25 +6,33 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Description>Experimental. Runs WebAssembly components in Hyperlight micro VMs. Use with Hyperlight.Wasm.Build to generate typed bindings from WIT.</Description>
     <PackageTags>hyperlight;wasm;webassembly;component;sandbox</PackageTags>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Hyperlight.Wasm.Tests" />
   </ItemGroup>
 
-  <!-- The native library is copied next to referencing apps and packed for the build machine's runtime identifier. -->
+  <!-- The native library is copied next to referencing apps and packed for the build machine's runtime identifier.
+       With HyperlightNativeRuntimesDir set, the published runtimes staged by `just dotnet-native` are packed instead. -->
   <PropertyGroup>
     <HyperlightCapiLibrary>$(HyperlightNativeDir)$(HyperlightNativePrefix)hyperlight_wasm_capi$(HyperlightNativeSuffix)</HyperlightCapiLibrary>
   </PropertyGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(HyperlightNativeRuntimesDir)' == ''">
     <None Include="$(HyperlightCapiLibrary)"
           Link="$(HyperlightNativePrefix)hyperlight_wasm_capi$(HyperlightNativeSuffix)"
           CopyToOutputDirectory="PreserveNewest"
           Pack="true"
           PackagePath="runtimes/$(HyperlightNativeRid)/native/" />
   </ItemGroup>
+  <ItemGroup Condition="'$(HyperlightNativeRuntimesDir)' != ''">
+    <None Include="$(HyperlightNativeRuntimesDir)linux-x64/native/libhyperlight_wasm_capi.so" Pack="true" PackagePath="runtimes/linux-x64/native/" Visible="false" />
+    <None Include="$(HyperlightNativeRuntimesDir)win-x64/native/hyperlight_wasm_capi.dll" Pack="true" PackagePath="runtimes/win-x64/native/" Visible="false" />
+    <None Include="$(HyperlightNativeRuntimesDir)osx-arm64/native/libhyperlight_wasm_capi.dylib" Pack="true" PackagePath="runtimes/osx-arm64/native/" Visible="false" />
+  </ItemGroup>
 
-  <Target Name="CheckHyperlightNativeLibrary" BeforeTargets="PrepareForBuild;GenerateNuspec">
+  <Target Name="CheckHyperlightNativeLibrary" BeforeTargets="PrepareForBuild;GenerateNuspec" Condition="'$(HyperlightNativeRuntimesDir)' == ''">
     <Error Condition="!Exists('$(HyperlightCapiLibrary)')"
            Text="Missing '$(HyperlightCapiLibrary)'. Build it with `cargo build -p hyperlight-wasm-capi --profile $(HyperlightCargoProfile)`, using `dev` for debug, or set HyperlightNativeDir." />
   </Target>
