@@ -22,17 +22,23 @@ jobs:
     strategy:
       matrix:
         rid: [linux-x64, win-x64, osx-arm64]
-    runs-on: ${{ matrix.rid == 'win-x64' && fromJSON(format('["self-hosted", "Windows", "X64", "1ES.Pool=hld-win2025-amd", "JobId=dotnet-native-{0}-{1}-{2}"]', github.run_id, github.run_number, github.run_attempt)) || matrix.rid == 'osx-arm64' && 'macos-15' || 'ubuntu-24.04' }}
+    runs-on: ${{ matrix.rid == 'win-x64' && fromJSON(format('["self-hosted", "Windows", "X64", "1ES.Pool=hld-win2025-amd", "JobId=dotnet-native-{0}-{1}-{2}"]', github.run_id, github.run_number, github.run_attempt)) || matrix.rid == 'osx-arm64' && fromJSON('["self-hosted", "macos", "arm64", "hvf"]') || 'ubuntu-24.04' }}
     steps:
     - uses: actions/checkout@v5
     - name: Hyperlight setup
       uses: hyperlight-dev/ci-setup-workflow@v2.3.1
       with:
           just-version: 1.59.0
-    # The runner image ships LLVM 18, the version the Linux setup installs.
-    - name: Use LLVM 18 (macOS)
+    - name: Install clang tools (macOS)
       if: runner.os == 'macOS'
-      run: echo /opt/homebrew/opt/llvm@18/bin >> "$GITHUB_PATH"
+      env:
+        HOMEBREW_NO_AUTO_UPDATE: "1"
+        HOMEBREW_NO_INSTALL_UPGRADE: "1"
+      run: |
+        brew install llvm
+        llvm_bin="$(brew --prefix llvm)/bin"
+        "$llvm_bin/clang" --version
+        echo "$llvm_bin" >> "$GITHUB_PATH"
     - name: Build native libraries
       run: just dotnet-native
       env:
