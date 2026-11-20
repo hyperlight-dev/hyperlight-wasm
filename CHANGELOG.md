@@ -5,23 +5,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Prerelease] - Unreleased
 
+## [v0.17.0] - 2026-11
+
 ### Added
 
-* Add `SandboxBuilder::with_interrupt_vcpu_sigrtmin_offset` to change the signal that interrupts a guest on Linux.
-* Experimental: add the `experimental_runtime_file` feature, with `SandboxBuilder::with_runtime_file` to load the guest runtime from a file.
-* Experimental: add the `hyperlight-wasm-capi` crate, a C API that calls component functions with arguments and results in Hyperlight's component wire format. It is not published.
-* Experimental: add the `Hyperlight.Wasm` and `Hyperlight.Wasm.Build` .NET packages, which run components from .NET with typed C# bindings generated from WIT at build time. See `dotnet/README.md`. They are published to NuGet as prereleases for linux-x64, win-x64 and osx-arm64.
-* Experimental: add `hyperlight-wasm-aot experimental-build-runtime`, which builds a guest runtime for a WIT world. `Hyperlight.Wasm.Build` runs it for `HyperlightWit` items with `Runtime` set, and precompiles `HyperlightComponent` items. `HyperlightWasmtimeVersion` selects the Wasmtime version for both.
-* Accept a `.wit` file or a directory of `.wit` files in `WIT_WORLD` when building the guest runtime. `host_bindgen!()` without arguments still needs a wasm-encoded package.
+* Add `SandboxBuilder::with_interrupt_vcpu_sigrtmin_offset` to change the signal that interrupts a guest on Linux. (#564)
+* Experimental: add the `experimental_runtime_file` feature, with `SandboxBuilder::with_runtime_file` to load the guest runtime from a file. (#564)
+* Experimental: add the `hyperlight-wasm-capi` crate, a C API that calls component functions with arguments and results in Hyperlight's component wire format. It is not published. (#564)
+* Experimental: add the `Hyperlight.Wasm` and `Hyperlight.Wasm.Build` .NET packages, which run components from .NET with typed C# bindings generated from WIT at build time. See `dotnet/README.md`. They are published to NuGet as prereleases for linux-x64, win-x64 and osx-arm64. (#564, #575)
+* Experimental: add `hyperlight-wasm-aot experimental-build-runtime`, which builds a guest runtime for a WIT world. `Hyperlight.Wasm.Build` runs it for `HyperlightWit` items with `Runtime` set, and precompiles `HyperlightComponent` items. `HyperlightWasmtimeVersion` selects the Wasmtime version for both. (#574)
+* Accept a `.wit` file or a directory of `.wit` files in `WIT_WORLD` when building the guest runtime. `host_bindgen!()` without arguments still needs a wasm-encoded package. (#574)
 
 ### Changed
 
-* Update Hyperlight dependencies to 0.19.0.
-* Change component function names to `<instance>#<function>`. Generate host bindings with `hyperlight-component-macro` 0.19.
+* Update Hyperlight dependencies to 0.19.0. (#572)
+* Change component function names to `<instance>#<function>`. Generate host bindings with `hyperlight-component-macro` 0.19. (#572)
 
 ### Removed
 
-* Remove `SandboxBuilder::with_guest_heap_size`. The guest heap uses scratch memory, so size it with `with_guest_scratch_size`.
+* Remove `SandboxBuilder::with_guest_heap_size`. The guest heap uses scratch memory, so size it with `with_guest_scratch_size`. (#572)
+
+### Fixed
+
+* Fix the aarch64 guest runtime's instruction cache synchronization, which could make guests fail on KVM. (#578)
 
 ## [v0.16.0] - 2026-11
 
@@ -96,7 +102,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The Initial Hyperlight-wasm Release 🎉 
 
 
-[Prerelease]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.16.0...HEAD>
+[Prerelease]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.17.0...HEAD>
+[v0.17.0]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.16.0...v0.17.0>
 [v0.16.0]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.15.0...v0.16.0>
 [v0.15.0]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.14.0...v0.15.0>
 [v0.14.0]: <https://github.com/hyperlight-dev/hyperlight-wasm/compare/v0.12.0...v0.14.0>
